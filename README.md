@@ -1,4 +1,4 @@
-# Ren'Py 开发模式（dsh-renpy-dev）v1.0.0
+# DSH Ren'Py 开发工作台（dsh-renpy-dev）v1.0.0
 
 > 让 AI 写对 Ren'Py——14 个经引擎验证的知识库驱动的完整 DSH 开发环境。
 

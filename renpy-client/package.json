@@ -2,7 +2,7 @@
   "name": "dsh-renpy-dev-client",
   "version": "0.1.0",
   "license": "MIT",
-  "description": "Ren'Py 开发模式（dsh-renpy-dev）客户端包：conversation.view 开发页签 + webServer API（宿主侧）",
+  "description": "DSH Ren'Py 开发工作台（dsh-renpy-dev）客户端包：conversation.view 开发页签 + webServer API（宿主侧）",
   "main": "lib/host.js",
   "exports": {
     ".": "./lib/host.js",

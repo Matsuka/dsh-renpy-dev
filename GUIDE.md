@@ -1,4 +1,4 @@
-# Ren'Py 开发模式 — 用户指南
+# DSH Ren'Py 开发工作台 — 用户指南
 
 > 面向使用者的功能介绍与操作手册。本文档说明这套工具能做什么、怎么打开、每一步怎么操作、预期看到什么结果，以及使用时需要注意的事项。
 >
@@ -9,7 +9,7 @@
 
 ## 1. 这是什么
 
-Ren'Py 开发模式是一套装在 **DeepSeek Harness（DSH）** 里的 **Ren'Py 游戏开发工作台**。它把一个普通的 AI 编程对话界面，扩展成了带完整开发工具链的浏览器面板：
+DSH Ren'Py 开发工作台是一套装在 **DeepSeek Harness（DSH）** 里的 **Ren'Py 游戏开发工作台**。它把一个普通的 AI 编程对话界面，扩展成了带完整开发工具链的浏览器面板：
 
 - 左边是**文件/资源管理器**，中间是**代码编辑器**（语法高亮、补全、查找替换、括号匹配等，类 VSCode）
 - 顶部工具栏可以**检查（lint）、运行游戏、截图、跑自动化测试**
@@ -29,7 +29,7 @@ Ren'Py 开发模式是一套装在 **DeepSeek Harness（DSH）** 里的 **Ren'Py
 |---|---|
 | DSH | 本机已安装并运行（Web GUI `http://127.0.0.1:3080`） |
 | Ren'Py SDK | 工作区 `renpy-8.5.3-sdk/`（锁定 8.5.x） |
-| Ren'Py 开发模式 | 已挂载为 agent preset「RenPy Dev」，新会话可选 |
+| DSH Ren'Py 开发工作台 | 已挂载为 agent preset「RenPy Dev」，新会话可选 |
 | 示例项目 | `demo-script/`（测试用）；SDK 自带 `the_question/`、`tutorial/` |
 
 ### 2.2 打开开发面板

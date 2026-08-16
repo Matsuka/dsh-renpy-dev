@@ -1,6 +1,6 @@
-# 部署流程说明（deploy.ps1 完整指南）
+# DSH Ren'Py 开发工作台（dsh-renpy-dev）— 部署指南
 
-> 本文档面向**部署者**（在目标机器上安装这套 Ren'Py 开发模式的人），
+> 本文档面向**部署者**（在目标机器上安装这套 DSH Ren'Py 开发工作台的人），
 > 完整说明一键部署的流程、两种模式、参数、验证与故障排查。
 > 使用者（测试者）的操作指南见 `GUIDE.md`；快速上手见 `README.md`。
 > **English version** → `DEPLOY.en.md`。

@@ -1,4 +1,4 @@
-# Ren'Py 术语表（初稿，待审校）
+# DSH Ren'Py 开发工作台（dsh-renpy-dev）— 术语表
 
 > 本表由 SDK 英文文档（`renpy-8.5.3-sdk/doc/*.html`）与官方中文文档
 > （[doc.renpy.cn/zh-CN/](https://doc.renpy.cn/zh-CN/)）页面标题对照生成。
