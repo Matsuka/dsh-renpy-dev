@@ -1,0 +1,25 @@
+const fs = require('fs')
+const src = fs.readFileSync(require('./paths').CLIENT_SRC, 'utf8')
+const m = src.match(/const renpyToPython = \(line\) => \{[\s\S]*?\n\t\t\};/)
+if (!m) { console.log('未找到 renpyToPython'); process.exit(1) }
+const fn = eval('(' + m[0].replace(/^const /, '').replace(/;$/, '') + ')')
+let p = 0, f = 0
+const ok = (c, msg) => { if (c) { p++; console.log('  ✓', msg) } else { f++; console.log('  ✗ FAIL:', msg) } }
+const t = (input, expect, label) => { const r = fn(input); ok(r && r.py === expect, label + ' → ' + (r ? r.py : 'null')) }
+t('e "你好"', 'e("你好")', '角色 say')
+t('"旁白"', 'renpy.say(None, "旁白")', '旁白')
+t('jump start', 'renpy.jump("start")', 'jump')
+t('call sub', 'renpy.call("sub")', 'call')
+t('call sub(1, x=2)', 'renpy.call("sub", 1, x=2)', 'call 带参')
+t('return', 'renpy.return_()', 'return')
+t('scene bg hall', 'renpy.scene(); renpy.show("bg hall")', 'scene')
+t('show e at right', 'renpy.show("e", at_list=[right])', 'show at')
+t('hide e', 'renpy.hide("e")', 'hide')
+t('with fade', 'renpy.with_statement(fade)', 'with')
+t('$ x = 1', 'x = 1', '$ python')
+t('menu:', "renpy.menu([('选项', '值'), …])", 'menu')
+ok(fn('define x = 1').py === 'x = 1', 'define → init 赋值')
+ok(fn('if x > 1:').py === 'if x > 1:', 'if → 直接 Python')
+ok(fn('random line') === null, '无法识别 → null')
+console.log(p + ' passed, ' + f + ' failed')
+process.exit(f ? 1 : 0)

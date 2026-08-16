@@ -1,0 +1,23 @@
+{
+  "name": "dsh-renpy-dev-client",
+  "version": "0.1.0",
+  "license": "MIT",
+  "description": "Ren'Py 开发模式（dsh-renpy-dev）客户端包：conversation.view 开发页签 + webServer API（宿主侧）",
+  "main": "lib/host.js",
+  "exports": {
+    ".": "./lib/host.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-runtime"
+      ],
+      "platform": "web"
+    }
+  }
+}

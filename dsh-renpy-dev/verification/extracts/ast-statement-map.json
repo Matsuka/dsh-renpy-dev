@@ -1,0 +1,433 @@
+[
+  {
+    "className": "Say",
+    "attrs": [
+      "who",
+      "who_fast",
+      "what",
+      "with_",
+      "interact",
+      "attributes",
+      "arguments",
+      "temporary_attributes",
+      "rollback",
+      "identifier",
+      "explicit_identifier"
+    ],
+    "renpyCalls": [
+      "game.context",
+      "config.say_menu_text_filter",
+      "exports.say"
+    ],
+    "internals": [
+      "next_node",
+      "interact"
+    ],
+    "execSnippet": "        next_node(self.next)\n\n        try:\n            renpy.game.context().say_attributes = self.attributes\n            renpy.game.context().temporary_attributes = self.temporary_attributes\n\n            who = eval_who(self.who, self.who_fast)\n\n            stmt_name: str = \"say\"\n            if who is not None:\n                stmt_name = getattr(who, \"statement_name\", \"say\")\n\n                if callable(stmt_name):\n                    stmt_name = stmt_name()\n\n            statement_name(stmt_name)\n\n            if not ((who is None) or callable(who) or isinstance(who, str)):\n                raise Exception(f\"Sayer {self.who!r} is not a function or string.\")\n\n            what = self.what\n      "
+  },
+  {
+    "className": "Init",
+    "attrs": [
+      "block",
+      "priority"
+    ],
+    "statementName": "init",
+    "renpyCalls": [
+      "execution.not_infinite_loop"
+    ],
+    "internals": [
+      "next_node"
+    ],
+    "execSnippet": "        next_node(self.next)\n        renpy.execution.not_infinite_loop(60)\n        statement_name(\"init\")\n"
+  },
+  {
+    "className": "Label",
+    "attrs": [
+      "block",
+      "parameters",
+      "hide"
+    ],
+    "statementName": "label",
+    "renpyCalls": [
+      "game.context",
+      "exports.dynamic",
+      "easy.run_callbacks"
+    ],
+    "internals": [
+      "next_node"
+    ],
+    "execSnippet": "        next_node(self.next)\n        statement_name(\"label\")\n\n        renpy.game.context().mark_seen()\n\n        values = apply_arguments(self.parameters, renpy.store._args, renpy.store._kwargs)\n\n        renpy.exports.dynamic(**values)\n\n        renpy.store._args = None\n        renpy.store._kwargs = None\n\n        renpy.easy.run_callbacks(renpy.config.label_callback, self.name, renpy.game.context().last_abnormal)\n        renpy.easy.run_callbacks(renpy.config.label_callbacks, self.name, renpy.game.context().last_abnormal)\n"
+  },
+  {
+    "className": "Python",
+    "attrs": [
+      "code",
+      "store",
+      "hide"
+    ],
+    "statementName": "python",
+    "renpyCalls": [
+      "python.py_exec_bytecode",
+      "game.context"
+    ],
+    "internals": [
+      "next_node"
+    ],
+    "execSnippet": "        next_node(self.next)\n        statement_name(\"python\")\n\n        try:\n            renpy.python.py_exec_bytecode(self.code.bytecode, self.hide, store=self.store)\n        finally:\n            if not renpy.game.context().init_phase:\n                for i in renpy.config.python_callbacks:\n                    i()\n"
+  },
+  {
+    "className": "EarlyPython",
+    "attrs": [
+      "code",
+      "store",
+      "hide"
+    ],
+    "statementName": "python early",
+    "renpyCalls": [
+      "execution.not_infinite_loop"
+    ],
+    "internals": [
+      "next_node"
+    ],
+    "execSnippet": "        next_node(self.next)\n        renpy.execution.not_infinite_loop(60)\n        statement_name(\"python early\")\n"
+  },
+  {
+    "className": "Image",
+    "attrs": [
+      "imgname",
+      "code",
+      "atl"
+    ],
+    "statementName": "image",
+    "renpyCalls": [
+      "python.py_eval_bytecode",
+      "exports.image"
+    ],
+    "internals": [
+      "next_node"
+    ],
+    "execSnippet": "        # Note: We should always check that self.code is None before\n        # accessing self.atl, as self.atl may not always exist.\n\n        next_node(self.next)\n        statement_name(\"image\")\n\n        if self.code is not None:\n            img = renpy.python.py_eval_bytecode(self.code.bytecode)\n        else:\n            img = renpy.display.motion.ATLTransform(self.atl)\n\n        renpy.exports.image(self.imgname, img)\n"
+  },
+  {
+    "className": "Transform",
+    "attrs": [
+      "varname",
+      "atl",
+      "parameters",
+      "store"
+    ],
+    "statementName": "transform",
+    "renpyCalls": [
+      "exports.pure"
+    ],
+    "internals": [
+      "next_node"
+    ],
+    "execSnippet": "        next_node(self.next)\n        statement_name(\"transform\")\n\n        parameters = getattr(self, \"parameters\", None)\n\n        if parameters is None:\n            parameters = Transform.default_parameters\n\n        trans = renpy.display.motion.ATLTransform(self.atl, parameters=parameters)\n        renpy.dump.transforms.append((self.varname, self.filename, self.linenumber))\n\n        renpy.exports.pure(f\"{self.store}.{self.varname}\")\n\n        ns, _special = get_namespace(self.store)\n        ns.set(self.varname, trans)\n"
+  },
+  {
+    "className": "Show",
+    "attrs": [
+      "imspec",
+      "atl"
+    ],
+    "statementName": "show",
+    "renpyCalls": [],
+    "internals": [
+      "next_node",
+      "show_imspec"
+    ],
+    "execSnippet": "        next_node(self.next)\n        statement_name(\"show\")\n\n        show_imspec(self.imspec, atl=getattr(self, \"atl\", None))\n"
+  },
+  {
+    "className": "ShowLayer",
+    "attrs": [
+      "at_list",
+      "atl",
+      "layer"
+    ],
+    "statementName": "show layer",
+    "renpyCalls": [
+      "python.py_eval",
+      "exports.layer_at_list"
+    ],
+    "internals": [
+      "next_node",
+      "py_eval"
+    ],
+    "execSnippet": "        next_node(self.next)\n        statement_name(\"show layer\")\n\n        at_list = [renpy.python.py_eval(i) for i in self.at_list]\n\n        if self.atl is not None:\n            atl = renpy.display.motion.ATLTransform(self.atl)\n            at_list.append(atl)\n\n        renpy.exports.layer_at_list(at_list, layer=self.layer)\n"
+  },
+  {
+    "className": "Camera",
+    "attrs": [
+      "at_list",
+      "atl",
+      "layer"
+    ],
+    "statementName": "show layer",
+    "renpyCalls": [
+      "python.py_eval",
+      "exports.layer_at_list"
+    ],
+    "internals": [
+      "next_node",
+      "py_eval"
+    ],
+    "execSnippet": "        next_node(self.next)\n        statement_name(\"show layer\")\n\n        at_list = [renpy.python.py_eval(i) for i in self.at_list]\n\n        if self.atl is not None:\n            atl = renpy.display.motion.ATLTransform(self.atl)\n            at_list.append(atl)\n\n        renpy.exports.layer_at_list(at_list, layer=self.layer, camera=True, reset=False)\n"
+  },
+  {
+    "className": "Scene",
+    "attrs": [
+      "imspec",
+      "atl",
+      "layer"
+    ],
+    "statementName": "scene",
+    "renpyCalls": [
+      "config.scene"
+    ],
+    "internals": [
+      "next_node",
+      "show_imspec"
+    ],
+    "execSnippet": "        next_node(self.next)\n        statement_name(\"scene\")\n\n        renpy.config.scene(self.layer)\n\n        if self.imspec:\n            show_imspec(self.imspec, atl=getattr(self, \"atl\", None))\n"
+  },
+  {
+    "className": "With",
+    "attrs": [
+      "expr",
+      "paired"
+    ],
+    "statementName": "with",
+    "renpyCalls": [
+      "python.py_eval",
+      "exports.with_statement"
+    ],
+    "internals": [
+      "next_node",
+      "py_eval"
+    ],
+    "execSnippet": "        next_node(self.next)\n        statement_name(\"with\")\n\n        trans = renpy.python.py_eval(self.expr)\n\n        if self.paired is not None:\n            paired = renpy.python.py_eval(self.paired)\n        else:\n            paired = None\n\n        renpy.exports.with_statement(trans, paired=paired)\n"
+  },
+  {
+    "className": "Call",
+    "attrs": [
+      "label",
+      "arguments",
+      "expression",
+      "global_label"
+    ],
+    "statementName": "call",
+    "renpyCalls": [
+      "python.py_eval",
+      "game.context"
+    ],
+    "internals": [
+      "py_eval",
+      "next_node"
+    ],
+    "execSnippet": "        statement_name(\"call\")\n\n        label = self.label\n        if self.expression:\n            label = renpy.python.py_eval(label)\n\n            if isinstance(label, str) and label.startswith(\".\"):\n                label = self.global_label + label\n\n        rv = renpy.game.context().call(label, return_site=self.next.name)\n        next_node(rv)\n        renpy.game.context().abnormal = True\n\n        if self.arguments:\n            args, kwargs = self.arguments.evaluate()\n            renpy.store._args = args\n            renpy.store._kwargs = kwargs\n        else:\n            renpy.store._args = None\n            renpy.store._kwargs = None\n"
+  },
+  {
+    "className": "Return",
+    "attrs": [
+      "expression"
+    ],
+    "statementName": "return",
+    "renpyCalls": [
+      "python.py_eval",
+      "game.context"
+    ],
+    "internals": [
+      "py_eval",
+      "next_node"
+    ],
+    "execSnippet": "        statement_name(\"return\")\n\n        if self.expression:\n            renpy.store._return = renpy.python.py_eval(self.expression)\n        else:\n            renpy.store._return = None\n\n        ctx = renpy.game.context()\n\n        if renpy.game.context().init_phase:\n            if len(ctx.return_stack) == 0:\n                if renpy.config.developer:\n                    raise Exception(\"Unexpected return during the init phase.\")\n\n                return\n\n        next_node(renpy.game.context().lookup_return(pop=True))\n        renpy.game.context().pop_dynamic()\n"
+  },
+  {
+    "className": "Menu",
+    "attrs": [
+      "items",
+      "statement_start",
+      "set",
+      "with_",
+      "has_caption",
+      "arguments",
+      "item_arguments",
+      "rollback"
+    ],
+    "renpyCalls": [
+      "config.say_menu_text_filter",
+      "exports.say",
+      "exports.menu"
+    ],
+    "internals": [
+      "next_node",
+      "interact"
+    ],
+    "execSnippet": "        next_node(self.next)\n\n        if self.arguments is not None:\n            args, kwargs = self.arguments.evaluate()\n        else:\n            args = kwargs = None\n\n        name = \"menu\"\n\n        if kwargs is not None and kwargs.get(\"nvl\") is True:\n            name = \"menu-nvl\"\n\n        if self.has_caption or renpy.config.choice_empty_window:\n            name += \"-with-caption\"\n\n        statement_name(name)\n\n        choices = []\n        narration = []\n        item_arguments = []\n\n        for i, (label, condition, block) in enumerate(self.items):\n            if renpy.config.say_menu_text_filter:\n                label = renpy.config.say_menu_text_filter(label)\n\n            for f in renpy."
+  },
+  {
+    "className": "Jump",
+    "attrs": [
+      "target",
+      "expression",
+      "global_label"
+    ],
+    "statementName": "jump",
+    "renpyCalls": [
+      "python.py_eval",
+      "game.context"
+    ],
+    "internals": [
+      "py_eval",
+      "lookup",
+      "next_node"
+    ],
+    "execSnippet": "        statement_name(\"jump\")\n\n        target = self.target\n        if self.expression:\n            target = renpy.python.py_eval(target)\n\n            if isinstance(target, str) and target.startswith(\".\"):\n                target = self.global_label + target\n\n        rv = renpy.game.script.lookup(target)\n        renpy.game.context().abnormal = True\n\n        next_node(rv)\n"
+  },
+  {
+    "className": "While",
+    "attrs": [
+      "condition",
+      "block"
+    ],
+    "statementName": "while",
+    "renpyCalls": [
+      "python.py_eval"
+    ],
+    "internals": [
+      "next_node",
+      "py_eval"
+    ],
+    "execSnippet": "        next_node(self.next)\n        statement_name(\"while\")\n\n        if renpy.python.py_eval(self.condition):\n            next_node(self.block[0])\n"
+  },
+  {
+    "className": "If",
+    "attrs": [
+      "entries"
+    ],
+    "statementName": "if",
+    "renpyCalls": [
+      "python.py_eval"
+    ],
+    "internals": [
+      "next_node",
+      "py_eval"
+    ],
+    "execSnippet": "        next_node(self.next)\n        statement_name(\"if\")\n\n        for condition, block in self.entries:\n            if renpy.python.py_eval(condition):\n                next_node(block[0])\n                return\n"
+  },
+  {
+    "className": "UserStatement",
+    "attrs": [
+      "line",
+      "parsed",
+      "block",
+      "translatable",
+      "code_block",
+      "translation_relevant",
+      "rollback",
+      "subparses",
+      "atl",
+      "init_priority",
+      "init_offset"
+    ],
+    "renpyCalls": [
+      "easy.run_callbacks",
+      "game.context"
+    ],
+    "internals": [
+      "next_node"
+    ],
+    "execSnippet": "        next_node(self.get_next())\n\n        name = self.get_name()\n\n        statement_name(name)\n\n        if isinstance(self.name, str) and renpy.config.cds_label_callbacks:\n            renpy.easy.run_callbacks(renpy.config.label_callback, name, renpy.game.context().last_abnormal)\n            renpy.easy.run_callbacks(renpy.config.label_callbacks, name, renpy.game.context().last_abnormal)\n\n        if self.atl is not None:\n            self.call(\"execute\", atl=renpy.display.transform.ATLTransform(self.atl))\n        else:\n            self.call(\"execute\")\n"
+  },
+  {
+    "className": "PostUserStatement",
+    "attrs": [
+      "parent"
+    ],
+    "renpyCalls": [],
+    "internals": [
+      "next_node"
+    ],
+    "execSnippet": "        next_node(self.next)\n        statement_name(\"post \" + self.parent.get_name())\n\n        self.parent.call(\"post_execute\")\n\n"
+  },
+  {
+    "className": "Define",
+    "attrs": [
+      "varname",
+      "code",
+      "store",
+      "operator",
+      "index"
+    ],
+    "statementName": "define",
+    "renpyCalls": [
+      "exports.pure"
+    ],
+    "internals": [
+      "next_node"
+    ],
+    "execSnippet": "        next_node(self.next)\n        statement_name(\"define\")\n\n        define_statements.append(self)\n\n        if self.store == \"store\":\n            renpy.dump.definitions.append((self.varname, self.filename, self.linenumber))\n        else:\n            renpy.dump.definitions.append((self.store[6:] + \".\" + self.varname, self.filename, self.linenumber))\n\n        if self.operator == \"=\" and self.index is None:\n            ns, _special = get_namespace(self.store)\n            if getattr(ns, \"pure\", True):\n                renpy.exports.pure(self.store + \".\" + self.varname)\n\n        self.set()\n"
+  },
+  {
+    "className": "Default",
+    "attrs": [
+      "varname",
+      "code",
+      "store"
+    ],
+    "statementName": "default",
+    "renpyCalls": [
+      "python.py_eval_bytecode"
+    ],
+    "internals": [
+      "next_node"
+    ],
+    "execSnippet": "        next_node(self.next)\n        statement_name(\"default\")\n\n        ns, special = get_namespace(self.store)\n\n        if special:\n            value = renpy.python.py_eval_bytecode(self.code.bytecode)\n            ns.set_default(self.varname, value)\n\n            if getattr(ns, \"repeat_at_default_time\", False):\n                default_statements.append(self)\n\n            return\n\n        default_statements.append(self)\n\n        if self.store == \"store\":\n            renpy.dump.definitions.append((self.varname, self.filename, self.linenumber))\n        else:\n            renpy.dump.definitions.append((self.store[6:] + \".\" + self.varname, self.filename, self.linenumber))\n"
+  },
+  {
+    "className": "RPY",
+    "attrs": [
+      "rest"
+    ],
+    "statementName": "rpy",
+    "renpyCalls": [],
+    "internals": [
+      "next_node"
+    ],
+    "execSnippet": "        next_node(self.next)\n        statement_name(\"rpy\")\n\n        # rpy python is run in Script.finish_load.\n"
+  },
+  {
+    "className": "Translate",
+    "attrs": [
+      "identifier",
+      "alternate",
+      "language",
+      "block",
+      "after",
+      "alternate",
+      "language"
+    ],
+    "renpyCalls": [
+      "game.context"
+    ],
+    "internals": [
+      "next_node",
+      "lookup"
+    ],
+    "execSnippet": "        next_node(self.next)\n\n        ctx = renpy.game.context()\n\n        ctx.translate_identifier = self.identifier\n        ctx.alternate_translate_identifier = getattr(self, \"alternate\", None)\n        ctx.translated = False\n\n        if self.language is None:\n            # Potentially, jump to a translation.\n            node = self.lookup()\n            node, translated = renpy.game.script.translator.lookup_translate(\n                self.identifier, getattr(self, \"alternate\", None)\n            )\n\n            renpy.game.context().translated = translated\n\n            if (node is not None) and (node is not self):\n                next_node(node)\n                return\n\n        # Otherwise, say "
+  },
+  {
+    "className": "TranslateBlock",
+    "attrs": [
+      "block",
+      "language"
+    ],
+    "renpyCalls": [],
+    "internals": [
+      "next_node"
+    ],
+    "execSnippet": "        next_node(self.next)\n"
+  }
+]

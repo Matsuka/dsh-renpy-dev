@@ -1,0 +1,39 @@
+# ── dsh-renpy-dev 工作区根 .gitignore ────────────────────────────────
+# 覆盖整个开发工作区：开发版源（renpy-client/）、发布版（dsh-renpy-dev/）、
+# 开发记录（PLAN.md）。非开源内容一律排除。
+
+# 第三方 SDK（339MB，不跟踪；使用者自行下载）
+renpy-8.5.3-sdk/
+
+# 运行残留（Ren'Py 引擎产物）
+.renpy-user/
+verification/.test-user/
+verification/projects/**/cache/
+verification/projects/**/saves/
+*.rpyc
+*.rpyb
+*.pyc
+persistent
+
+# 开发暂存/分析产物（不进仓库）
+.preset-staging/
+user-messages-*.json
+
+# 发行版目录（可从 dsh-renpy-dev/ 重新生成；发布物以 zip 为准）
+dsh-renpy-dev-dist/
+*.zip
+
+# 本地环境/工具
+node_modules/
+*.log
+.DS_Store
+Thumbs.db
+
+# 编辑器/IDE
+.vscode/
+.idea/
+*.swp
+
+# 临时与归档
+*.tmp
+*.bak

@@ -1,0 +1,47 @@
+2026-08-16 03:10:56 UTC
+Windows-11-10.0.26200-SP0
+Ren'Py 8.5.3.26051504
+
+Early init took 34 ms
+Loading error handling took 42 ms
+Loading script took 1149 ms
+Loading save slot metadata took 2 ms
+Loading persistent took 1 ms
+Running init code took 56 ms
+Loading analysis data took 0 ms
+Analyze and compile ATL took 1 ms
+Reloading save slot metadata took 1 ms
+Backing up script files to 'D:\\Users\\windows\\Documents\\renpy for dsh\\.renpy-user/backups\\eq-test':
+Dump and make backups took 2 ms
+Cleaning cache took 0 ms
+Making clean stores took 0 ms
+Initial gc took 19 ms
+DPI scale factor: 1.750000
+nvdrs: Loaded, about to disable thread optimizations.
+nvdrs: Disabled thread optimizations.
+Creating interface object took 197 ms
+Init translation took 1 ms
+Cleaning stores took 0 ms
+Load screen analysis took 0 ms
+Analyze screens took 9 ms
+Save screen analysis took 5 ms
+Save pyanalysis took 1 ms
+Save bytecode took 13 ms
+﻿Ren'Py 8.5.3.26051504 lint report, generated at: Sun Aug 16 11:10:57 2026
+
+game/script.rpy:7 'bg lecturehall' is not an image.
+
+game/script.rpy:9 'e' is not an image.
+It is advised to set config.check_conflicting_properties to True.
+
+
+Statistics:
+
+The game contains 2 dialogue blocks, containing 2 words and 7 characters, for
+an average of 1.0 words and 4 characters per block.
+
+The game contains 1 menus, 0 images, and 0 screens.
+
+
+Lint is not a substitute for thorough testing. Remember to update Ren'Py
+before releasing. New releases fix bugs and improve compatibility.

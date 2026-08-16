@@ -1,0 +1,12 @@
+﻿I'm sorry, but errors were detected in your script. Please correct the
+errors listed below, and try again.
+
+
+The label start is defined twice, at File "game/learn_comment_test.rpy", line 3:
+label start:
+and File "game/script.rpy", line 21:
+label start:
+
+
+Ren'Py Version: Ren'Py 8.5.3.26051504
+Sun Aug 16 17:02:26 2026

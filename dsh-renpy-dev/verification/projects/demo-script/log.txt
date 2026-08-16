@@ -1,0 +1,128 @@
+2026-08-16 13:35:44 UTC
+Windows-11-10.0.26200-SP0
+Ren'Py 8.5.3.26051504
+
+Early init took 25 ms
+Loading error handling took 19 ms
+Loading script took 524 ms
+Loading save slot metadata took 3 ms
+Loading persistent took 0 ms
+=== AUTOIMAGE-DEBUG all keys ===
+    ('black',) -> Solid
+    ('eileen', 'happy') -> Image
+    ('happy',) -> Image
+    ('house',) -> Image
+    ('sad',) -> Image
+    ('text',) -> ParameterizedText
+    ('vtext',) -> ParameterizedText
+
+Full traceback:
+  File "game/transitions_test.rpy", line 52, in script
+    define config.scene_show_hide_transition = Dissolve(0.25)
+  File "renpy/ast.py", line 2473, in execute
+    self.set()
+    ~~~~~~~~^^
+  File "renpy/ast.py", line 2489, in set
+    ns.set(self.varname, value)
+    ~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "renpy/common/000namespaces.rpy", line 34, in set
+    setattr(self.nso, name, value)
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "renpy/defaultstore.py", line 100, in __setattr__
+    raise Exception("config.%s is not a known configuration variable." % (name))
+Exception: config.scene_show_hide_transition is not a known configuration variable.
+
+While running game code:
+  File "game/transitions_test.rpy", line 52, in script
+    define config.scene_show_hide_transition = Dissolve(0.25)
+Exception: config.scene_show_hide_transition is not a known configuration variable.
+Running init code took 49 ms
+Loading analysis data took 0 ms
+Analyze and compile ATL took 6 ms
+Reloading save slot metadata took 1 ms
+Backing up script files to 'D:\\Users\\windows\\Documents\\renpy for dsh\\renpy-dsh-mode\\verification\\.test-user/backups\\demo-script':
+Dump and make backups took 6 ms
+Cleaning cache took 0 ms
+Making clean stores took 1 ms
+Initial gc took 19 ms
+DPI scale factor: 1.750000
+nvdrs: Loaded, about to disable thread optimizations.
+nvdrs: Disabled thread optimizations.
+Creating interface object took 158 ms
+Init translation took 1 ms
+Cleaning stores took 0 ms
+Load screen analysis took 0 ms
+Analyze screens took 10 ms
+Save screen analysis took 9 ms
+Save pyanalysis took 3 ms
+Save bytecode took 13 ms
+﻿Ren'Py 8.5.3.26051504 lint report, generated at: Sun Aug 16 21:35:45 2026
+
+game/atl_test.rpy:75 References image 'eileen vhappy', which does not exist.
+
+game/atl_test.rpy:75 References image 'eileen vhappy', which does not exist.
+
+game/auto_image_test.rpy:6 'bg house' is not an image.
+
+game/auto_image_test.rpy:8 'charas eileen happy' is not an image.
+
+game/auto_image_test.rpy:10 'definitely_missing_image' is not an image.
+
+game/layeredimage_test.rpy:51 References image 'augustina_base', which does not exist.
+
+game/layeredimage_test.rpy:51 References image 'augustina_base2', which does not exist.
+
+game/layeredimage_test.rpy:51 References image 'augustina_dress', which does not exist.
+
+game/layeredimage_test.rpy:51 References image 'augustina_face_neutral', which does not exist.
+
+game/layeredimage_test.rpy:51 'augustina happy' is not an image.
+
+game/save_test.rpy:30 The screen quick_save_bar has not been given a parameter list.
+This can be fixed by writing 'screen quick_save_bar():' instead.
+
+game/screen_basic_test.rpy:17 The screen ask_are_you_sure has not been given a parameter list.
+
+game/screen_basic_test.rpy:24 The screen box_test has not been given a parameter list.
+
+game/screen_basic_test.rpy:29 The screen vbox_test has not been given a parameter list.
+
+game/screen_basic_test.rpy:34 The screen grid_test has not been given a parameter list.
+
+game/screen_basic_test.rpy:43 The screen side_test has not been given a parameter list.
+
+game/screen_basic_test.rpy:54 The screen add_test has not been given a parameter list.
+
+game/screen_basic_test.rpy:68 The screen use_test has not been given a parameter list.
+
+game/screen_controls_test.rpy:16 The screen text_props_test has not been given a parameter list.
+
+game/screen_controls_test.rpy:24 The screen tb_test has not been given a parameter list.
+
+game/screen_controls_test.rpy:31 The screen btn_test has not been given a parameter list.
+
+game/screen_controls_test.rpy:55 The screen imgbtn_test has not been given a parameter list.
+
+game/screen_controls_test.rpy:61 The screen prefixed_test has not been given a parameter list.
+
+game/sprites_test.rpy:51 'snow_scene' is not an image.
+
+game/sprites_test.rpy:52 'make_particles' is not an image.
+
+game/text_style_test.rpy:5 define store.e already defined at game/l10n_test.rpy:4
+It is advised to set config.check_conflicting_properties to True.
+
+
+Statistics:
+
+The game contains 50 dialogue blocks, containing 66 words and 856 characters,
+for an average of 1.3 words and 17 characters per block.
+
+The japanese translation contains 1 dialogue blocks, containing 1 words and 20
+characters, for an average of 1.0 words and 20 characters per block.
+
+The game contains 3 menus, 11 images, and 38 screens.
+
+
+Lint is not a substitute for thorough testing. Remember to update Ren'Py
+before releasing. New releases fix bugs and improve compatibility.

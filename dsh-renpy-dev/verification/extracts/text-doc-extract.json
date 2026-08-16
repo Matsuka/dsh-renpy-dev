@@ -1,0 +1,954 @@
+{
+  "text": {
+    "text": {
+      "dl": [],
+      "tables": [],
+      "code": [],
+      "lis": [
+        "Translating text.",
+        "Interpolating data into the text.",
+        "Styling the text using styles and text tags.",
+        "Laying out the styled text.",
+        "Drawing the text to the screen."
+      ]
+    },
+    "escape-characters": {
+      "dl": [
+        {
+          "k": "(backslash)",
+          "v": "The backslash character is used to escape characters when writing a Ren'Py\nor Python string. Some common escape codes are:\n\n\\\" (backslash-doublequote)Includes a doublequote in a double-quoted string."
+        },
+        {
+          "k": "\\\" (backslash-doublequote)",
+          "v": "Includes a single quote in a single-quoted string."
+        },
+        {
+          "k": "\\' (backslash-quote)",
+          "v": "Includes an additional space in a Ren'Py string. By default,\nRen'Py script text collapses adjacent whitespace into a single\nspace character."
+        },
+        {
+          "k": "\\ (backslash-space)",
+          "v": "Includes a newline character in the text, causing a new line to start."
+        },
+        {
+          "k": "\\n (backslash-n)",
+          "v": "Includes a backslash character in the text."
+        },
+        {
+          "k": "\\\\ (backslash-backslash)",
+          "v": "Includes a protected percent character in the text. It's also\npossible to write it as %% : both protections will result in a\nsingle % character being written in the end."
+        },
+        {
+          "k": "\\% (backslash-percent)",
+          "v": ""
+        }
+      ],
+      "tables": [],
+      "code": [],
+      "lis": []
+    },
+    "interpolating-data": {
+      "dl": [],
+      "tables": [],
+      "code": [
+        "g \"Welcome to the Nekomimi Institute, [playername]!\"",
+        "g \"My first name is [player.names[0]].\"",
+        "g \"I like you [100.0 * points / max_points:.2] percent!\"",
+        "g \"Don't pull a fast one on me, [playername!q].\"",
+        "if points > 5:\n$ mood = _(\"happy\")\nelse:\n$ mood = _(\"annoyed\")\n\ng \"I'm [mood!t] to see you.\"",
+        "define earned_points_info = _(\"[points]{image=points.png} earned points\")\ng \"I'm happy to see you you have [earned_points_info!ti].\""
+      ],
+      "lis": [
+        "When used in a screen, screen-local variables.",
+        "Variables found in the interpolate namespace.",
+        "Variables found in the global namespace.",
+        "the order in which the flags are given does not change the result : !cl\nwill do just the same as !lc.",
+        "Supplementary exclamation marks will be ignored, and will not circumvent\nthe previous rule : !l!c will do the same as !c!l or !cl.",
+        "r/s (repr or str)",
+        "t (translate)",
+        "i (recursive interpolation)",
+        "q (quoting)",
+        "u (uppercase)",
+        "l (lowercase)",
+        "c (capitalize)"
+      ]
+    },
+    "styling-and-text-tags": {
+      "dl": [],
+      "tables": [],
+      "code": [
+        "# This line is correct.\n\"Plain {b}Bold {i}Bold-Italic{/i} Bold{/b} Plain\"\n\n# This line is incorrect, and will cause incorrect behavior.\n\"Plain {b}Bold {i}Bold-Italic{/b} Italic{/i} Plain\"",
+        "\"{size=+20}This is big!\""
+      ],
+      "lis": []
+    },
+    "general-text-tags": {
+      "dl": [
+        {
+          "k": "a",
+          "v": "The anchor tag creates a hyperlink between itself and its closing\ntag. While the behavior of the hyperlink is controlled by the\nhyperlink_functions style property, the default handler\nhas the following behavior.\n\nWhen the argument begins with jump:, the rest of the argument is a label to jump to.\nWhen the argument begins with call:, the rest of the argument is a label\nto call. As usual, a call ends the current Ren'Py statement.\nWhen the argument begins with call_in_new_context:, the rest of the argument\nis a label to call in a new context (using renpy.call_in_new_context()).\nWhen the argument begins with show:, the rest of the argument is a screen to show.\nWhen the argument begins with showmenu:, the rest of the argument is a game menu\nscreen to show.\nOtherwise, the argument is a URL that is opened by the system web browser.\n\nIf there is no protocol section in the argument, config.hyperlink_protocol\nis prepended to it. If config.hyperlink_protocol has been set to \"jump\",\n{a=label} and {a=jump:label} become equivalent. Creators can define new\nprotocols using config.hyperlink_handlers.\nlabel test:\n\n e \"Why don't you visit {a=https://renpy.org}Ren'Py's home page{/a}?\"\n\n e \"Or {a=jump:more_text}here for more info{/a}.\"\n\n return\n\nlabel more_text:\n\n e \"In Hot Springs, Arkansas, there's a statue of Al Capone you can take a picture with.\"\n\n e \"That's more info, but not the kind you wanted, is it?\"\n\n return"
+        },
+        {
+          "k": "alpha",
+          "v": "The alpha text tag renders the text between itself and its closing\ntag in the specified opacity. The opacity should be a value between\n0.0 and 1.0, corresponding to fully invisible and fully opaque,\nrespectively. If the value is prefixed by + or -, the opacity will\nbe changed by that amount instead of completely replaced. If\nthe value is prefixed by *, the opacity will be multiplied by\nthat amount.\n\"{alpha=0.1}This text is barely readable!{/alpha}\"\n\"{alpha=-0.1}This text is 10 percent more transparent than the default.{/alpha}\"\n\"{alpha=*0.5}This text is half as opaque as the default.{/alpha}\""
+        },
+        {
+          "k": "alt",
+          "v": "The alt tag prevents text from being rendered, while still making the\ntext available for the text-to-speech system.\ng \"Good to see you! {image=heart.png}{alt}heart{/alt}\"\n\n\nSee also the alt character."
+        },
+        {
+          "k": "art",
+          "v": "The alternate ruby top tag marks text between itself and its closing tag as\nalternate ruby top text. See the section on Ruby Text for\nmore information."
+        },
+        {
+          "k": "b",
+          "v": "The bold tag renders the text between itself and its closing tag\nin a bold font.\n\"An example of {b}bold test{/b}.\""
+        },
+        {
+          "k": "color",
+          "v": "The color text tag renders the text between itself and its closing\ntag in the specified color. The color should be in #rgb, #rgba,\n#rrggbb, or #rrggbbaa format.\n\"{color=#f00}Red{/color}, {color=#00ff00}Green{/color}, {color=#0000ffff}Blue{/color}\""
+        },
+        {
+          "k": "cps",
+          "v": "The characters per second tag sets the speed of text display, for\ntext between the tag and its closing tag. If the argument begins\nwith an asterisk, it's taken as a multiplier to the current text\nspeed. Otherwise, the argument gives the speed to show the text\nat, in characters per second.\n\"{cps=20}Fixed Speed{/cps} {cps=*2}Double Speed{/cps}"
+        },
+        {
+          "k": "feature",
+          "v": "The feature tag enables or disables OpenType layout features. The name of\nthe feature is part of the tag, separated by a colon. The argument\nshould be 1 to enable the feature, or 0 to disable it. For example,\nto disable ligatures, use the following:\n\"{feature:liga=0}Traffic{/feature} is light today.\"\n\n\nA list of layout features can be found here."
+        },
+        {
+          "k": "font",
+          "v": "The font tag renders the text between itself and its closing tag\nin the specified font. The argument is the filename of the font to\nuse.\n\"Try out the {font=mikachan.ttf}mikachan font{/font}.\""
+        },
+        {
+          "k": "i",
+          "v": "The italics tag renders the text between itself and its closing tag\nin italics.\n\"Visit the {i}leaning tower of Pisa{/i}.\""
+        },
+        {
+          "k": "image",
+          "v": "The image tag is a self-closing tag that inserts an image into the\ntext. The image should be the height of a single line of text. The\nargument should be either the image filename, or the name of an\nimage defined with the image statement.\ng \"Good to see you! {image=heart.png}{alt}heart{/alt}\""
+        },
+        {
+          "k": "k",
+          "v": "The kerning tag is a tag that adjust the kerning of characters\nbetween itself and its closing tag. It takes as an argument a\nfloating point number giving the number of pixels of kerning to add\nto each kerning pair. (The number may be negative to decrease\nkerning.)\n\"{k=-.5}Negative{/k} Normal {k=.5}Positive{/k}\""
+        },
+        {
+          "k": "noalt",
+          "v": "The noalt tag prevents text from being spoken by the text-to-speech\nsystem. This is often used in conjunction with the alt tag, to provide\naccessible and visual options\ng \"Good to see you! {noalt}<3{/noalt}{alt}heart{/alt}\""
+        },
+        {
+          "k": "outlinecolor",
+          "v": "The outline text tag changes all the outlines (including drop\nshadows) to the given color. The color should be in #rgb, #rgba,\n#rrggbb, or #rrggbbaa format. This will only adjust existing outlines,\nit does not add them.\n\"Let's have a {outlinecolor=#00ff00}Green{/outlinecolor} outline.\""
+        },
+        {
+          "k": "plain",
+          "v": "The plain tag ensures the text does not have bold, italics, underline,\nor strikethrough applied.\n\"{b}This is bold. {plain}This is not.{/plain} This is bold.{/b}\""
+        },
+        {
+          "k": "rb",
+          "v": "The ruby bottom tag marks text between itself and its closing tag\nas ruby bottom text. See the section on Ruby Text\nfor more information."
+        },
+        {
+          "k": "rt",
+          "v": "The ruby top tag marks text between itself and its closing tag as\nruby top text. See the section on Ruby Text for\nmore information."
+        },
+        {
+          "k": "s",
+          "v": "The strikethrough tag draws a line through text between itself and\nits closing tag.\ng \"It's good {s}to see you{/s}.\""
+        },
+        {
+          "k": "shader",
+          "v": "The shader tag applies a text shader to a section of text.\nThe argument is the name of the shader to apply.\n\"This text is {shader=jitter:u__jitter=1.0, 3.0}jittery{/shader}.\"\n\n\nSee Text Shaders for more information."
+        },
+        {
+          "k": "size",
+          "v": "The size tag changes the size of text between itself and its\nclosing tag. The argument should be an integer, optionally preceded\nby + or -. If the argument is just an integer, the size is set to\nthat many pixels high. Otherwise, the size is increased or\ndecreased by that amount.\n\"{size=+10}Bigger{/size} {size=-10}Smaller{/size} {size=24}24 px{/size}.\"\n\n\nYou can also provide a floating point number preceded by a *, in\nwhich case the size will be multiplied by that number and then\nrounded down.\n\"{size=*2}Twice as big{/size} {size=*0.5}half as big.{/size}\""
+        },
+        {
+          "k": "space",
+          "v": "The space tag is a self-closing tag that inserts horizontal space\ninto a line of text. As an argument, it takes an integer giving the\nnumber of pixels of space to add.\n\"Before the space.{space=30}After the space.\""
+        },
+        {
+          "k": "u",
+          "v": "The underline tag underlines the text between itself and its\nclosing tag.\ng \"It's good to {u}see{/u} you.\""
+        },
+        {
+          "k": "vspace",
+          "v": "The vspace tag is a self-closing tag that inserts vertical space\nbetween lines of text. As an argument, it takes an integer giving\nthe number of pixels of space to add.\n\"Line 1{vspace=30}Line 2\""
+        },
+        {
+          "k": "#",
+          "v": "Text tags beginning with # are ignored, but can be included to distinguish\nstrings for the purpose of translation.\n\"New{#playlist}\""
+        }
+      ],
+      "tables": [],
+      "code": [
+        "label test:\n\ne \"Why don't you visit {a=https://renpy.org}Ren'Py's home page{/a}?\"\n\ne \"Or {a=jump:more_text}here for more info{/a}.\"\n\nreturn\n\nlabel more_text:\n\ne \"In Hot Springs, Arkansas, there's a statue of Al Capone you can take a picture with.\"\n\ne \"That's more info, but not the kind you wanted, is it?\"\n\nreturn",
+        "\"{alpha=0.1}This text is barely readable!{/alpha}\"\n\"{alpha=-0.1}This text is 10 percent more transparent than the default.{/alpha}\"\n\"{alpha=*0.5}This text is half as opaque as the default.{/alpha}\"",
+        "g \"Good to see you! {image=heart.png}{alt}heart{/alt}\"",
+        "\"An example of {b}bold test{/b}.\"",
+        "\"{color=#f00}Red{/color}, {color=#00ff00}Green{/color}, {color=#0000ffff}Blue{/color}\"",
+        "\"{cps=20}Fixed Speed{/cps} {cps=*2}Double Speed{/cps}",
+        "\"{feature:liga=0}Traffic{/feature} is light today.\"",
+        "\"Try out the {font=mikachan.ttf}mikachan font{/font}.\"",
+        "\"Visit the {i}leaning tower of Pisa{/i}.\"",
+        "g \"Good to see you! {image=heart.png}{alt}heart{/alt}\"",
+        "\"{k=-.5}Negative{/k} Normal {k=.5}Positive{/k}\"",
+        "g \"Good to see you! {noalt}<3{/noalt}{alt}heart{/alt}\"",
+        "\"Let's have a {outlinecolor=#00ff00}Green{/outlinecolor} outline.\"",
+        "\"{b}This is bold. {plain}This is not.{/plain} This is bold.{/b}\"",
+        "g \"It's good {s}to see you{/s}.\"",
+        "\"This text is {shader=jitter:u__jitter=1.0, 3.0}jittery{/shader}.\"",
+        "\"{size=+10}Bigger{/size} {size=-10}Smaller{/size} {size=24}24 px{/size}.\"",
+        "\"{size=*2}Twice as big{/size} {size=*0.5}half as big.{/size}\"",
+        "\"Before the space.{space=30}After the space.\"",
+        "g \"It's good to {u}see{/u} you.\"",
+        "\"Line 1{vspace=30}Line 2\"",
+        "\"New{#playlist}\""
+      ],
+      "lis": [
+        "When the argument begins with jump:, the rest of the argument is a label to jump to.",
+        "When the argument begins with call:, the rest of the argument is a label\nto call. As usual, a call ends the current Ren'Py statement.",
+        "When the argument begins with call_in_new_context:, the rest of the argument\nis a label to call in a new context (using renpy.call_in_new_context()).",
+        "When the argument begins with show:, the rest of the argument is a screen to show.",
+        "When the argument begins with showmenu:, the rest of the argument is a game menu\nscreen to show.",
+        "Otherwise, the argument is a URL that is opened by the system web browser."
+      ]
+    },
+    "dialogue-text-tags": {
+      "dl": [
+        {
+          "k": "w",
+          "v": "The wait tag is a self-closing tag that waits for the user to\nclick to continue. If it is given an argument, the argument is\ninterpreted as a number, and the wait automatically ends after\nthat many seconds have passed.\n\"Line 1{w} Line 1{w=1.0} Line 1\""
+        },
+        {
+          "k": "p",
+          "v": "The paragraph pause tag is a self-closing tag that terminates the\ncurrent paragraph, and waits for the user to click to continue. If\nit is given an argument, the argument is interpreted as a number,\nand the wait automatically ends after that many seconds have\npassed.\n\"Line 1{p}Line 2{p=1.0}Line 3\""
+        },
+        {
+          "k": "nw",
+          "v": "The no-wait tag is a self-closing tag that causes the current line\nof dialogue to automatically dismiss itself once the end of line\nhas been displayed.\ng \"Looks like they're{nw}\"\nshow trebuchet\ng \"Looks like they're{fast} playing with their trebuchet again.\"\n\n\nIf it is given an argument, the argument is interpreted as a number,\nand the wait automatically ends after that many seconds have passed.\ng \"I'm gonna fall in a few seconds!{nw=2}\"\nshow g_gone\n\n\nThe no-wait tag will wait for self-voicing to complete before\nadvancing."
+        },
+        {
+          "k": "fast",
+          "v": "If the fast tag is displayed in a line of text, then all text\nbefore it is displayed instantly, even in slow text mode. The\nfast tag is a self-closing tag.\ng \"Looks like they're{nw}\"\nshow trebuchet\ng \"Looks like they're{fast} playing with their trebuchet again.\"\n\n\nIf present, the {fast} tag will cause voice to be sustained from\nthe previous line."
+        },
+        {
+          "k": "done",
+          "v": "Text after the done tag is not displayed. Why would you want this?\nIt's to allow text to avoid jumping around when adjust_spacing\nis True.\nWhen the done tag is present, the line of dialogue is not added to the\nhistory buffer. If the nw tag is present, it should be before the done\ntag.:\ng \"Looks like they're{nw}{done} playing with their trebuchet again.\"\nshow trebuchet\ng \"Looks like they're{fast} playing with their trebuchet again.\""
+        },
+        {
+          "k": "clear",
+          "v": "The clear text tag only makes sense on a line by itself in the NVL monologue mode.\nIt does the same thing at the nvl clear statement without ending the block of text.\n\"\"\"\nBlock 1 on page 1.\n\nBlock 2 on page 1.\n\n{clear}\n\nBlock 1 on page 2.\n\netc.\n\"\"\""
+        }
+      ],
+      "tables": [],
+      "code": [
+        "\"Line 1{w} Line 1{w=1.0} Line 1\"",
+        "\"Line 1{p}Line 2{p=1.0}Line 3\"",
+        "g \"Looks like they're{nw}\"\nshow trebuchet\ng \"Looks like they're{fast} playing with their trebuchet again.\"",
+        "g \"I'm gonna fall in a few seconds!{nw=2}\"\nshow g_gone",
+        "g \"Looks like they're{nw}\"\nshow trebuchet\ng \"Looks like they're{fast} playing with their trebuchet again.\"",
+        "g \"Looks like they're{nw}{done} playing with their trebuchet again.\"\nshow trebuchet\ng \"Looks like they're{fast} playing with their trebuchet again.\"",
+        "\"\"\"\nBlock 1 on page 1.\n\nBlock 2 on page 1.\n\n{clear}\n\nBlock 1 on page 2.\n\netc.\n\"\"\""
+      ],
+      "lis": []
+    },
+    "style-text-tags": {
+      "dl": [],
+      "tables": [],
+      "code": [],
+      "lis": [
+        "antialias (May be None)",
+        "axis (May be None)",
+        "black_color (May be None)",
+        "bold (May be None)",
+        "color (May be None)",
+        "font (May be None)",
+        "font_features (May be None)",
+        "hinting (May be None)",
+        "instance (May be None)",
+        "italic (May be None)",
+        "kerning",
+        "size (May be None)",
+        "slow_cps",
+        "slow_cps_multiplier",
+        "strikethrough",
+        "textshader (May be None)",
+        "underline"
+      ]
+    },
+    "non-english-languages": {
+      "dl": [],
+      "tables": [],
+      "code": [
+        "define gui.language = \"korean-with-spaces\"",
+        "define gui.language = \"japanese-loose\"",
+        "define gui.language = \"greedy\""
+      ],
+      "lis": []
+    },
+    "vertical-text": {
+      "dl": [
+        {
+          "k": "horiz",
+          "v": "Includes horizontally-oriented text inside vertical text."
+        },
+        {
+          "k": "vert",
+          "v": "Includes vertically-oriented text inside horizontal text. (This will\nnot rotate the text to the vertical orientation.)"
+        }
+      ],
+      "tables": [],
+      "code": [],
+      "lis": []
+    },
+    "ruby-text": {
+      "dl": [],
+      "tables": [],
+      "code": [
+        "style ruby_style is default:\nsize 12\nyoffset -20\ncolor None # Use the same color as the parent text.\nfont None # Use the same font as the parent text.\n\nstyle say_dialogue:\nruby_line_leading 12\nruby_style style.ruby_style\n\nstyle history_text:\nruby_line_leading 12\nruby_style style.ruby_style",
+        "e \"Ruby can be used for furigana (【東｜とう】 【京｜きょう】).\"\n\ne \"It's also used for translations (【東京｜Tokyo】).\"",
+        "e \"Ruby can be used for furigana (東{rt}とう{/rt} 京{rt}きょう{/rt}).\"\n\ne \"It's also used for translations ({rb}東京{/rb}{rt}Tokyo{/rt}).\""
+      ],
+      "lis": [
+        "One of the line_leading or ruby_line_leading properties\nmust be used to leave enough vertical space for the ruby text.",
+        "A new named style must be created. The properties of this style,\nsuch as size should be set in a fashion appropriate\nfor ruby text.",
+        "The yoffset of the new style should be set, in order to move the\nruby text above the baseline.",
+        "The ruby_style field of the text's style should be set\nto the newly-created style, for both dialogue and history window\ntext.",
+        "antialias (May be None)",
+        "axis (May be None)",
+        "black_color (May be None)",
+        "bold (May be None)",
+        "color (May be None)",
+        "font (May be None)",
+        "font_features (May be None)",
+        "hinting (May be None)",
+        "instance (May be None)",
+        "italic (May be None)",
+        "kerning",
+        "size (May be None)",
+        "slow_cps",
+        "slow_cps_multiplier",
+        "strikethrough",
+        "textshader (May be None)",
+        "underline",
+        "yoffset"
+      ]
+    },
+    "font-replacement": {
+      "dl": [],
+      "tables": [],
+      "code": [
+        "init python:\nconfig.font_replacement_map[\"DejaVuSans.ttf\", False, True] = (\"DejaVuSans-Oblique.ttf\", False, False)"
+      ],
+      "lis": []
+    },
+    "font-names-and-aliases": {
+      "dl": [],
+      "tables": [],
+      "code": [
+        "define config.font_name_map[\"jap\"] = \"electroharmonix.ttf\"\ndefine config.font_name_map[\"tjap\"] = FontGroup().add(\"OrthodoxHerbertarian.ttf\", \"A\", \"Z\").add(\"electroharmonix.ttf\", None, None)\n\nlabel yamato:\ne \"Sorry, what does {font=jap}Black holes and revelations{/font} mean ?\"\ny \"You pronounce it {font=tjap}Black Holes And Revelations{/font}.\" # the capital letters appear in OrthodoxHerbertarian"
+      ],
+      "lis": []
+    },
+    "font-groups": {
+      "dl": [
+        {
+          "k": "class FontGroup",
+          "v": "A group of fonts that can be used as a single font.\n\n\nadd(font, start, end, target=None, target_increment=False)\nAssociates a range of characters with a font.\n\nstartThe start of the range. This may be a single-character string, or\nan integer giving a unicode code point. If start is None, then the\nfont is used as the default."
+        },
+        {
+          "k": "add(font, start, end, target=None, target_increment=False)",
+          "v": "The end of the range. This may be a single-character string, or an\ninteger giving a unicode code point. This is ignored if start is\nNone."
+        },
+        {
+          "k": "start",
+          "v": "If given, associates the given range of characters with specific\ncharacters from the given font, depending on target_increment.\nThis may be a single-character string, or an integer giving a\nunicode code point. This is ignored if the character had already\nbeen added."
+        },
+        {
+          "k": "end",
+          "v": "If True, the [start, end] range is mapped to the\n[target, target+end-start] range. If False, every character from the\nrange is associated with the target character."
+        },
+        {
+          "k": "target",
+          "v": ""
+        },
+        {
+          "k": "target_increment",
+          "v": ""
+        },
+        {
+          "k": "remap(cha, target)",
+          "v": "Remaps one or a set of characters to a single target character.\n\nchaThe character or characters to remap. This may be a single-character\nstring, or an integer giving a unicode code point, or an iterable of\neither."
+        },
+        {
+          "k": "cha",
+          "v": "The character to remap to. This may be a single-character string, or\nan integer giving a unicode code point."
+        },
+        {
+          "k": "target",
+          "v": ""
+        }
+      ],
+      "tables": [],
+      "code": [
+        "style default:\nfont FontGroup().add(\"english.ttf\", 0x0020, 0x007f).add(\"japanese.ttf\", 0x0000, 0xffff)"
+      ],
+      "lis": []
+    },
+    "image-based-fonts": {
+      "dl": [
+        {
+          "k": "renpy.register_bmfont(name=None, size=None, bold=False, italics=False, underline=False, filename=None)",
+          "v": "This registers a BMFont with the given details. Please note that size, bold,\nitalic, and underline are all advisory (used for matching), and do not\nchange the appearance of the font.\nPlease see the BMFont home page\nfor the tool that creates BMFonts. Ren'Py expects that the filename\nparameter will be to a file in the BMFont text format, that describes a\n32-bit font. The Alpha channel should contain the font information, while\nthe Red, Green, and Blue channels should be set to one. The image files,\nkerning, and other control information is read out of the BMFont file.\nWe recommend including Latin and General Punctuation as part of your BMFont,\nto ensure all of the Ren'Py interface can render.\n\nnameThe name of the font being registered, a string."
+        },
+        {
+          "k": "name",
+          "v": "The size of the font being registered, an integer."
+        },
+        {
+          "k": "size",
+          "v": "The boldness of the font being registered, a boolean."
+        },
+        {
+          "k": "bold",
+          "v": "The italicness of the font being registered, a boolean."
+        },
+        {
+          "k": "italics",
+          "v": "An ignored parameter."
+        },
+        {
+          "k": "underline",
+          "v": "The file containing BMFont control information."
+        },
+        {
+          "k": "filename",
+          "v": ""
+        },
+        {
+          "k": "renpy.register_mudgefont(name=None, size=None, bold=False, italics=False, underline=False, filename=None, xml=None, spacewidth=10, default_kern=0, kerns={})",
+          "v": "This registers a MudgeFont with the given details. Please note that size,\nbold, italic, and underline are all advisory (used for matching), and do not\nchange the appearance of the font.\nPlease see the MudgeFont home page\nfor the tool that creates MudgeFonts. Ren'Py assumes that character codes\nfound in the MudgeFont xml file are unicode character numbers, and ignores\nnegative character codes.\n\nnameThe name of the font being registered, a string."
+        },
+        {
+          "k": "name",
+          "v": "The size of the font being registered, an integer."
+        },
+        {
+          "k": "size",
+          "v": "The boldness of the font being registered, a boolean."
+        },
+        {
+          "k": "bold",
+          "v": "The italicness of the font being registered, a boolean."
+        },
+        {
+          "k": "italics",
+          "v": "An ignored parameter."
+        },
+        {
+          "k": "underline",
+          "v": "The file containing the MudgeFont image, a string. The image is usually\na TGA file, but could be a PNG or other format that Ren'Py supports."
+        },
+        {
+          "k": "filename",
+          "v": "The xml file containing information generated by the MudgeFont tool."
+        },
+        {
+          "k": "xml",
+          "v": "The width of a space character, an integer in pixels."
+        },
+        {
+          "k": "spacewidth",
+          "v": "The default kern spacing between characters, in pixels."
+        },
+        {
+          "k": "default_kern",
+          "v": "A map from two-character strings to the kern that should be used between\nthose characters."
+        },
+        {
+          "k": "kerns",
+          "v": ""
+        },
+        {
+          "k": "renpy.register_sfont(name=None, size=None, bold=False, italics=False, underline=False, filename=None, spacewidth=10, baseline=None, default_kern=0, kerns={}, charset='!\"#$%&\\'()*+,-./0123456789:;<=>?&#64;ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\\\]^_`abcdefghijklmnopqrstuvwxyz{|}~')",
+          "v": "This registers an SFont with the given details. Please note that size, bold,\nitalic, and underline are all advisory (used for matching), and do not\nchange the appearance of the font.\nMore information about SFont.\n\nnameThe name of the font being registered, a string."
+        },
+        {
+          "k": "name",
+          "v": "The size of the font being registered, an integer."
+        },
+        {
+          "k": "size",
+          "v": "The boldness of the font being registered, a boolean."
+        },
+        {
+          "k": "bold",
+          "v": "The italicness of the font being registered, a boolean."
+        },
+        {
+          "k": "italics",
+          "v": "An ignored parameter."
+        },
+        {
+          "k": "underline",
+          "v": "The file containing the sfont image, a string."
+        },
+        {
+          "k": "filename",
+          "v": "The width of a space character, an integer in pixels."
+        },
+        {
+          "k": "spacewidth",
+          "v": "The distance from the top of the font to the baseline (the invisible\nline letters sit on), an integer in pixels. If this font is mixed with\nother fonts, their baselines will be aligned. Negative values indicate\ndistance from the bottom of the font instead, and None means the\nbaseline equals the height (i.e., is at the very bottom of the font)."
+        },
+        {
+          "k": "baseline",
+          "v": "The default kern spacing between characters, in pixels."
+        },
+        {
+          "k": "default_kern",
+          "v": "A map from two-character strings to the kern that should be used between\nthose characters."
+        },
+        {
+          "k": "kerns",
+          "v": "The character set of the font. A string containing characters in\nthe order in which they are found in the image. The default character\nset for a SFont is"
+        },
+        {
+          "k": "charset",
+          "v": ""
+        }
+      ],
+      "tables": [],
+      "code": [
+        "! \" # $ % & ' ( ) * + , - . / 0 1 2 3 4 5 6 7 8 9 : ; < = > ?\n@ A B C D E F G H I J K L M N O P Q R S T U V W X Y Z [ \\ ] ^ _\n` a b c d e f g h i j k l m n o p q r s t u v w x y z { | } ~",
+        "init python:\nrenpy.register_bmfont(\"bmfont\", 22, filename=\"bmfont.fnt\")\n\ndefine ebf = Character('Eileen', what_font=\"bmfont\", what_size=22)\n\nlabel demo_bmfont:\n\nebf \"Finally, Ren'Py supports BMFonts.\""
+      ],
+      "lis": []
+    },
+    "text-displayables": {
+      "dl": [
+        {
+          "k": "class ParameterizedText(style='default', **properties)",
+          "v": "This is a displayable that can be shown with an additional string\nparameter, which then shows that string as if it was an image.\nThis is usually used as part of the pre-defined text image.\nFor example, one can do:\nshow text \"Hello, World\" at truecenter\nwith dissolve\npause 1\nhide text\nwith dissolve\n\n\nYou can use ParameterizedText directly to define similar images with\ndifferent style properties. For example, one can write:\nimage top_text = ParameterizedText(xalign=0.5, yalign=0.0)\n\nlabel start:\n show top_text \"This text is shown at the center-top of the screen\""
+        },
+        {
+          "k": "class Text(text, slow=None, scope=None, substitute=None, slow_done=None, *, tokenized=False, **properties)",
+          "v": "A displayable that displays text on the screen.\n\ntextThe text to display on the screen. This may be a string, or a list of\nstrings and displayables."
+        },
+        {
+          "k": "text",
+          "v": "Determines if the text is displayed slowly, being typed out one character at the time.\nIf None, slow text mode is determined by the slow_cps style property. Otherwise,\nthe truth value of this parameter determines if slow text mode is used."
+        },
+        {
+          "k": "slow",
+          "v": "If not None, this should be a dictionary that provides an additional scope for text\ninterpolation to occur in."
+        },
+        {
+          "k": "scope",
+          "v": "If true, text interpolation occurs. If false, it will not occur. If\nNone, they are controlled by config.new_substitutions."
+        },
+        {
+          "k": "substitute",
+          "v": "If not None, and if slow text mode is enabled (see the slow parameter), this is a\nfunction or callable which is called with no arguments when the text finishes displaying."
+        },
+        {
+          "k": "slow_done",
+          "v": "If true, text is expected to be a list of tokens, rather than a string. The tokens are\nintroduced in the Custom Text Tags page."
+        },
+        {
+          "k": "tokenized",
+          "v": "Like other Displayables, Text takes style properties, including (among many others) the\nmipmap property."
+        },
+        {
+          "k": "**properties",
+          "v": ""
+        }
+      ],
+      "tables": [],
+      "code": [
+        "show text \"Hello, World\" at truecenter\nwith dissolve\npause 1\nhide text\nwith dissolve",
+        "image top_text = ParameterizedText(xalign=0.5, yalign=0.0)\n\nlabel start:\nshow top_text \"This text is shown at the center-top of the screen\""
+      ],
+      "lis": []
+    },
+    "text-utility-functions": {
+      "dl": [
+        {
+          "k": "renpy.filter_text_tags(s, allow=None, deny=None)",
+          "v": "Returns a copy of s with the text tags filtered. Exactly one of the allow and deny keyword\narguments must be given.\n\nallowA set of tags that are allowed. If a tag is not in this list, it is removed."
+        },
+        {
+          "k": "allow",
+          "v": "A set of tags that are denied. If a tag is not in this list, it is kept in the string."
+        },
+        {
+          "k": "deny",
+          "v": ""
+        },
+        {
+          "k": "renpy.substitute(s, scope=None, translate=True)",
+          "v": "Applies translation and new-style formatting to the string s.\n\nscopeIf not None, a scope which is used in formatting, in addition to the\ndefault store."
+        },
+        {
+          "k": "scope",
+          "v": "Determines if translation occurs."
+        },
+        {
+          "k": "translate",
+          "v": ""
+        },
+        {
+          "k": "renpy.transform_text(s, function)",
+          "v": "Transforms s, while leaving text tags and interpolation the same.\n\nfunctionA function that is called with strings corresponding to runs of\ntext, and should return a second string that replaces that run\nof text."
+        },
+        {
+          "k": "function",
+          "v": ""
+        }
+      ],
+      "tables": [],
+      "code": [
+        "init python:\ndef upper(s):\nreturn s.upper()\n\n$ upper_string = renpy.transform_text(\"{b}Not Upper{/b}\", upper)"
+      ],
+      "lis": []
+    },
+    "text-overflow-logging": {
+      "dl": [],
+      "tables": [],
+      "code": [],
+      "lis": [
+        "Set the config.debug_text_overflow variable to true.",
+        "Set the xmaximum and ymaximum style properties on either the Text\ndisplayable, or a container enclosing it.",
+        "Run the game."
+      ]
+    },
+    "variable-fonts": {
+      "dl": [
+        {
+          "k": "instance",
+          "v": "The instance tag changes the instance that is being used. For example:\n\"This is {instance=heavy}heavy{/instance} text.\"\n\n\nWhen the instance tag is used, the axis properties are overridden."
+        },
+        {
+          "k": "axis",
+          "v": "The axis tag changes the value of one or more axes. For example:\n\"This is {axis:width=125}wide{/axis} text.\"\n\n\nThe axis tag can be used multiple times, and the values will be combined.\n\n\"This is {axis:width=125}{axis:weight=200}wide and bold{/axis}{/axis} text.\"\n\nThe value on the right side of the equals is expected to be a floating\npoint number."
+        },
+        {
+          "k": "renpy.variable_font_info(font)",
+          "v": "Returns information about a variable font, or None if the font is not\nvariable.\n\nfontThe filename containing the font."
+        },
+        {
+          "k": "font",
+          "v": ""
+        },
+        {
+          "k": "instance",
+          "v": "A dictionary where the keys are the names of the named instances\nof the font. (For example, 'light', 'regular', 'bold', and 'heavy'.)\nThe values can be ignored."
+        },
+        {
+          "k": "axis",
+          "v": "A dictionary that maps the names of the axes of the font to objects\nwith the following fields:\n\nminimumThe minimum value of the axis."
+        },
+        {
+          "k": "minimum",
+          "v": "The default value of the axis."
+        },
+        {
+          "k": "default",
+          "v": "The maximum value of the axis."
+        },
+        {
+          "k": "maximum",
+          "v": ""
+        }
+      ],
+      "tables": [],
+      "code": [
+        "define gui.text_font = \"nunito.ttf\"\ndefine gui.text_instance = \"light\"\ndefine gui.text_axis = {\"width\" : 125}",
+        "\"This is {instance=heavy}heavy{/instance} text.\"",
+        "\"This is {axis:width=125}wide{/axis} text.\"",
+        "renpy.variable_font_info(\"nunito.ttf\")"
+      ],
+      "lis": []
+    }
+  },
+  "dialogue": {
+    "say-statement": {
+      "dl": [],
+      "tables": [],
+      "code": [
+        "\"This is narration.\"\n\n\"Eileen\" \"This is dialogue, with an explicit character name.\"\n\ne \"This is dialogue, using a character object instead.\"\n\n\"Bam!!\" with vpunch",
+        "\"I walked past a sign saying, \\\"Let's give it 100%%!\\\"\""
+      ],
+      "lis": []
+    },
+    "defining-character-objects": {
+      "dl": [
+        {
+          "k": "Character(name=..., kind=adv, **args)",
+          "v": "Creates and returns a Character object, which controls the look\nand feel of dialogue and narration.\n\nnameIf a string, the name of the character for dialogue. When\nname is None, display of the name is omitted, as for\nnarration. If no name is given, the name is taken from\nkind, and otherwise defaults to None."
+        },
+        {
+          "k": "name",
+          "v": "The Character to base this Character off of. When used, the\ndefault value of any argument not supplied to this Character\nis the value of that argument supplied to kind. This can\nbe used to define a template character, and then copy that\ncharacter with changes.\nThis can also be a namespace, in which case the 'character'\nvariable in the namespace is used as the kind."
+        },
+        {
+          "k": "kind",
+          "v": ""
+        },
+        {
+          "k": "image",
+          "v": "A string giving the image tag that is linked with this\ncharacter."
+        },
+        {
+          "k": "voice_tag",
+          "v": "A String that enables the voice file associated with the\nCharacter to be muted or played in the 'voice' channel."
+        },
+        {
+          "k": "what_prefix",
+          "v": "A string that is prepended to the dialogue being spoken before\nit is shown."
+        },
+        {
+          "k": "what_suffix",
+          "v": "A string that is appended to the dialogue being spoken before\nit is shown."
+        },
+        {
+          "k": "who_prefix",
+          "v": "A string that is prepended to the name of the character before\nit is shown."
+        },
+        {
+          "k": "who_suffix",
+          "v": "A string that is appended to the name of the character before\nit is shown."
+        },
+        {
+          "k": "dynamic",
+          "v": "If true, then name should either be a string containing a Python\nexpression, a function, or a callable object. If it's a string,\nThat string will be evaluated before each line of dialogue, and\nthe result used as the name of the character. Otherwise, the\nfunction or callable object will be called with no arguments\nbefore each line of dialogue, and the return value of the call will\nbe used as the name of the character."
+        },
+        {
+          "k": "condition",
+          "v": "If given, this should be a string containing a Python\nexpression. If the expression is false, the dialogue\ndoes not occur, as if the say statement did not happen."
+        },
+        {
+          "k": "interact",
+          "v": "If true, the default, an interaction occurs whenever the\ndialogue is shown. If false, an interaction will not occur,\nand additional elements can be added to the screen."
+        },
+        {
+          "k": "advance",
+          "v": "If true, the default, the player can click to advance through\nthe statement, and other means of advancing (such as skip and\nauto-forward mode) will also work. If false, the player will be\nunable to move past the say statement unless an alternate means\n(such as a jump hyperlink or screen) is provided."
+        },
+        {
+          "k": "callback",
+          "v": "A function that is called when events occur while the\ncharacter is speaking. See the section on\nCharacter Callbacks for more information."
+        },
+        {
+          "k": "ctc",
+          "v": "A displayable to use as the click-to-continue indicator, unless\na more specific indicator is used."
+        },
+        {
+          "k": "ctc_pause",
+          "v": "A displayable to use a the click-to-continue indicator when the\ndisplay of text is paused by the {p} or {w} text tags."
+        },
+        {
+          "k": "ctc_timedpause",
+          "v": "A displayable to use a the click-to-continue indicator when the\ndisplay of text is paused by the {p=} or {w=} text tags. When\nNone, this takes its default from ctc_pause, use Null()\nwhen you want a ctc_pause but no ctc_timedpause."
+        },
+        {
+          "k": "ctc_position",
+          "v": "Controls the location of the click-to-continue indicator.\nThis can be:\n\n\"nestled\"The indicator is displayed as part of the text\nbeing shown, immediately after the last character."
+        },
+        {
+          "k": "\"nestled\"",
+          "v": "Similar to \"nestled\", but a break is not allowed between\nthe text and the CTC indicator."
+        },
+        {
+          "k": "\"nestled-close\"",
+          "v": "If a screen named \"ctc\" exists, it is shown. Otherwise, the CTC\ndisplayable is show, and the position style properties of the CTC\ndisplayable are used to position the CTC indicator."
+        },
+        {
+          "k": "\"fixed\"",
+          "v": "When given, the variable named \"ctc\" is set to the CTC displayable\nwhen the CTC indicator should be show. This can be used with the\nfollowing screen language:\ndefault ctc = None\nshowif ctc:\n add ctc"
+        },
+        {
+          "k": "\"screen-variable\"",
+          "v": ""
+        },
+        {
+          "k": "screen",
+          "v": "The name of the screen that is used to display the dialogue."
+        },
+        {
+          "k": "retain",
+          "v": "If not true, an unused tag is generated for each line of dialogue,\nand the screens are shown non-transiently. Call renpy.clear_retain()\nto remove all retained screens. This is almost always used with\nSpeech Bubbles."
+        },
+        {
+          "k": "show_layer",
+          "v": "If given, this should be a string giving the name of the layer\nto show the say screen on."
+        }
+      ],
+      "tables": [],
+      "code": [
+        "define e = Character(\"Eileen\", who_color=\"#c8ffc8\")",
+        "e \"Hello, world.\"",
+        "default ctc = None\nshowif ctc:\nadd ctc"
+      ],
+      "lis": []
+    },
+    "say-with-image-attributes": {
+      "dl": [],
+      "tables": [],
+      "code": [
+        "define e = Character(\"Eileen\", image=\"eileen\")\n\nlabel start:\n\nshow eileen concerned\ne \"I'm a little upset at you.\"\n\ne happy \"But it's just a passing thing.\"",
+        "define e = Character(\"Eileen\", image=\"eileen\")\n\nlabel start:\n\nshow eileen concerned\ne \"I'm a little upset at you.\"\n\nshow eileen happy\ne \"But it's just a passing thing.\"",
+        "define e = Character(\"Eileen\")\n\nlabel start:\n\nshow eileen\ne concerned \"I'm a little upset at you.\"\n\ne happy \"That's funny.\"\n\ne -happy \"I'm not sure what to think now.\"",
+        "define e = Character(\"Eileen\", image=\"eileen\")\n\nlabel start:\n\nshow eileen concerned\ne \"I'm a little upset at you.\"\n\ne @ happy \"That's funny.\"\n\ne \"I'm not sure what to think now.\"",
+        "e happy @ vhappy \"Really! That changes everything.\"",
+        "e @ right -concerned \"My anger is temporarily suspended...\"\ne \"HOWEVER !\""
+      ],
+      "lis": []
+    },
+    "example-characters": {
+      "dl": [],
+      "tables": [],
+      "code": [
+        "# A character that has its dialogue enclosed in parenthesis.\ndefine e = Character(\"Eileen\", what_prefix='(', what_suffix=')')\n\n# A character that pulls its name from a variable.\ndefine p = Character(\"player_name\", dynamic=True)"
+      ],
+      "lis": []
+    },
+    "special-characters": {
+      "dl": [
+        {
+          "k": "adv",
+          "v": "The default kind of character used by Character. This sets up a\ncharacter such that one line is displayed on the screen at a\ntime."
+        },
+        {
+          "k": "nvl",
+          "v": "A kind of Character that causes dialogue to be displayed in\nNVL-Mode Tutorial, with multiple lines of text on the screen\nat once."
+        },
+        {
+          "k": "narrator",
+          "v": "The character that's used to display narration, by say statements\nwithout a character name."
+        },
+        {
+          "k": "name_only",
+          "v": "A character that is used for dialogue in which the\ncharacter name is given as a string. This character is copied to a\nnew character with the given name, and then that new character is\nused to display the dialogue."
+        },
+        {
+          "k": "centered",
+          "v": "A character that causes what it says to be displayed centered,\nin the middle of the screen, outside of any window."
+        },
+        {
+          "k": "vcentered",
+          "v": "A character that causes what it says to be displayed centered\nin vertically oriented text, in the middle of the screen,\noutside of any window."
+        },
+        {
+          "k": "extend",
+          "v": "A character that causes the last character to speak to say a line\nof dialogue consisting of the last line of dialogue spoken, \"{fast}\",\nand the dialogue given to extend. This can be used to have the screen\nchange over the course of dialogue.\nExtend is aware of NVL-mode and treats it correctly. Extend does not work\nproperly if the language preference changes between the initial say and\nthe extend."
+        }
+      ],
+      "tables": [],
+      "code": [
+        "# Show the first line of dialogue, wait for a click, change expression, and show\n# the rest.\n\nshow eileen concerned\ne \"Sometimes, I feel sad.\"\nshow eileen happy\nextend \" But I usually quickly get over it!\"\n\n# Similar, but automatically changes the expression when the first line is finished\n# showing. This only makes sense when the user doesn't have text speed set all the\n# way up.\n\nshow eileen concerned\ne \"Sometimes, I feel sad.{nw}\"\nshow eileen happy\nextend \" But I usually quickly get over it!\""
+      ],
+      "lis": []
+    },
+    "dialogue-window-management": {
+      "dl": [
+        {
+          "k": "window show",
+          "v": "The window show statement causes the window to be shown.\nIt takes as an argument an optional transition, which is used to show the\nwindow. If the transition is omitted, config.window_show_transition\nis used."
+        },
+        {
+          "k": "window hide",
+          "v": "The window hide statement causes the window to be hidden. It takes as an\nargument an optional transition, which is used to hide the window. If\nthe transition is omitted, config.window_hide_transition is\nused."
+        },
+        {
+          "k": "window auto True",
+          "v": "This enables automatic management of the window. The window is shown\nbefore statements listed in config.window_auto_show – by default,\nsay statements. The window is hidden before statements listed in\nconfig.window_auto_hide – by default, scene and call screen\nstatements, and menu statements without a caption.\nOnly statements are considered, not statement equivalent functions."
+        },
+        {
+          "k": "window auto False",
+          "v": "This disables automatic management of the window. The window is not\nshown or hidden automatically."
+        }
+      ],
+      "tables": [],
+      "code": [
+        "window show # shows the window with the default transition, if any.\npause # the window is shown during this pause.\nwindow hide # hides the window.\npause # the window is hidden during this pause.\n\nwindow show dissolve # shows the window with dissolve.\npause # the window is shown during this pause.\nwindow hide dissolve # hides the window with dissolve.\npause # the window is hidden during this pause.\n\n\nwindow auto True\n\n\"The window is automatically shown before this line of dialogue.\"\npause # the window is shown during this pause.\n\nscene bg washington # the window is hidden before the scene change.\nwith dissolve\n\nwindow show # Shows the window before it normally would be shown.\n\nshow eileen\nwith dissolve\n\n\"Without window show, the window would have been shown here.\""
+      ],
+      "lis": []
+    },
+    "say-with-arguments": {
+      "dl": [],
+      "tables": [],
+      "code": [
+        "e \"Hello, world.\" (what_color=\"#8c8\")",
+        "init python:\ndef say_arguments_callback(char, *args, **kwargs):\nif colorblind_mode:\nkwargs[\"what_color\"] = \"#000\"\nreturn args, kwargs\n\ndefine config.say_arguments_callback = say_arguments_callback"
+      ],
+      "lis": []
+    },
+    "monologue-mode": {
+      "dl": [],
+      "tables": [],
+      "code": [
+        "\"\"\"\nThis is the first line of narration. It's longer than the other two\nlines, so it has to wrap.\n\nThis is the second line of narration.\n\nThis is the third line of narration.\n\"\"\"\n\ne \"\"\"\nThis is the first line of dialogue. It's longer than the other two\nlines, so it has to wrap.\n\nThis is the second line of dialogue.\n\nThis is the third line of dialogue.\n\"\"\""
+      ],
+      "lis": []
+    },
+    "the-character-store": {
+      "dl": [],
+      "tables": [],
+      "code": [
+        "define character.e = Character(\"Eileen\")",
+        "default e = 0\n\nlabel start:\n\n# This is still a terrible variable name.\n$ e = 100\n\ne \"Our current energy is [e] units.\"",
+        "define character.naomi = Character(\"Naomi Nagata\", who_color=\"#8c8\")\ndefault naomi = PersonClass(engineering=5, max_g_force=.7) # can be an object...\ndefine character.fred = Character(\"Fred Johnson\", who_color=\"#72f\")\ndefault fred.money = 1000 # ...or a dedicated named store\ndefault fred.rank = \"Colonel\"\n\nlabel traded:\nfred \"Here you go.\"\n$ fred.money -= 50\n$ naomi.money += 50\nnaomi \"Thanks ! I knew you would value my class-[naomi.engineering] engineering skills.\""
+      ],
+      "lis": []
+    }
+  },
+  "custom_text_tags": {
+    "custom-text-tags": {
+      "dl": [
+        {
+          "k": "define config.custom_text_tags = { }",
+          "v": "Maps text tag names to text tag functions, when the text tag can\nwrap other text."
+        },
+        {
+          "k": "define config.self_closing_custom_text_tags = { }",
+          "v": "Maps text tag names to a self-closing text tag functions, when the text tag\ndoes not wrap other text."
+        },
+        {
+          "k": "renpy.TEXT_TEXT",
+          "v": "The second component is text that is intended for display to the user."
+        },
+        {
+          "k": "renpy.TEXT_TAG",
+          "v": "The second component is the contents of a text tag, without the\nenclosing braces."
+        },
+        {
+          "k": "renpy.TEXT_DISPLAYABLE",
+          "v": "The second component is a displayable to be embedded into the text."
+        },
+        {
+          "k": "renpy.TEXT_PARAGRAPH",
+          "v": "This represents a break between paragraphs, and the second component\nis undefined (but must be present)."
+        }
+      ],
+      "tables": [],
+      "code": [
+        "\"{big=2}Hello, {b}World{/b}{/big}\"",
+        "[\n(renpy.TEXT_TEXT, \"Hello, \"),\n(renpy.TEXT_TAG, \"b\"),\n(renpy.TEXT_TEXT, \"World\"),\n(renpy.TEXT_TAG, \"/b\"),\n]"
+      ],
+      "lis": []
+    },
+    "examples": {
+      "dl": [],
+      "tables": [],
+      "code": [
+        "init python:\n\ndef big_tag(tag, argument, contents):\n\nsize = int(argument) * 20\n\nreturn [\n(renpy.TEXT_TAG, u\"size={}\".format(size)),\n] + contents + [\n(renpy.TEXT_TAG, u\"/size\"),\n]\n\nconfig.custom_text_tags[\"big\"] = big_tag\n\n\n\"This is {big=3}BIG!{/big}\"",
+        "init python:\n\ndef rot13_transform(s):\n\nROT13 = { }\n\nfor i, j in zip(\"ABCDEFGHIJKLM\", \"NOPQRSTUVWXYZ\"):\nROT13[i] = j\nROT13[j] = i\n\ni = i.lower()\nj = j.lower()\n\nROT13[i] = j\nROT13[j] = i\n\nreturn \"\".join(ROT13.get(i, i) for i in s)\n\ndef rot13_tag(tag, argument, contents):\nrv = [ ]\n\nfor kind, text in contents:\n\nif kind == renpy.TEXT_TEXT:\ntext = rot13_transform(text)\n\nrv.append((kind, text))\n\nreturn rv\n\nconfig.custom_text_tags[\"rot13\"] = rot13_tag\n\n\"Rot0. {rot13}Rot13. {rot13}Rot26. {/rot13}Rot13. {/rot13}Rot0.\"",
+        "init python:\ndef bang_tag(tag, argument):\nreturn [ ( renpy.TEXT_TAG, \"size=40\"), (renpy.TEXT_TEXT, \"!\"), (renpy.TEXT_TAG, \"/size\") ]\n\nconfig.self_closing_custom_text_tags[\"bang\"] = bang_tag\n\n\"This is awesome{bang}\""
+      ],
+      "lis": []
+    }
+  }
+}

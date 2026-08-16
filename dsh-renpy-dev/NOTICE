@@ -1,0 +1,20 @@
+dsh-renpy-dev
+Copyright (c) 2026 Matsuka
+
+Licensed under the MIT License. See the LICENSE file for the full text.
+
+Third-party notices
+-------------------
+
+- Ren'Py SDK: MIT License, Copyright (c) 2004-2026 Tom Rothamel.
+  The skill content in this repository is derived from the Ren'Py official
+  documentation and engine source code, which are distributed under the MIT
+  License. See https://www.renpy.org/ and the SDK's LICENSE.txt for details.
+
+- DeepSeek Harness (DSH): MIT License.
+  This project runs as a plugin/preset on DeepSeek Harness. See
+  https://github.com/deepseek-ai/dsh for details.
+
+- Verification projects (verification/projects/): demo assets and test scripts
+  are used solely for engine verification of the skill content. Sample images
+  and fonts are from the Ren'Py SDK distribution.

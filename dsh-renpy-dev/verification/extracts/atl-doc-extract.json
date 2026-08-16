@@ -1,0 +1,2007 @@
+{
+  "transforms": {
+    "quickstart": {
+      "dl": [],
+      "tables": [],
+      "code": [
+        "show eileen happy at right",
+        "show eileen happy at halfsize, right",
+        "transform slide_right:\nxalign 0.0\nlinear 1.0 xalign 1.0\n\nlabel start:\nshow eileen happy at slide_right\npause",
+        "label start:\n$ renpy.show(\"eileen happy\", at_list=right)\npause",
+        "init python:\ndef show_eileen_rotated():\nrotated = Transform(rotate=45)\nshow_stmt = At(\"eileen happy\", rotated)\nrenpy.show(\"eileen\", what=show_stmt)\n\nlabel start:\n$ show_eileen_rotated()\npause"
+      ],
+      "lis": []
+    },
+    "built-in-transforms": {
+      "dl": [
+        {
+          "k": "center",
+          "v": "Centers horizontally, and aligns to the bottom of the screen."
+        },
+        {
+          "k": "default",
+          "v": "Centers horizontally, and aligns to the bottom of the screen. This can be\nredefined via config.default_transform to change the default\nplacement of images shown with the show or scene statements."
+        },
+        {
+          "k": "left",
+          "v": "Aligns to the bottom-left corner of the screen."
+        },
+        {
+          "k": "offscreenleft",
+          "v": "Places the displayable off the left side of the screen, aligned to the\nbottom of the screen."
+        },
+        {
+          "k": "offscreenright",
+          "v": "Places the displayable off the right side of the screen, aligned to the\nbottom of the screen."
+        },
+        {
+          "k": "reset",
+          "v": "Resets the transform to the default values of each property, removing any\nproperites set before it."
+        },
+        {
+          "k": "right",
+          "v": "Aligns to the bottom-right corner of the screen."
+        },
+        {
+          "k": "top",
+          "v": "Centers horizontally, and aligns to the top of the screen."
+        },
+        {
+          "k": "topleft",
+          "v": "Aligns to the top-left corner of the screen."
+        },
+        {
+          "k": "topright",
+          "v": "Aligns to the top-right corner of the screen."
+        },
+        {
+          "k": "truecenter",
+          "v": "Centers both horizontally and vertically."
+        }
+      ],
+      "tables": [],
+      "code": [
+        "+-----------------------------------------------------------+\n| topleft, reset top topright |\n| |\n| |\n| |\n| |\n| truecenter |\n| |\n| |\n| |\n| |\noffscreenleft | left center, default right | offscreenright\n+-----------------------------------------------------------+"
+      ],
+      "lis": []
+    },
+    "transform-statement": {
+      "dl": [],
+      "tables": [
+        [
+          [
+            "Name",
+            "Type",
+            "Description"
+          ],
+          [
+            "transform_name",
+            "word",
+            "Name of the transform.\nMust be valid Python identifiers separated by dots\n(e.g., my_transform or sprites.bounce)"
+          ],
+          [
+            "parameters",
+            "--",
+            "(Optional) Parameters of the transform"
+          ],
+          [
+            "atl_block",
+            "block",
+            "ATL code block defining the transform"
+          ]
+        ]
+      ],
+      "code": [
+        "transform <transform_name>:\n<atl_block>",
+        "transform <transform_name>( <parameters> ):\n<atl_block>",
+        "transform left_to_right:\nxalign 0.\nlinear 2 xalign 1.\nrepeat\n\ntransform ariana.left:\nxalign .3\n\ntransform animated_ariana_disp(duration=1.0):\n\"ariana\"\npause duration\n\"ariana_reverse\"\npause duration\nrepeat\n\nlabel start:\nshow eileen happy at left_to_right\npause\nshow animated_ariana_disp\npause"
+      ],
+      "lis": [
+        "Positional-only parameters (using /)",
+        "Required keyword-only parameters (after * without defaults)",
+        "*args (variadic positional parameters)",
+        "**kwargs (variadic keyword parameters)",
+        "If your transform has parameters without default values, you must provide\nvalues for all of them before you can use it as a transform",
+        "See also: ATL curry and partial parameter passing"
+      ]
+    },
+    "image-statement-with-atl-block": {
+      "dl": [],
+      "tables": [
+        [
+          [
+            "Name",
+            "Type",
+            "Description"
+          ],
+          [
+            "image_name",
+            "word(s)",
+            "Name of the image"
+          ],
+          [
+            "atl_block",
+            "block",
+            "ATL code block defining the transform"
+          ]
+        ]
+      ],
+      "code": [
+        "image <image_name>:\n<atl_block>",
+        "image animated_ariana_img:\n\"ariana\"\npause 1.\n\"ariana_reverse\"\npause 1.\nrepeat"
+      ],
+      "lis": []
+    },
+    "scene-and-show-statements-with-atl-block": {
+      "dl": [],
+      "tables": [
+        [
+          [
+            "Name",
+            "Type",
+            "Description"
+          ],
+          [
+            "image_name",
+            "word(s)",
+            "Name of the image"
+          ],
+          [
+            "atl_block",
+            "block",
+            "ATL code block defining the transform"
+          ]
+        ]
+      ],
+      "code": [
+        "show <image_name>:\n<atl_block>\n\nscene <image_name>:\n<atl_block>",
+        "show eileen happy:\nxalign 1.\n\nscene bg washington:\nzoom 2."
+      ],
+      "lis": []
+    },
+    "properties-statement": {
+      "dl": [],
+      "tables": [
+        [
+          [
+            "Name",
+            "Type",
+            "Description"
+          ],
+          [
+            "property_name",
+            "word",
+            "Name of transform property (eg. xalign, alpha, ...)"
+          ],
+          [
+            "property_value",
+            "Varies",
+            "Value of property"
+          ]
+        ]
+      ],
+      "code": [
+        "<property_name> <property_value>",
+        "transform rightoid:\nxalign .9\n\ntransform ariana.left:\nxanchor .3 xpos 100"
+      ],
+      "lis": []
+    },
+    "number-statement": {
+      "dl": [],
+      "tables": [
+        [
+          [
+            "Name",
+            "Type",
+            "Description"
+          ],
+          [
+            "\"pause\"",
+            "keyword",
+            "(Optional) Keyword indicating a pause"
+          ],
+          [
+            "duration",
+            "float, int (expr)",
+            "Time in seconds to pause"
+          ]
+        ]
+      ],
+      "code": [
+        "pause <duration>",
+        "transform pause_example(duration=0.5):\nxalign 0.0\n\n# Pause for 2.0 seconds.\npause 2.0\nxalign 1.0\n\n# Pause for `duration` seconds.\npause duration\nxalign 0.5\n\n# Pause for 3.0 seconds.\n3.0\n\nrepeat"
+      ],
+      "lis": []
+    },
+    "interpolation-statement": {
+      "dl": [],
+      "tables": [
+        [
+          [
+            "Name",
+            "Type",
+            "Description"
+          ],
+          [
+            "warper_name",
+            "word",
+            "Name of a built-in warper"
+          ],
+          [
+            "warper_function",
+            "str, function (expr)",
+            "Warping function with signature (t: float) -> float"
+          ],
+          [
+            "duration",
+            "float, int (expr)",
+            "Time in seconds for the interpolation"
+          ],
+          [
+            "atl_property",
+            "Properties Statement",
+            "Property to interpolate"
+          ]
+        ],
+        [
+          [
+            "Name",
+            "Type",
+            "Description"
+          ],
+          [
+            "knot_value",
+            "Varies (expr)",
+            "Value of the property control point"
+          ]
+        ],
+        [
+          [
+            "Name",
+            "Type",
+            "Description"
+          ],
+          [
+            "number_of_circles",
+            "int (expr)",
+            "Number of full rotations for circular motion"
+          ]
+        ],
+        [
+          [
+            "Name",
+            "Type",
+            "Description"
+          ],
+          [
+            "transform_expression",
+            "Transform\n(expr)",
+            "Transform to interpolate to"
+          ]
+        ]
+      ],
+      "code": [
+        "<warper_name> <duration> <atl_property> [<atl_property> ...]",
+        "warp <warper_function> <duration> <atl_property> [<atl_property> ...]",
+        "<warper_name> <duration>:\n<atl_property>\n<atl_property>\n...",
+        "show logo base:\nxalign 0.0 yalign 0.0\n\n# Take 2.0 seconds to move things to the bottom-left corner.\nlinear 2.0 yalign 1.0",
+        "show logo base(warper_expr=\"easein\"):\nxalign 0.0 yalign 0.0\n\n# Use the warper in the parameter to move to the right side of the screen.\nwarp warper_expr 1.0 xalign 1.0",
+        "show logo base:\nxalign 0.0 yalign 0.0\n\n# Changes xalign and yalign at the same time.\nlinear 2.0 xalign 0.5 yalign 0.5\n\n# The same thing, using a block.\nlinear 2.0:\nxalign 0.5\nyalign 0.5",
+        "init python:\ndef my_warper(t):\nreturn t**4.4\n\nmy_warpers = [my_warper]\n\ntransform custom_warper_example:\nxpos 0\nwarp my_warper 3 xpos 100\nwarp my_warpers[0] 5 xpos 520",
+        "<atl_property> knot <knot_value> [knot <knot_value> ...]",
+        "transform spline_motion_single_property:\n# Start at the bottom right, zoomed out a bit.\nzoom 0.5 xalign 1.0 yalign 1.0\n\n# Move from to the bottom center, overshooting a bit. Quadratic Bezier curve.\nlinear 2.0 xalign 0.5 knot 0.0\n\n# Move to the top, slowing down at the center. Cubic Bezier curve.\nlinear 2.0 yalign 0.0 knot 0.2 knot 0.8\n\n# Move to the left, oscillating first. Catmull-Rom spline.\nlinear 2.0 xalign 0.0 knot 1.0 knot 0.5 knot 0.0\n\ntransform spline_motion_multi_property:\n# Start at the bottom right, zoomed out a bit.\nzoom 0.5 align (1.0, 0.0)\n\n# Use a spline motion to move (x, y) simultaneously in a slight S shape.\nlinear 2.0 align (0.5, 1.0) knot (0.0, .33) knot (1.0, .66)",
+        "<atl_property> clockwise\n<atl_property> counterclockwise\n<atl_property> circles <number_of_circles>",
+        "show logo base:\nxalign 1.0 yalign 0.0\n\n# Set the location to circle around.\nanchor (0.5, 0.5)\n\n# Use circular motion to bring us to spiral out to the top of\n# the screen. Take 2 seconds to do so.\nlinear 2.0 yalign 0.0 clockwise circles 3",
+        "<transform_expression>",
+        "show logo base:\nxalign 1.0 yalign 0.0\n\n# Move to the location specified in the truecenter transform in 1.0 seconds\nease 1.0 truecenter"
+      ],
+      "lis": []
+    },
+    "pass-statement": {
+      "dl": [],
+      "tables": [],
+      "code": [
+        "pass"
+      ],
+      "lis": []
+    },
+    "repeat-statement": {
+      "dl": [],
+      "tables": [
+        [
+          [
+            "Name",
+            "Type",
+            "Description"
+          ],
+          [
+            "count",
+            "int (expr)",
+            "(Optional) Number of times to execute the block"
+          ]
+        ]
+      ],
+      "code": [
+        "repeat",
+        "repeat <count>",
+        "show logo base:\nxalign 0.0\nlinear 1.0 xalign 1.0\nlinear 1.0 xalign 0.0\nrepeat"
+      ],
+      "lis": []
+    },
+    "block-statement": {
+      "dl": [],
+      "tables": [],
+      "code": [
+        "block:\n<atl_block>",
+        "show logo base:\nalpha 0.0 xalign 0.0 yalign 0.0\nlinear 1.0 alpha 1.0\n\nblock:\nlinear 1.0 xalign 1.0\nlinear 1.0 xalign 0.0\nrepeat"
+      ],
+      "lis": []
+    },
+    "parallel-statement": {
+      "dl": [],
+      "tables": [
+        [
+          [
+            "Name",
+            "Type",
+            "Description"
+          ],
+          [
+            "\"parallel\"",
+            "keyword",
+            "One or more parallel blocks"
+          ],
+          [
+            "atl_block",
+            "block",
+            "ATL block for this parallel branch"
+          ]
+        ]
+      ],
+      "code": [
+        "parallel:\n<atl_block>",
+        "show logo base:\nparallel:\nxalign 0.0\nlinear 1.3 xalign 1.0\nlinear 1.3 xalign 0.0\nrepeat\nparallel:\nyalign 0.0\nlinear 1.6 yalign 1.0\nlinear 1.6 yalign 0.0\nrepeat"
+      ],
+      "lis": []
+    },
+    "choice-statement": {
+      "dl": [],
+      "tables": [
+        [
+          [
+            "Name",
+            "Type",
+            "Description"
+          ],
+          [
+            "\"choice\"",
+            "keyword",
+            "One or more choices"
+          ],
+          [
+            "weight",
+            "float (expr)",
+            "(Optional) Weight of this choice, defaults to 1.0"
+          ],
+          [
+            "atl_block",
+            "block",
+            "ATL block for this choice"
+          ]
+        ]
+      ],
+      "code": [
+        "choice:\n<atl_block>",
+        "choice <weight>:\n<atl_block>",
+        "image eileen random:\nchoice:\n\"eileen happy\"\nchoice:\n\"eileen vhappy\"\nchoice 2.0:\n# More likely to be chosen.\n\"eileen concerned\"\n\npause 1.0\nrepeat"
+      ],
+      "lis": []
+    },
+    "animation-statement": {
+      "dl": [],
+      "tables": [],
+      "code": [
+        "animation",
+        "image eileen happy moving:\nanimation\n\"eileen happy\"\nxalign 0.0\nlinear 5.0 xalign 1.0\nrepeat\n\nimage eileen vhappy moving:\nanimation\n\"eileen vhappy\"\nxalign 0.0\nlinear 5.0 xalign 1.0\nrepeat\n\nlabel start:\nshow eileen happy moving\npause\nshow eileen vhappy moving\npause"
+      ],
+      "lis": []
+    },
+    "on-statement": {
+      "dl": [],
+      "tables": [
+        [
+          [
+            "Name",
+            "Type",
+            "Description"
+          ],
+          [
+            "event_name",
+            "word",
+            "Name of one or more events to handle"
+          ],
+          [
+            "atl_block",
+            "block",
+            "ATL block to execute when event occurs"
+          ]
+        ]
+      ],
+      "code": [
+        "on <event_name>:\n<atl_block>",
+        "on <event_name>, <event_name>, ...:\n<atl_block>",
+        "show logo base:\non show:\nalpha 0.0\nlinear .5 alpha 1.0\non hide:\nlinear .5 alpha 0.0\n\ntransform pulse_button:\non hover, idle:\nlinear .25 zoom 1.25\nlinear .25 zoom 1.0"
+      ],
+      "lis": []
+    },
+    "displayable-statement": {
+      "dl": [],
+      "tables": [
+        [
+          [
+            "Name",
+            "Type",
+            "Description"
+          ],
+          [
+            "displayable",
+            "Displayable (expr)",
+            "The new child image or visual element to display"
+          ],
+          [
+            "transition",
+            "Transition (expr)",
+            "(Optional) Transition when changing displayables\n(eg. dissolve, fade)"
+          ]
+        ]
+      ],
+      "code": [
+        "<displayable>",
+        "<displayable> with <transition>",
+        "image atl example:\n\"logo_base.png\"\n\npause 1.0\n\n\"logo_bw.png\" with Dissolve(0.5, alpha=True)"
+      ],
+      "lis": []
+    },
+    "transform-expression-statement": {
+      "dl": [],
+      "tables": [
+        [
+          [
+            "Name",
+            "Type",
+            "Description"
+          ],
+          [
+            "transform_expression",
+            "Transform\n(expr)",
+            "Transform to interpolate to"
+          ]
+        ]
+      ],
+      "code": [
+        "<transform_expression>",
+        "transform move_right:\nlinear 1.0 xalign 1.0\n\nimage atl example:\n# Display logo_base.png\n\"logo_base.png\"\n\n# Run the move_right transform.\nmove_right"
+      ],
+      "lis": []
+    },
+    "contains-inline-statement": {
+      "dl": [],
+      "tables": [
+        [
+          [
+            "Name",
+            "Type",
+            "Description"
+          ],
+          [
+            "displayable",
+            "Displayable,\nTransform (expr)",
+            "Child displayable or transform"
+          ]
+        ]
+      ],
+      "code": [
+        "contains <displayable>",
+        "transform an_animation:\n\"1.png\"\npause 2\n\"2.png\"\npause 2\nrepeat\n\nimage move_an_animation:\ncontains an_animation\n\n# If we didn't use contains, we'd still be looping\n# and would never reach here.\nxalign 0.0\nlinear 1.0 yalign 1.0"
+      ],
+      "lis": []
+    },
+    "contains-block-statement": {
+      "dl": [],
+      "tables": [],
+      "code": [
+        "contains:\n<atl_block>",
+        "image test double:\ncontains:\n\"logo.png\"\nxalign 0.0\nlinear 1.0 xalign 1.0\nrepeat\n\ncontains:\n\"logo.png\"\nxalign 1.0\nlinear 1.0 xalign 0.0\nrepeat"
+      ],
+      "lis": []
+    },
+    "function-statement": {
+      "dl": [],
+      "tables": [
+        [
+          [
+            "Name",
+            "Type",
+            "Description"
+          ],
+          [
+            "func",
+            "function (expr)",
+            "Function to call, with signature (trans: Transform, st: float, at: float) -> float | None"
+          ]
+        ]
+      ],
+      "code": [
+        "function <func>",
+        "init python:\ndef slide_vibrate(trans, st, at, /):\nif st > 1.0:\ntrans.xalign = 1.0\ntrans.yoffset = 0\nreturn None\nelse:\ntrans.xalign = st\ntrans.yoffset = random.randrange(-10, 11)\nreturn 0\n\nlabel start:\nshow logo base:\nfunction slide_vibrate\npause 1.0\nrepeat"
+      ],
+      "lis": [
+        "The first argument is a transform object. Transform Properties can be\nset as attributes on this object.",
+        "The second argument is the shown timebase,\nthe number of seconds since the function began executing.",
+        "The third argument is the animation timebase, which is the number of\nseconds something with the same tag has been on the screen.",
+        "If the function returns a number, it will be called again after that number of\nseconds has elapsed. (0 seconds means to call the function as soon as\npossible.) If the function returns None, control will pass to the next ATL\nstatement."
+      ]
+    },
+    "time-statement": {
+      "dl": [],
+      "tables": [
+        [
+          [
+            "Name",
+            "Type",
+            "Description"
+          ],
+          [
+            "value",
+            "float/int (expr)",
+            "Time in seconds from start of block execution"
+          ]
+        ]
+      ],
+      "code": [
+        "time <value>",
+        "image backgrounds:\n\"bg band\"\nxoffset 0\nblock:\nlinear 1 xoffset 10\nlinear 1 xoffset 0\nrepeat # control would never exit this block\n\ntime 2.0\nxoffset 0\n\"bg whitehouse\"\n\ntime 4.0\n\"bg washington\""
+      ],
+      "lis": []
+    },
+    "event-statement": {
+      "dl": [],
+      "tables": [
+        [
+          [
+            "Name",
+            "Type",
+            "Description"
+          ],
+          [
+            "event_name",
+            "word",
+            "Name of event to produce"
+          ]
+        ]
+      ],
+      "code": [
+        "event <event_name>"
+      ],
+      "lis": []
+    },
+    "external-events": {
+      "dl": [
+        {
+          "k": "start",
+          "v": "A pseudo-event, triggered on entering an on statement, if no event of\nhigher priority has happened."
+        },
+        {
+          "k": "show",
+          "v": "Triggered when the transform is shown using the show or scene statement, and\nno image with the given tag exists."
+        },
+        {
+          "k": "replace",
+          "v": "Triggered when transform is shown using the show statement, replacing an\nimage with the given tag."
+        },
+        {
+          "k": "hide",
+          "v": "Triggered when the transform is hidden using the hide statement or its\nPython equivalent.\nNote that this isn't triggered when the transform is eliminated via the\nScene Statement or exiting the Contexts it exists in, such as\nwhen exiting the game menu."
+        },
+        {
+          "k": "replaced",
+          "v": "Triggered when the transform is replaced by another. The image will not\nactually hide until the ATL block finishes."
+        },
+        {
+          "k": "hover, idle, selected_hover, selected_idle, insensitive, selected_insensitive",
+          "v": "Triggered when a button containing this transform, or a button contained by\nthis transform, enters the named state."
+        }
+      ],
+      "tables": [],
+      "code": [],
+      "lis": []
+    },
+    "atl-curry-and-partial-parameter-passing": {
+      "dl": [],
+      "tables": [],
+      "code": [
+        "transform screamer(child, screamee, wait_time=2, flash_time=.1):\nchild\npause wait_time\nscreamee\npause flash_time\nchild\n\n# doing this doesn't raise an error (it would if it were a Python function)\ndefine shorter_screamer = screamer(wait_time=1)\n\ndefine eileen_excited_screamer = screamer(screamee=\"eileen excited\", flash_time=.2)\n\nlabel start:\nshow hhannahh happy at screamer(screamee=\"hhannahh surprised\", wait_time=1.5)\n\"Here is one way\"\n\nshow eileen vhappy at eileen_excited_screamer\n\"Here is another\"\n\nshow patricia sad at eileen_excited_screamer(screamee=\"patricia wow\")\n\"And you can also do this\""
+      ],
+      "lis": []
+    },
+    "special-child-parameter": {
+      "dl": [],
+      "tables": [],
+      "code": [
+        "transform lucy_jump_scare(child):\n# the child is implicitly set as the child of the transform\npause 5\n\n# Jump scare\n\"lucy mad\"\npause .2\n\n# Go back to the original child\nchild",
+        "transform marquee(width, height=1.0, duration=2.0, child=None):\nxcenter 0.5\nycenter 0.5\n\ncrop (0, 0, 0.5, 500)\n\ncontains:\nchild\nxanchor 0.0 xpos 1.0\nlinear duration xanchor 1.0 xpos 0.0"
+      ],
+      "lis": []
+    },
+    "warpers": {
+      "dl": [
+        {
+          "k": "pause",
+          "v": "Pause, then jump to the new value. If t == 1.0, t' = 1.0. Otherwise,\nt' = 0.0."
+        },
+        {
+          "k": "linear",
+          "v": "Linear interpolation. t' = t"
+        },
+        {
+          "k": "ease",
+          "v": "Start slow, speed up, then slow down. t' = .5 - math.cos(math.pi * t) / 2.0"
+        },
+        {
+          "k": "easein",
+          "v": "Start fast, then slow down. t' = math.cos((1.0 - t) * math.pi / 2.0)"
+        },
+        {
+          "k": "easeout",
+          "v": "Start slow, then speed up. t' = 1.0 - math.cos(t * math.pi / 2.0)"
+        }
+      ],
+      "tables": [
+        [
+          [
+            "Ren'Py Name",
+            "easings.net Name"
+          ],
+          [
+            "ease_back",
+            "easeInOut_back"
+          ],
+          [
+            "ease_bounce",
+            "easeInOut_bounce"
+          ],
+          [
+            "ease_circ",
+            "easeInOut_circ"
+          ],
+          [
+            "ease_cubic",
+            "easeInOut_cubic"
+          ],
+          [
+            "ease_elastic",
+            "easeInOut_elastic"
+          ],
+          [
+            "ease_expo",
+            "easeInOut_expo"
+          ],
+          [
+            "ease_quad",
+            "easeInOut_quad"
+          ],
+          [
+            "ease_quart",
+            "easeInOut_quart"
+          ],
+          [
+            "ease_quint",
+            "easeInOut_quint"
+          ],
+          [
+            "easein_back",
+            "easeOut_back"
+          ],
+          [
+            "easein_bounce",
+            "easeOut_bounce"
+          ],
+          [
+            "easein_circ",
+            "easeOut_circ"
+          ],
+          [
+            "easein_cubic",
+            "easeOut_cubic"
+          ],
+          [
+            "easein_elastic",
+            "easeOut_elastic"
+          ],
+          [
+            "easein_expo",
+            "easeOut_expo"
+          ],
+          [
+            "easein_quad",
+            "easeOut_quad"
+          ],
+          [
+            "easein_quart",
+            "easeOut_quart"
+          ],
+          [
+            "easein_quint",
+            "easeOut_quint"
+          ],
+          [
+            "easeout_back",
+            "easeIn_back"
+          ],
+          [
+            "easeout_bounce",
+            "easeIn_bounce"
+          ],
+          [
+            "easeout_circ",
+            "easeIn_circ"
+          ],
+          [
+            "easeout_cubic",
+            "easeIn_cubic"
+          ],
+          [
+            "easeout_elastic",
+            "easeIn_elastic"
+          ],
+          [
+            "easeout_expo",
+            "easeIn_expo"
+          ],
+          [
+            "easeout_quad",
+            "easeIn_quad"
+          ],
+          [
+            "easeout_quart",
+            "easeIn_quart"
+          ],
+          [
+            "easeout_quint",
+            "easeIn_quint"
+          ]
+        ]
+      ],
+      "code": [
+        "with Dissolve(1, time_warp=_warper.easein_quad)",
+        "python early hide:\n\n@renpy.atl_warper\ndef linear(t):\nreturn t"
+      ],
+      "lis": []
+    },
+    "replacing-transforms": {
+      "dl": [],
+      "tables": [],
+      "code": [
+        "show eileen happy at a, b, c\n\"Dialogue !\"\nshow eileen happy at d, e",
+        "transform bounce:\nlinear 3.0 xalign 1.0\nlinear 3.0 xalign 0.0\nrepeat\n\ntransform headright:\nlinear 15 xalign 1.0\n\nlabel example:\nshow eileen happy at bounce\npause\nshow eileen happy at headright\npause",
+        "show eileen happy at some_animation\n\"Wow, so this is what antigravity feels like !\"\n\nshow eileen:\npass\n\"But I'm happy when it settles down.\""
+      ],
+      "lis": []
+    },
+    "timebases": {
+      "dl": [],
+      "tables": [],
+      "code": [],
+      "lis": [
+        "st (shown timebase): begins when this displayable is first shown on the screen.",
+        "at (animation timebase): begins when an image with the same tag was shown,\nwithout being hidden."
+      ]
+    },
+    "transform-class": {
+      "dl": [
+        {
+          "k": "class Transform(child=None, *, function=None, reset=False, **properties)",
+          "v": "Creates a transform which applies operations such as cropping, rotation,\nscaling or alpha-blending to its child. A transform object has fields\ncorresponding to the transform properties,\nwhich it applies to its child.\n\nchildThe child the transform applies to."
+        },
+        {
+          "k": "child",
+          "v": "If True, the transform will reset properties to their default values\nwhen it is shown, rather than inheriting those properties from the\ntransforms it replaces."
+        },
+        {
+          "k": "reset",
+          "v": ""
+        },
+        {
+          "k": "function(trans: Transform, st: float, at: float, /) &#x2192; float | None",
+          "v": "If not None, this function will be called when the transform is\nrendered, with three positional arguments:\n\nThe transform object.\nThe shown timebase, in seconds.\nThe animation timebase, in seconds.\n\nThe function should return a delay, in seconds, after which it will be\ncalled again, or None to be called again at the start of the next\ninteraction.\nThis function should not have side effects other than changing the\nTransform object in the first argument, and may be called at any time\nwith any value as a part of prediction."
+        },
+        {
+          "k": "hide_request",
+          "v": "This attribute is set to true when the function is called, to indicate\nthat the transform is being hidden."
+        },
+        {
+          "k": "hide_response",
+          "v": "If hide_request is true, this can be set to false to prevent the\ntransform from being hidden."
+        },
+        {
+          "k": "original_child",
+          "v": "This is the child Displayable that was set when the transform was created,\nbefore any calls to set_child. This may be None if no child was during creation."
+        },
+        {
+          "k": "set_child(child)",
+          "v": "Call this method with a new child to change the child of this\ntransform."
+        },
+        {
+          "k": "update()",
+          "v": "This should be called when a transform property field is updated outside\nof the function passed as the function argument, to ensure that the\nchange takes effect."
+        },
+        {
+          "k": "unique():",
+          "v": "This should be called on a newly created transform to mark it as unique. Usually, transforms are\ncopied when when added to a displayable, resetting transform state. Calling this prevents thart\nbehavior, and is useful when you want to create a transform that maintains state across multiple\nuses, or that needs to be accessed from outside its function argument.\nThis function returns the Transform."
+        }
+      ],
+      "tables": [],
+      "code": [],
+      "lis": [
+        "The transform object.",
+        "The shown timebase, in seconds.",
+        "The animation timebase, in seconds."
+      ]
+    },
+    "applying-transforms-to-displayables-in-python": {
+      "dl": [
+        {
+          "k": "At(d, *args)",
+          "v": "Given a displayable d, applies each of the transforms in args\nto it. The transforms are applied in left-to-right order, so that\nthe outermost transform is the rightmost argument.\ntransform birds_transform:\n xpos -200\n linear 10 xpos 800\n pause 20\n repeat\n\nimage birds = At(\"birds.png\", birds_transform)"
+        }
+      ],
+      "tables": [],
+      "code": [
+        "transform birds_transform:\nxpos -200\nlinear 10 xpos 800\npause 20\nrepeat\n\nimage birds = At(\"birds.png\", birds_transform)"
+      ],
+      "lis": [
+        "The most universal and most recommended way is At(d, t) (see below). It\nworks with all transforms.",
+        "d(child=t) works with all ATL transforms.",
+        "t(d) works with all Python transforms, as well\nas with ATL transforms that don't have any positional parameters."
+      ]
+    },
+    "callables-as-transforms": {
+      "dl": [],
+      "tables": [],
+      "code": [
+        "init python:\n\n# this transform uses the right and left transforms\ndef right_or_left(d):\nif switch:\nreturn At(d, right)\nelse:\nreturn At(d, left)"
+      ],
+      "lis": []
+    }
+  },
+  "properties": {
+    "positioning": {
+      "dl": [
+        {
+          "k": "pos",
+          "v": "Type:\n(position, position)"
+        },
+        {
+          "k": "Type:",
+          "v": "(0, 0)"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "xpos",
+          "v": "Type:\nposition"
+        },
+        {
+          "k": "Type:",
+          "v": "0"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "ypos",
+          "v": "Type:\nposition"
+        },
+        {
+          "k": "Type:",
+          "v": "0"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "anchor",
+          "v": "Type:\n(position, position)"
+        },
+        {
+          "k": "Type:",
+          "v": "(0, 0)"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "xanchor",
+          "v": "Type:\nposition"
+        },
+        {
+          "k": "Type:",
+          "v": "0"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "yanchor",
+          "v": "Type:\nposition"
+        },
+        {
+          "k": "Type:",
+          "v": "0"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "align",
+          "v": "Type:\n(float, float)"
+        },
+        {
+          "k": "Type:",
+          "v": "(0.0, 0.0)"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "xalign",
+          "v": "Type:\nfloat"
+        },
+        {
+          "k": "Type:",
+          "v": "0.0"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "yalign",
+          "v": "Type:\nfloat"
+        },
+        {
+          "k": "Type:",
+          "v": "0.0"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "offset",
+          "v": "Type:\n(absolute, absolute)"
+        },
+        {
+          "k": "Type:",
+          "v": "(0, 0)"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "xoffset",
+          "v": "Type:\nabsolute"
+        },
+        {
+          "k": "Type:",
+          "v": "0"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "yoffset",
+          "v": "Type:\nabsolute"
+        },
+        {
+          "k": "Type:",
+          "v": "0"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "xycenter",
+          "v": "Type:\n(position, position)"
+        },
+        {
+          "k": "Type:",
+          "v": "(0.0, 0.0)"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "xcenter",
+          "v": "Type:\nposition"
+        },
+        {
+          "k": "Type:",
+          "v": "0.0"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "ycenter",
+          "v": "Type:\nposition"
+        },
+        {
+          "k": "Type:",
+          "v": "0.0"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "subpixel",
+          "v": "Type:\nboolean"
+        },
+        {
+          "k": "Type:",
+          "v": "False"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        }
+      ],
+      "tables": [],
+      "code": [],
+      "lis": []
+    },
+    "rotation": {
+      "dl": [
+        {
+          "k": "rotate",
+          "v": "Type:\nfloat or None"
+        },
+        {
+          "k": "Type:",
+          "v": "None"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "rotate_pad",
+          "v": "Type:\nboolean"
+        },
+        {
+          "k": "Type:",
+          "v": "True"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "transform_anchor",
+          "v": "Type:\nboolean"
+        },
+        {
+          "k": "Type:",
+          "v": "False"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        }
+      ],
+      "tables": [],
+      "code": [],
+      "lis": []
+    },
+    "zoom-and-flip": {
+      "dl": [
+        {
+          "k": "zoom",
+          "v": "Type:\nfloat"
+        },
+        {
+          "k": "Type:",
+          "v": "1.0"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "xzoom",
+          "v": "Type:\nfloat"
+        },
+        {
+          "k": "Type:",
+          "v": "1.0"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "yzoom",
+          "v": "Type:\nfloat"
+        },
+        {
+          "k": "Type:",
+          "v": "1.0"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        }
+      ],
+      "tables": [],
+      "code": [],
+      "lis": []
+    },
+    "pixel-effects": {
+      "dl": [
+        {
+          "k": "nearest",
+          "v": "Type:\nboolean"
+        },
+        {
+          "k": "Type:",
+          "v": "None"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "alpha",
+          "v": "Type:\nfloat"
+        },
+        {
+          "k": "Type:",
+          "v": "1.0"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "additive",
+          "v": "Type:\nfloat"
+        },
+        {
+          "k": "Type:",
+          "v": "0.0"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "matrixcolor",
+          "v": "Type:\nNone or Matrix or MatrixColor"
+        },
+        {
+          "k": "Type:",
+          "v": "None"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "blur",
+          "v": "Type:\nNone or float"
+        },
+        {
+          "k": "Type:",
+          "v": "None"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        }
+      ],
+      "tables": [],
+      "code": [],
+      "lis": []
+    },
+    "polar-positioning": {
+      "dl": [
+        {
+          "k": "around",
+          "v": "Type:\n(position, position)"
+        },
+        {
+          "k": "Type:",
+          "v": "(0.0, 0.0)"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "angle",
+          "v": "Type:\nfloat"
+        },
+        {
+          "k": "Type:",
+          "v": ""
+        },
+        {
+          "k": "radius",
+          "v": "Type:\nposition"
+        },
+        {
+          "k": "Type:",
+          "v": ""
+        }
+      ],
+      "tables": [],
+      "code": [],
+      "lis": []
+    },
+    "polar-positioning-of-the-anchor": {
+      "dl": [
+        {
+          "k": "anchoraround",
+          "v": "Type:\n(position, position)"
+        },
+        {
+          "k": "Type:",
+          "v": ""
+        },
+        {
+          "k": "anchorangle",
+          "v": "Type:\n(float)"
+        },
+        {
+          "k": "Type:",
+          "v": ""
+        },
+        {
+          "k": "anchorradius",
+          "v": "Type:\n(position)"
+        },
+        {
+          "k": "Type:",
+          "v": ""
+        }
+      ],
+      "tables": [],
+      "code": [],
+      "lis": []
+    },
+    "cropping-and-resizing": {
+      "dl": [
+        {
+          "k": "crop",
+          "v": "Type:\nNone or (position, position, position, position)"
+        },
+        {
+          "k": "Type:",
+          "v": "None"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "corner1",
+          "v": "Type:\nNone or (position, position)"
+        },
+        {
+          "k": "Type:",
+          "v": "None"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "corner2",
+          "v": "Type:\nNone or (position, position)"
+        },
+        {
+          "k": "Type:",
+          "v": "None"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "xysize",
+          "v": "Type:\nNone or (position, position)"
+        },
+        {
+          "k": "Type:",
+          "v": "None"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "xsize",
+          "v": "Type:\nNone or position"
+        },
+        {
+          "k": "Type:",
+          "v": "None"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "ysize",
+          "v": "Type:\nNone or position"
+        },
+        {
+          "k": "Type:",
+          "v": "None"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "fit",
+          "v": "Type:\nNone or string"
+        },
+        {
+          "k": "Type:",
+          "v": "None"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        }
+      ],
+      "tables": [
+        [
+          [
+            "Value",
+            "Description"
+          ],
+          [
+            "contain",
+            "As large as possible, without exceeding any dimensions. Maintains\naspect ratio."
+          ],
+          [
+            "cover",
+            "As small as possible, while matching or exceeding all dimensions.\nMaintains aspect ratio."
+          ],
+          [
+            "None or fill",
+            "Stretches/squashes displayable to exactly match dimensions."
+          ],
+          [
+            "scale-down",
+            "As for contain, but will never increase the size of the\ndisplayable."
+          ],
+          [
+            "scale-up",
+            "As for cover, but will never decrease the size of the\ndisplayable."
+          ]
+        ]
+      ],
+      "code": [],
+      "lis": [
+        "If both xsize and ysize are not None, both sizes are\nused as the dimensions.",
+        "If only one of those properties is not None, it is used as the sole\ndimension.",
+        "Otherwise, if fit is not None the area that the Transform is contained in\nis used as the dimensions."
+      ]
+    },
+    "panning-and-tiling": {
+      "dl": [
+        {
+          "k": "xpan",
+          "v": "Type:\nNone or float"
+        },
+        {
+          "k": "Type:",
+          "v": "None"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "ypan",
+          "v": "Type:\nNone or float"
+        },
+        {
+          "k": "Type:",
+          "v": "None"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "xtile",
+          "v": "Type:\nint"
+        },
+        {
+          "k": "Type:",
+          "v": "1"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "ytile",
+          "v": "Type:\nint"
+        },
+        {
+          "k": "Type:",
+          "v": "1"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        }
+      ],
+      "tables": [],
+      "code": [],
+      "lis": []
+    },
+    "transitions": {
+      "dl": [
+        {
+          "k": "delay",
+          "v": "Type:\nfloat"
+        },
+        {
+          "k": "Type:",
+          "v": "0.0"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "events",
+          "v": "Type:\nboolean"
+        },
+        {
+          "k": "Type:",
+          "v": "True"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        }
+      ],
+      "tables": [],
+      "code": [],
+      "lis": []
+    },
+    "other": {
+      "dl": [
+        {
+          "k": "fps",
+          "v": "Type:\nfloat or None"
+        },
+        {
+          "k": "Type:",
+          "v": "None"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "show_cancels_hide",
+          "v": "Type:\nboolean"
+        },
+        {
+          "k": "Type:",
+          "v": "True"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "3D Stage properties:",
+          "v": "perspective, point_to, orientation, xrotate, yrotate, zrotate, matrixanchor, matrixtransform, zpos, zzoom"
+        },
+        {
+          "k": "Model-based rendering properties:",
+          "v": "blend, mesh, mesh_pad, shader"
+        },
+        {
+          "k": "GL Properties:",
+          "v": "The GL properties."
+        },
+        {
+          "k": "Uniforms:",
+          "v": "Properties beginning with u_ are uniforms that can be used by custom shaders."
+        }
+      ],
+      "tables": [],
+      "code": [],
+      "lis": []
+    },
+    "property-order": {
+      "dl": [],
+      "tables": [],
+      "code": [],
+      "lis": [
+        "fps",
+        "mesh, blur",
+        "tile",
+        "pan",
+        "crop, corner1, corner2",
+        "xysize, size, maxsize",
+        "zoom, xzoom, yzoom",
+        "point_to",
+        "orientation",
+        "xrotate, yrotate, zrotate",
+        "rotate",
+        "zpos",
+        "matrixtransform, matrixanchor",
+        "zzoom",
+        "perspective",
+        "nearest, blend, alpha, additive, shader",
+        "matrixcolor",
+        "GL Properties, Uniforms",
+        "position properties",
+        "show_cancels_hide"
+      ]
+    },
+    "deprecated-transform-properties": {
+      "dl": [
+        {
+          "k": "alignaround",
+          "v": "Type:\n(float, float)"
+        },
+        {
+          "k": "Type:",
+          "v": ""
+        },
+        {
+          "k": "crop_relative",
+          "v": "Type:\nboolean"
+        },
+        {
+          "k": "Type:",
+          "v": "True"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "size",
+          "v": "Type:\nNone or (int, int)"
+        },
+        {
+          "k": "Type:",
+          "v": "None"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        },
+        {
+          "k": "maxsize",
+          "v": "Type:\nNone or (int, int)"
+        },
+        {
+          "k": "Type:",
+          "v": "None"
+        },
+        {
+          "k": "Default:",
+          "v": ""
+        }
+      ],
+      "tables": [],
+      "code": [],
+      "lis": []
+    }
+  },
+  "transitions": {
+    "transitions": {
+      "dl": [],
+      "tables": [],
+      "code": [
+        "show bg washington\nwith dissolve"
+      ],
+      "lis": []
+    },
+    "pre-defined-transitions": {
+      "dl": [
+        {
+          "k": "dissolve",
+          "v": "Takes 0.5 seconds to dissolve from the old to the new screen. An instance of\nthe Dissolve() transition class."
+        },
+        {
+          "k": "fade",
+          "v": "Takes 0.5 seconds to fade to black, and then 0.5 seconds to fade to the new\nscreen. An instance of the Fade() transition class."
+        },
+        {
+          "k": "pixellate",
+          "v": "Pixellates the old scene for .5 seconds, and the new scene for another .5\nseconds. An instance of the Pixellate() transition class."
+        },
+        {
+          "k": "move",
+          "v": "Takes 0.5 seconds to the move images that have changed location to their new\nlocations. An instance of the MoveTransition() transition class.\nMove transitions, and similar transitions like ease, can only be applied to\na single layer or all layers at once, using the\nwith statement. It will not work in other contexts\nsuch as ATL, ComposeTransition(),\nor other ways of applying transitions."
+        },
+        {
+          "k": "moveinright",
+          "v": "Also: moveinleft, moveintop, moveinbottom\nThese move entering images onto the screen from the appropriate side, taking\n0.5 seconds to do so."
+        },
+        {
+          "k": "moveoutright",
+          "v": "Also: moveoutleft, moveouttop, moveoutbottom\nThese move leaving images off the screen via the appropriate side, taking\n0.5 seconds to do so."
+        },
+        {
+          "k": "ease",
+          "v": "Also: easeinright, easeinleft, easeintop, easeinbottom, easeoutright, easeoutleft, easeouttop, easeoutbottom\nThese are similar to the move- family of transitions, except that they use a\ncosine-based curve to slow down the start and end of the transition."
+        },
+        {
+          "k": "zoomin",
+          "v": "This zooms in entering images, taking 0.5 seconds to do so."
+        },
+        {
+          "k": "zoomout",
+          "v": "This zooms out leaving images, taking 0.5 seconds to do so."
+        },
+        {
+          "k": "zoominout",
+          "v": "This zooms in entering images and zooms out leaving images, taking 0.5\nseconds to do so."
+        },
+        {
+          "k": "vpunch",
+          "v": "When invoked, this transition shakes the screen vertically for a quarter\nsecond. Imitating and customizing this transition and hpunch is best\ndone using ATL Transitions."
+        },
+        {
+          "k": "hpunch",
+          "v": "When invoked, this transition shakes the screen horizontally for a quarter\nsecond."
+        },
+        {
+          "k": "blinds",
+          "v": "Transitions the screen in a vertical blinds effect lasting 1 second. An\ninstance of the ImageDissolve() transition class."
+        },
+        {
+          "k": "squares",
+          "v": "Transitions the screen in a squares effect lasting 1 second."
+        },
+        {
+          "k": "wipeleft",
+          "v": "Also: wiperight, wipeup, wipedown\nWipes the scene in the given direction. Instances of the CropMove()\ntransition class."
+        },
+        {
+          "k": "slideleft",
+          "v": "Also: slideright, slideup, slidedown\nSlides the new scene in the given direction. Instances of the\nCropMove() transition class."
+        },
+        {
+          "k": "slideawayleft",
+          "v": "Also: slideawayright, slideawayup, slideawaydown\nSlides the old scene in the given direction. Instances of the\nCropMove() transition class."
+        },
+        {
+          "k": "pushright",
+          "v": "Also: pushleft, pushup, pushdown\nThese use the new scene to slide the old scene out the named side. Instances\nof the PushMove() transition class."
+        },
+        {
+          "k": "irisin",
+          "v": "Also: irisout\nUse a rectangular iris to display the new screen, or hide the old screen.\nInstances of the CropMove() transition class."
+        }
+      ],
+      "tables": [],
+      "code": [],
+      "lis": []
+    },
+    "transition-classes": {
+      "dl": [
+        {
+          "k": "AlphaDissolve(control, delay=0.0, *, reverse=False, mipmap=None)",
+          "v": "Returns a transition that uses a control displayable (almost always some\nsort of animated transform) to transition from one screen to another. The\ntransform is evaluated. The new screen is used where the transform is\nopaque, and the old image is used when it is transparent.\n\ncontrolThe control transform."
+        },
+        {
+          "k": "control",
+          "v": "The time the transition takes, before ending."
+        },
+        {
+          "k": "delay",
+          "v": "If true, the alpha channel is reversed. Opaque areas are taken\nfrom the old image, while transparent areas are taken from the\nnew image."
+        },
+        {
+          "k": "reverse",
+          "v": "When the dissolve will be scaled to less than half its natural size,\nthis can be set to True. This will cause mipmaps to be generated,\nwhich will make the dissolve consume more GPU resources, but will\nreduce artifacts. See mipmap for more information."
+        },
+        {
+          "k": "mipmap",
+          "v": ""
+        },
+        {
+          "k": "ComposeTransition(trans, before, after)",
+          "v": "Returns a transition that composes up to three transitions. If not None,\nthe before and after transitions are applied to the old and new\nscenes, respectively. These updated old and new scenes are then supplied\nto the trans transition.\n# Move the images in and out while dissolving. (This is a fairly expensive transition.)\ndefine moveinoutdissolve = ComposeTransition(dissolve, before=moveoutleft, after=moveinright)"
+        },
+        {
+          "k": "CropMove(time, mode='slideright', startcrop=(0.0, 0.0, 0.0, 1.0), startpos=(0.0, 0.0), endcrop=(0.0, 0.0, 1.0, 1.0), endpos=(0.0, 0.0), topnew=True)",
+          "v": "Returns a transition that works by cropping a scene and positioning it on the\nscreen. This can be used to implement a variety of effects, all of which\ninvolve changing rectangular slices of scenes.\n\ntimeThe time the transition takes."
+        },
+        {
+          "k": "time",
+          "v": "The name of the mode of the transition. There are three groups\nof modes: wipes, slides, and other. This can also be \"custom\",\nto allow a custom mode to be defined.\nIn a wipe, the image stays fixed, and more of it is revealed as\nthe transition progresses. For example, in \"wiperight\", a wipe from left to right, first the left edge of the image is\nrevealed at the left edge of the screen, then the center of the image,\nand finally the right side of the image at the right of the screen.\nOther supported wipes are \"wipeleft\", \"wipedown\", and \"wipeup\".\nIn a slide, the image moves. So in a \"slideright\", the right edge of the\nimage starts at the left edge of the screen, and moves to the right\nas the transition progresses. Other slides are \"slideleft\", \"slidedown\",\nand \"slideup\".\nThere are also slideaways, in which the old image moves on top of\nthe new image. Slideaways include \"slideawayright\", \"slideawayleft\",\n\"slideawayup\", and \"slideawaydown\".\nWe also support a rectangular iris in with \"irisin\" and a\nrectangular iris out with \"irisout\"."
+        },
+        {
+          "k": "mode",
+          "v": ""
+        },
+        {
+          "k": "startcrop",
+          "v": "The starting rectangle that is cropped out of the\ntop image. A 4-element tuple containing x, y, width, and height."
+        },
+        {
+          "k": "startpos",
+          "v": "The starting place that the top image is drawn\nto the screen at, a 2-element tuple containing x and y."
+        },
+        {
+          "k": "endcrop",
+          "v": "The ending rectangle that is cropped out of the\ntop image. A 4-element tuple containing x, y, width, and height."
+        },
+        {
+          "k": "endpos",
+          "v": "The ending place that the top image is drawn\nto the screen at, a 2-element tuple containing x and y."
+        },
+        {
+          "k": "topnew",
+          "v": "If true, the scene that is cropped and moved (and is on top of\nthe other scene) is the new scene. If false, it is the old scene."
+        },
+        {
+          "k": "Dissolve(time, *, time_warp=None, mipmap=None)",
+          "v": "Returns a transition that dissolves from the old scene to the new scene.\n\ntimeThe time the dissolve will take."
+        },
+        {
+          "k": "time",
+          "v": "A function that adjusts the timeline. If not None, this\nshould be a function that takes a fractional time between 0.0 and 1.0,\nand returns a number in the same range."
+        },
+        {
+          "k": "time_warp",
+          "v": "When the dissolve will be scaled to less than half its natural size,\nthis can be set to True. This will cause mipmaps to be generated,\nwhich will make the dissolve consume more GPU resources, but will\nreduce artifacts. See mipmap for more information."
+        },
+        {
+          "k": "mipmap",
+          "v": ""
+        },
+        {
+          "k": "Fade(out_time, hold_time, in_time, *, color='#000')",
+          "v": "Returns a transition that takes out_time seconds to fade to\na screen filled with color, holds at that screen for hold_time\nseconds, and then takes in_time to fade to then new screen.\n# Fade to black and back.\ndefine fade = Fade(0.5, 0.0, 0.5)\n\n# Hold at black for a bit.\ndefine fadehold = Fade(0.5, 1.0, 0.5)\n\n# Camera flash - quickly fades to white, then back to the scene.\ndefine flash = Fade(0.1, 0.0, 0.5, color=\"#fff\")"
+        },
+        {
+          "k": "ImageDissolve(image, time, ramplen=8, *, reverse=False, time_warp=None, mipmap=None)",
+          "v": "Returns a transition that dissolves the old scene into the new scene, using\nan image to control the dissolve process. This means that white pixels will\ndissolve in first, and black pixels will dissolve in last.\n\nimageThe control image. This can be any displayable. It\nshould be the size of the scenes being dissolved, and if reverse=True,\nit should be fully opaque."
+        },
+        {
+          "k": "image",
+          "v": "The time the dissolve will take."
+        },
+        {
+          "k": "time",
+          "v": "The length of the ramp to use. This must be an integer power\nof 2. When this is the default value of 8, when a white pixel\nis fully dissolved, a pixel 8 shades of gray darker will have\ncompleted one step of dissolving in."
+        },
+        {
+          "k": "ramplen",
+          "v": "If True, black pixels will dissolve in before white pixels."
+        },
+        {
+          "k": "reverse",
+          "v": "A function that adjusts the timeline. If not None, this\nshould be a function that takes a fractional time between 0.0 and 1.0,\nand returns a number in the same range."
+        },
+        {
+          "k": "time_warp",
+          "v": "When the dissolve will be scaled to less than half its natural size,\nthis can be set to True. This will cause mipmaps to be generated,\nwhich will make the dissolve consume more GPU resources, but will\nreduce artifacts. See mipmap for more information."
+        },
+        {
+          "k": "mipmap",
+          "v": ""
+        },
+        {
+          "k": "MoveTransition(delay, *, enter=None, leave=None, old=False, layers=['master'], time_warp=_warper.linear, enter_time_warp=_warper.linear, leave_time_warp=_warper.linear)",
+          "v": "With these transitions, images changing position between the old and new\nscenes will be interpolated, which means their movement will be smooth\ninstead of instantaneous.\nAs only layers have tags, MoveTransitions can only be applied to a single\nlayer or all layers at once, using the with statement.\nIt will not work in other contexts such as ATL,\nComposeTransition(), or other ways of applying transitions.\n\ndelayThe time it takes for the interpolation to finish."
+        },
+        {
+          "k": "delay",
+          "v": "If true, when a tag gets its image changed during the transition,\nthe old image will be used in preference to the new one. Otherwise,\nthe new images will be used."
+        },
+        {
+          "k": "old",
+          "v": "A list of layers that moves are applied to."
+        },
+        {
+          "k": "layers",
+          "v": ""
+        },
+        {
+          "k": "enter",
+          "v": "If not None, images entering the scene will also be moved. The transform\nwill be applied to the image to get it in its starting position."
+        },
+        {
+          "k": "leave",
+          "v": "If not None, images leaving the scene will also be moved. The transform\nwill be applied to the image to get it in its ending position."
+        },
+        {
+          "k": "time_warp",
+          "v": "A time warp function that's applied to the images changing position\nbetween the old and new scenes."
+        },
+        {
+          "k": "enter_time_warp",
+          "v": "A time warp function that's applied to images entering the scene."
+        },
+        {
+          "k": "leave_time_warp",
+          "v": "A time warp function that's applied to images leaving the scene."
+        },
+        {
+          "k": "MultipleTransition(args)",
+          "v": "Returns a transition that allows multiple transitions to be displayed, one\nafter the other.\n\nargsA list containing an odd number of items. The first, third, and\nother odd-numbered items must be scenes, and the even items\nmust be transitions. A scene can be one of:\n\nA displayable.\nFalse, to use the old scene.\nTrue, to use the new scene.\n\nAlmost always, the first argument will be False and the last True.\nNote that this is a single parameter taking a list, this is not *args."
+        },
+        {
+          "k": "args",
+          "v": ""
+        },
+        {
+          "k": "Pause(delay)",
+          "v": "Returns a transition that only displays the new screen for delay seconds.\nIt can be useful as part of a MultipleTransition."
+        },
+        {
+          "k": "Pixellate(time, steps)",
+          "v": "Returns a transition that pixellates out the old screen, and then\npixellates in the new screen.\n\ntimeThe total time the transition will take, in seconds."
+        },
+        {
+          "k": "time",
+          "v": "The number of steps that will occur, in each direction. Each step\ncreates pixels about twice the size of those in the previous step,\nso a 5-step pixellation will create 32x32 pixels."
+        },
+        {
+          "k": "steps",
+          "v": ""
+        },
+        {
+          "k": "PushMove(time, mode='pushright')",
+          "v": "Returns a transition that works by taking the new scene and using it to\n\"push\" the old scene off the screen.\n\ntimeThe time the transition takes."
+        },
+        {
+          "k": "time",
+          "v": "There are four possible modes: \"pushright\", \"pushleft\", \"pushup\",\nand \"pushdown\", which push the old scene off the screen in the\ndirection indicated."
+        },
+        {
+          "k": "mode",
+          "v": ""
+        },
+        {
+          "k": "Swing(delay=1.0, vertical=False, reverse=False, background='#000', flatten=True)",
+          "v": "A transitions that rotates the old scene 90 degrees around an axis,\nso that it is edge on with the viewer, switches to the new scene,\nand then rotates that scene another 90 degrees to show the new\nscene to the viewer.\n\ndelayHow long the transition should take."
+        },
+        {
+          "k": "delay",
+          "v": "If true, the scene is rotate around the x-axis (pixels move\nvertically). If false, the scene is roated around the y axis,\npixels moving horizontally."
+        },
+        {
+          "k": "vertical",
+          "v": "When true, the rotation occurs in the reverse direction."
+        },
+        {
+          "k": "reverse",
+          "v": "A displayable that is placed behind the scene as it rotates."
+        },
+        {
+          "k": "background",
+          "v": "If true, the scenes are flattened into images the size of\nthe screen before being rotated. Use this if images being\nnot entirely on the screen causes undesired effects."
+        },
+        {
+          "k": "flatten",
+          "v": ""
+        }
+      ],
+      "tables": [],
+      "code": [
+        "# A very long dissolve.\nwith Dissolve(10.0)",
+        "define dissolve1 = Dissolve(1.0)\n\nlabel start:\nshow bg washington\nwith dissolve1",
+        "# Move the images in and out while dissolving. (This is a fairly expensive transition.)\ndefine moveinoutdissolve = ComposeTransition(dissolve, before=moveoutleft, after=moveinright)",
+        "define wiperight = CropMove(1.0, \"wiperight\")\ndefine wipeleft = CropMove(1.0, \"wipeleft\")\ndefine wipeup = CropMove(1.0, \"wipeup\")\ndefine wipedown = CropMove(1.0, \"wipedown\")\n\ndefine slideright = CropMove(1.0, \"slideright\")\ndefine slideleft = CropMove(1.0, \"slideleft\")\ndefine slideup = CropMove(1.0, \"slideup\")\ndefine slidedown = CropMove(1.0, \"slidedown\")\n\ndefine slideawayright = CropMove(1.0, \"slideawayright\")\ndefine slideawayleft = CropMove(1.0, \"slideawayleft\")\ndefine slideawayup = CropMove(1.0, \"slideawayup\")\ndefine slideawaydown = CropMove(1.0, \"slideawaydown\")\n\ndefine irisout = CropMove(1.0, \"irisout\")\ndefine irisin = CropMove(1.0, \"irisin\")",
+        "# Fade to black and back.\ndefine fade = Fade(0.5, 0.0, 0.5)\n\n# Hold at black for a bit.\ndefine fadehold = Fade(0.5, 1.0, 0.5)\n\n# Camera flash - quickly fades to white, then back to the scene.\ndefine flash = Fade(0.1, 0.0, 0.5, color=\"#fff\")",
+        "define circirisout = ImageDissolve(\"circiris.png\", 1.0, time_warp=_warper.easeout)\ndefine circirisin = ImageDissolve(\"circiris.png\", 1.0, reverse=True, time_warp=_warper.easein)\ndefine circiristbigramp = ImageDissolve(\"circiris.png\", 1.0, ramplen=256)",
+        "define longer_easein = MoveTransition(3.0, enter=offscreenright, enter_time_warp=_warper.easein)",
+        "define some_move_trans = MoveTransition(...)\n\nlabel start:\nshow a\nshow b at left\nshow ugly_eileen as d at right\ne \"This is a dialogue !\"\n\nhide a\nshow b at right\nshow c\nshow pretty_eileen as d at left\nwith some_move_trans",
+        "define logodissolve = MultipleTransition([\nFalse, Dissolve(0.5),\n\"logo.jpg\", Pause(1.0),\n\"logo.jpg\", dissolve,\nTrue])",
+        "define pushright = PushMove(1.0, \"pushright\")\ndefine pushleft = PushMove(1.0, \"pushleft\")\ndefine pushup = PushMove(1.0, \"pushup\")\ndefine pushdown = PushMove(1.0, \"pushdown\")"
+      ],
+      "lis": [
+        "A displayable.",
+        "False, to use the old scene.",
+        "True, to use the new scene."
+      ]
+    },
+    "transition-families": {
+      "dl": [
+        {
+          "k": "define.move_transitions(prefix, delay, time_warp=None, in_time_warp=None, out_time_warp=None, old=False, layers=['master'], **kwargs)",
+          "v": "This defines a family of move transitions,\nsimilar to the move and ease transitions. For a given\nprefix, this defines the transitions:\n\nprefix - A transition that takes delay seconds to move images that\nchanged positions to their new locations.\nprefixinleft, prefixinright, prefixintop, prefixinbottom - Transitions\nthat take delay seconds to move images that changed positions to their\nnew locations, with newly shown images coming in from the appropriate\nside.\nprefixoutleft, prefixoutright, prefixouttop, prefixoutbottom -\nTransitions that take delay seconds to move images that changed\npositions to their new locations, with newly hidden images leaving via\nthe appropriate side.\n\nThe other parameters are as MoveTransition takes them:\n\ntime_warp, in_time_warp, out_time_warpTime warp functions that are given a time from 0.0\nto 1.0 representing the fraction of the move that is complete, and\nreturn a value in the same range giving the fraction of a linear\nmove that is complete.\nThis can be used to define functions that ease the images around,\nrather than moving them at a constant speed.\nThe three arguments are used for images remaining on the screen,\nnewly shown images, and newly hidden images, respectively."
+        },
+        {
+          "k": "time_warp, in_time_warp, out_time_warp",
+          "v": "If true, when a tag gets its image changed during the transition,\nthe old image will be used in preference to the new one. Otherwise,\nthe new images will be used."
+        },
+        {
+          "k": "old",
+          "v": "The layers the transition will apply to."
+        },
+        {
+          "k": "layers",
+          "v": ""
+        }
+      ],
+      "tables": [],
+      "code": [
+        "# This defines all of the pre-defined transitions beginning\n# with \"move\".\ninit python:\ndefine.move_transitions(\"move\", 0.5)"
+      ],
+      "lis": [
+        "prefix - A transition that takes delay seconds to move images that\nchanged positions to their new locations.",
+        "prefixinleft, prefixinright, prefixintop, prefixinbottom - Transitions\nthat take delay seconds to move images that changed positions to their\nnew locations, with newly shown images coming in from the appropriate\nside.",
+        "prefixoutleft, prefixoutright, prefixouttop, prefixoutbottom -\nTransitions that take delay seconds to move images that changed\npositions to their new locations, with newly hidden images leaving via\nthe appropriate side."
+      ]
+    },
+    "dict-transitions": {
+      "dl": [],
+      "tables": [],
+      "code": [
+        "define dis = { \"master\" : Dissolve(1.0) }\n\nlabel start:\nshow eileen happy\nwith dis\n\ne \"Hello, world.\"",
+        "define config.window_show_transition = { \"screens\" : Dissolve(.25) }\ndefine config.window_hide_transition = { \"screens\" : Dissolve(.25) }"
+      ],
+      "lis": []
+    },
+    "atl-transitions": {
+      "dl": [],
+      "tables": [],
+      "code": [
+        "transform spin(duration=1.0, *, new_widget=None, old_widget=None):\n\n# Set how long this transform will take to complete.\ndelay duration\n\n# Center it.\nxcenter .5\nycenter .5\n\n# Spin the old displayable.\nold_widget\nevents False\nrotate 0.\neaseout (duration / 2) rotate 360.0\n\n# Spin the new displayable.\nnew_widget\nevents True\neasein (duration / 2) rotate 720.0"
+      ],
+      "lis": []
+    },
+    "python-transitions": {
+      "dl": [],
+      "tables": [],
+      "code": [
+        "init python:\ndef dissolve_or_pixellate(old_widget=None, new_widget=None):\nif persistent.want_pixellate:\nreturn pixellate(old_widget=old_widget, new_widget=new_widget)\nelse:\nreturn dissolve(old_widget=old_widget, new_widget=new_widget)"
+      ],
+      "lis": []
+    },
+    "automatic-transitions-after-scene-show-and-hide": {
+      "dl": [],
+      "tables": [],
+      "code": [
+        "define _scene_show_hide_transition = Dissolve(0.25)\n\nlabel start:\nscene bg washington\nshow eileen happy\n\n\"The transition won't show here, because the dialogue window transitioned in.\"\n\nshow lucy mad at right\n\n\"The transition will happen here.\"\n\nhide lucy mad\nshow eileen vhappy\n\n\"And it will happen here, as well.\""
+      ],
+      "lis": []
+    }
+  }
+}
