@@ -240,8 +240,8 @@ When you find any problem while testing, record: **feature → steps to reproduc
 ## 9. Feeding your accumulated experience back to developers
 
 > While using this tool you accumulate a lot of first-hand experience: pitfalls you hit, verified patterns, habits that fit your projects.
-> This tool is designed around **three-tier experience isolation** (the `renpy-practices` skill declares this fully at the top),
-> and this section explains how to consolidate experience and feed it back to the developer.
+> This tool is designed around **three-tier experience isolation** (the `renpy-practices` skill declares this fully at the top): L1/L2 go into the open-source package, L3 stays in your private file.
+> This chapter explains how to consolidate experience and feed back the shareable parts (L1/L2) to the developer.
 
 ### 9.1 What the three tiers are
 
