@@ -29,7 +29,7 @@ function apply(ctx, config) {
   }
   const sdkPath = cfg('sdkPath', '')
   if (!sdkPath) {
-    throw new Error('renpy-client: 缺少 sdkPath。请运行发布包内的 deploy.ps1 配置 SDK 路径（写入 ' + dshHome + '/renpy.config.json），或设置 RENPY_SDK_PATH 环境变量，或在插件 config 中提供 sdkPath。')
+    throw new Error('dsh-renpy-dev-client: 缺少 sdkPath。请运行发布包内的 deploy.ps1 配置 SDK 路径（写入 ' + dshHome + '/renpy.config.json），或设置 RENPY_SDK_PATH 环境变量，或在插件 config 中提供 sdkPath。')
   }
   const python = sdkPath + '/lib/py3-windows-x86_64/python.exe'
   const renpyPy = sdkPath + '/renpy.py'

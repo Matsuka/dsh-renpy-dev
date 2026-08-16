@@ -63,7 +63,7 @@ Ren'Py 在通用模型的训练语料里占比很低，直接让模型写会出�
 可复跑：
 
 ```powershell
-node .preset-staging/extract-text-docs.js <sdk>/doc <out>.json
+node verification/scripts/extract-text-docs.js <sdk>/doc <out>.json
 ```
 
 **说明**：这些 JSON 是"骨架"——skill 的覆盖范围来自引擎/文档本身，而不是模型
@@ -211,5 +211,5 @@ L2 是社区共识性质；L3 明确不进开源包。贡献者提交新条目�
 | | `verification/projects/eq-test/` | Python 等价形式验证 |
 | 单测 | `verification/tests/test-*.js` + `host-*-test.js` + `smoke-sidebar.js` | 编辑器/解析器逻辑回归 |
 
-> 这些资产在工作区的 `.preset-staging/` 下开发维护，发布时整理进 `verification/` 随包分发。
+> 这些资产随发布包在 `verification/` 下分发，开发维护时集中在同一目录。
 > 复跑全部验证需要 Ren'Py SDK（见 §5 依赖说明）。

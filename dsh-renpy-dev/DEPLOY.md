@@ -16,7 +16,7 @@
 | 2 | 检测 / 指定 Ren'Py SDK | 记录 SDK 路径（不下载） |
 | 3 | 复制 agent preset | `~/.dsh/.agent-presets/renpy/` |
 | 4 | 复制 14 个 skill | `~/.dsh/skills/renpy-*.md` |
-| 5 | 链接 dsh-renpy-dev-client 插件包 | `<DSH>\node_modules\dsh-renpy-dev-client`（junction） |
+| 5 | 链接 dsh-renpy-dev-client 插件包 | `~/.dsh/profiles/node_modules/dsh-renpy-dev-client`（junction） |
 | 6 | 更新 web profile | `~/.dsh/profiles/web/package.json`（bundles + link） |
 | 7 | 建 preset 的 node_modules junction | 指向 DSH node_modules |
 | 8 | 生成运行配置 | `~/.dsh/renpy.config.json` |
@@ -191,7 +191,7 @@ cd <解压目录>
 ~/.dsh/renpy.config.json                     # 运行配置（可选）
 ```
 
-并在 `~/.dsh/profiles/web/package.json` 中删除 `dependencies.dsh-renpy-dev-client` 和 `dsh.profile.bundles` 里的 `"renpy-client"` 两项，然后重启 dsh。
+并在 `~/.dsh/profiles/web/package.json` 中删除 `dependencies.dsh-renpy-dev-client` 和 `dsh.profile.bundles` 里的 `"dsh-renpy-dev-client"` 两项，然后重启 dsh。
 
 ---
 

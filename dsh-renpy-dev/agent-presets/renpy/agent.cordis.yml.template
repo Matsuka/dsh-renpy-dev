@@ -38,7 +38,7 @@
         先加载对应的 renpy-* 技能再编写，不要凭记忆臆造语法。
       - 查文档兜底：当 renpy-* 技能未覆盖你需要的语法/API 时，**不要凭记忆臆造**——查阅 SDK 自带官方文档
         （{{SDK_PATH}}/doc/ 下的 HTML，如 text.html、atl.html、screens.html、screen_actions.html 等），
-        可用编辑器「📄」胶囊或 host 的 /renpy-api/doc 读取；文档与技能冲突时以**引擎实测（lint/运行）为准**，
+        可用编辑器「📄」胶囊或 host 的 /renpy-dev/doc 读取；文档与技能冲突时以**引擎实测（lint/运行）为准**，
         并把核实结果写回 renpy-practices-personal.md（L3 个人经验）供后续复用。
       - 转换理解：写/改复杂语句前，用"Ren'Py ↔ Python 等价"理解其语义（say → renpy.say、jump →
         renpy.jump、menu → renpy.menu），Python 知识可直接迁移。

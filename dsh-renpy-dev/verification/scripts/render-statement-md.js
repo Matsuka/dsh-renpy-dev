@@ -1,6 +1,8 @@
 // 混合流程①b：ast-statement-map.json → Markdown 速查初稿（无 AI 渲染）
+// 用法：node render-statement-md.js [输入.json] [输出.md]
 const fs = require('fs')
-const m = require('D:/Users/windows/Documents/renpy for dsh/.preset-staging/ast-statement-map.json')
+const path = require('path')
+const m = require(process.argv[2] || path.join(__dirname, '..', 'extracts', 'ast-statement-map.json'))
 const esc = (s) => String(s || '').replace(/\|/g, '\\|').replace(/\n/g, ' ').slice(0, 200)
 
 const rows = m.map((c) => {
@@ -22,5 +24,5 @@ ${rows}
 - internals = show_imspec / next_node / py_eval 等内部函数（需映射到公开 API）
 `
 
-fs.writeFileSync('D:/Users/windows/Documents/renpy for dsh/.preset-staging/renpy-statement-map.md', md)
+fs.writeFileSync(process.argv[3] || path.join(__dirname, '..', 'extracts', 'renpy-statement-map.md'), md)
 console.log('生成 renpy-statement-map.md，行数:', rows.split('\n').length)

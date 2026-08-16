@@ -1,8 +1,13 @@
 // 混合流程①：从 renpy/ast.py 机械提取"语句类 → execute 调用序列"（无 AI，纯静态分析）
+// 用法：node extract-ast-map.js <sdk>/renpy/ast.py [输出.json]
 const fs = require('fs')
 const path = require('path')
 
-const astFile = 'D:/Users/windows/Documents/renpy for dsh/renpy-8.5.3-sdk/renpy/ast.py'
+const astFile = process.argv[2]
+if (!astFile) {
+  console.error('用法: node extract-ast-map.js <sdk>/renpy/ast.py [输出.json]')
+  process.exit(1)
+}
 const lines = fs.readFileSync(astFile, 'utf8').split('\n')
 
 const classes = []
@@ -73,7 +78,7 @@ const out = classes.filter((c) => c.exec || c.statementName || c.renpyCalls.leng
     execSnippet: c.exec.slice(0, 700),
   }))
 
-const outFile = 'D:/Users/windows/Documents/renpy for dsh/.preset-staging/ast-statement-map.json'
+const outFile = process.argv[3] || path.join(__dirname, '..', 'extracts', 'ast-statement-map.json')
 fs.writeFileSync(outFile, JSON.stringify(out, null, 2))
 console.log('提取语句类:', out.length)
 console.log('输出:', outFile)
