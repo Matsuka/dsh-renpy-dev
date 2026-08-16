@@ -1,15 +1,8 @@
 # Ren'Py Development Mode (dsh-renpy-dev) v1.0.0
 
 > Make AI write correct Ren'Py — a complete DSH development environment driven by 14 engine-verified knowledge bases.
-> It is also a **complete validation of DSH's "Everything is a Plugin" philosophy**: the entire workbench is built from a deep integration of agent preset + skills + web plugin, and the project itself was built using DSH's own development capabilities.
 
 DeepSeek Harness (DSH) is extended into a full **Ren'Py game development workbench**: an in-browser editor (syntax highlighting, autocomplete, find & replace), lint / run / screenshot / automated testing, save history with checkpoint rollback, workspace locking, AI learning annotations, 14 Ren'Py knowledge bases (skills), and 9 development tools directly callable by the AI.
-
-### Why this project
-
-- **End-to-end validation of DSH's core idea**: agent preset (RenPy Dev), 14 skills (SKILL.md compatible with Anthropic), and a web plugin (browser UI) — DSH's three first-class extension forms fully combined here, unique in the ecosystem.
-- **Self-bootstrapped (dogfooding)**: this Ren'Py development workbench was itself built with DSH's capabilities — preset, skills, plugin, and the verification loop all completed inside DSH. It proves DSH can bootstrap complete domain development environments from itself.
-- **Verifiable, not just flashy**: all 14 skills passed a "source-verified + engine-validated" pipeline, backed by 17 unit tests / 274 assertions — AI-written code can be linted, run, and screenshot-confirmed.
 
 This repository is the **open-source edition** (for developers/contributors), including the full verification assets. End users should use the **release zip** from the **Releases** page (no verification assets, more lightweight).
 
@@ -21,6 +14,8 @@ This repository is the **open-source edition** (for developers/contributors), in
 > - **Contribution guide** (three-tier experience isolation + submission conventions) → **`CONTRIBUTING.md`**
 > - **Terminology** (EN↔ZH glossary for Ren'Py terms) → **`docs/glossary.md`**
 > - Quick start → below.
+
+> 💡 Side note: this workbench is built from a deep integration of **agent preset + skills + web plugin** — a complete validation of DSH's "Everything is a Plugin" philosophy, and the project itself was built using DSH's capabilities (self-bootstrapped). This is added value; the core value remains the features below.
 
 ## License
 
