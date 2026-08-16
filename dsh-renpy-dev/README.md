@@ -1,10 +1,10 @@
-# Ren'Py 开发模式（dsh-renpy-dev）
+# Ren'Py 开发模式（dsh-renpy-dev）v1.0.0
 
 > 让 AI 写对 Ren'Py——14 个经引擎验证的知识库驱动的完整 DSH 开发环境。
 
 在 DeepSeek Harness（DSH）内提供完整的 **Ren'Py 游戏开发工作台**：浏览器内编辑器（语法高亮/补全/查找替换）、lint/运行/截图/自动化测试、保存历史与检查点回滚、工作区域锁定、AI 学习注释、14 个 Ren'Py 知识库（skill），以及可供 AI 直接调用的 9 个开发工具。
 
-本仓库是**开源仓库版**（面向开发者/贡献者），含完整验证资产。普通使用者请用**发行版**（`dsh-renpy-dev-dist-v1.0.zip`，不含验证资产，更轻量）。
+本仓库是**开源仓库版**（面向开发者/贡献者），含完整验证资产。普通使用者请用 **Releases** 里的发行版 zip（不含验证资产，更轻量）。
 
 > 📦 文档导航：
 > - **部署流程**（完整版，含两种模式/参数/故障排查/升级卸载）→ 见 **`DEPLOY.md`**
@@ -90,6 +90,7 @@ dsh-renpy-dev/
 ├── TESTING.md                        # 测试者指南（功能/操作/预期/回归表）
 ├── CONTRIBUTING.md                   # 贡献指南（三层经验隔离 + 提交规范）
 ├── LICENSE                           # MIT License
+├── NOTICE                            # 第三方许可声明（Ren'Py / DSH）
 ├── agent-presets/
 │   └── renpy/
 │       ├── preset.yml                # preset 名称/描述
@@ -148,4 +149,4 @@ dsh-renpy-dev/
 
 - 面向 **Ren'Py 8.5.x**（本地 SDK 锁定 8.5.3）。
 - 打包（distribute）暂不支持：SDK 打包在 launcher 内部，本插件只覆盖 build.rpy 配置知识（`renpy-build` skill）。
-- 变更记录与实现细节见 `PLAN.md`（开发文档，随源码分发）。
+- 变更记录与实现细节见各版本 **Releases** 说明；贡献方式见 `CONTRIBUTING.md`。
