@@ -1,6 +1,6 @@
 # Ren'Py Development Mode (dsh-renpy-dev) v1.0.0
 
-> Make AI write correct Ren'Py — a complete DSH development environment driven by 14 engine-verified knowledge bases.
+> A validation of DSH's core idea: a self-bootstrapped Ren'Py development workbench with deep integration of agent preset + skills + web plugin.
 
 DeepSeek Harness (DSH) is extended into a full **Ren'Py game development workbench**: an in-browser editor (syntax highlighting, autocomplete, find & replace), lint / run / screenshot / automated testing, save history with checkpoint rollback, workspace locking, AI learning annotations, 14 Ren'Py knowledge bases (skills), and 9 development tools directly callable by the AI.
 
@@ -14,8 +14,6 @@ This repository is the **open-source edition** (for developers/contributors), in
 > - **Contribution guide** (three-tier experience isolation + submission conventions) → **`CONTRIBUTING.md`**
 > - **Terminology** (EN↔ZH glossary for Ren'Py terms) → **`docs/glossary.md`**
 > - Quick start → below.
-
-> 💡 Side note: this workbench is built from a deep integration of **agent preset + skills + web plugin** — a complete validation of DSH's "Everything is a Plugin" philosophy, and the project itself was built using DSH's capabilities (self-bootstrapped). This is added value; the core value remains the features below.
 
 ## License
 
