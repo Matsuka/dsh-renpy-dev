@@ -1,6 +1,0 @@
-# Ren'Py 开发模式（dsh-renpy-dev）— web profile 宿主侧插件行。
-# 行名指向包名 'dsh-renpy-dev-client'（loader 导入包 main = lib/host.js 作为插件；
-# 同时该包声明 dsh.client，客户端扫描器据此服务 lib/client.js bundle）。
-- insert:
-    - id: renpy-dev
-      name: 'dsh-renpy-dev-client'
