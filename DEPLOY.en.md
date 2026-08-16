@@ -2,7 +2,7 @@
 
 > This document is for **deployers** (people installing this Ren'Py development mode on a target machine).
 > It fully explains the one-click deployment flow, both modes, parameters, verification, and troubleshooting.
-> End users (testers) should see `TESTING.md`; a quick start is in `README.md`.
+> End users (testers) should see `GUIDE.md`; a quick start is in `README.md`.
 > **中文版** → `DEPLOY.md`.
 
 ---
@@ -149,7 +149,7 @@ Script output uses `==>` for steps, `✓` for success, `!` for notices, `x` for 
    - Modify a line → `Ctrl+S` → **⚠ Check** → lint passes;
    - **▶ Run** → the game window pops up → **📷 Screenshot** → **■ Stop**.
 
-Full functional tests are in `TESTING.md` sections 4-5.
+Full functional tests are in `GUIDE.md` sections 4-5.
 
 ### Tester's personal experience file (auto-effective after deployment)
 
@@ -157,7 +157,7 @@ After deployment, testers can create `~/.dsh/skills/renpy-practices-personal.md`
 (this project uses **three-tier experience isolation**: L1 engine facts / L2 general principles go into the open-source
 package, L3 personal experience stays in the personal file).
 The model auto-loads this file as reference without any configuration. How to feed accumulated experience back to
-developers (templates / three submission methods / developer processing flow) is in `TESTING.md` section 9.
+developers (templates / three submission methods / developer processing flow) is in `GUIDE.md` section 9.
 
 ---
 

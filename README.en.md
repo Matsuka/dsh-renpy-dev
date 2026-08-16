@@ -9,7 +9,7 @@ This repository is the **open-source edition** (for developers/contributors), in
 > 📦 Documentation:
 > - **中文版** → **`README.md`**
 > - **Deployment guide** (full: both modes / parameters / troubleshooting / upgrade & uninstall) → **`DEPLOY.md`**
-> - **Tester's guide** (features / operations / expected results / regression table + **how to feed your experience back to developers**) → **`TESTING.md`**
+> - **User guide** (features / operations / expected results / regression table + **how to feed your experience back to developers**) → **`GUIDE.md`**
 > - **Knowledge pipeline** (how the 14 skills are produced: extraction → verification → engine validation) → **`docs/knowledge-pipeline.md`**
 > - **Contribution guide** (three-tier experience isolation + submission conventions) → **`CONTRIBUTING.md`**
 > - **Terminology** (EN↔ZH glossary for Ren'Py terms) → **`docs/glossary.md`**
@@ -78,7 +78,7 @@ cd D:\dsh-renpy-dev
    - Modify a line → `Ctrl+S` → click **⚠ Check** in the toolbar → lint passes
    - Click **▶ Run** → the game window pops up → **📷 Screenshot** → **■ Stop**
 
-See `TESTING.md` for the detailed test checklist.
+See `GUIDE.md` for the detailed test checklist.
 
 ---
 
@@ -89,7 +89,7 @@ dsh-renpy-dev/
 ├── deploy.ps1                        # One-click deployment script (entry point)
 ├── README.md                         # This file (quick start)
 ├── DEPLOY.md                         # Full deployment guide (modes/parameters/troubleshooting/upgrade-uninstall)
-├── TESTING.md                        # Tester's guide (features/operations/expected results/regression table)
+├── GUIDE.md                        # User guide (features/operations/expected results/regression table)
 ├── CONTRIBUTING.md                   # Contribution guide (three-tier experience isolation + submission conventions)
 ├── LICENSE                           # MIT License
 ├── NOTICE                            # Third-party license notices (Ren'Py / DSH)

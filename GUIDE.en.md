@@ -1,9 +1,9 @@
-# Ren'Py Development Mode — Tester's Guide
+# Ren'Py Development Mode — User Guide
 
-> A feature introduction and operations manual for testers. This document explains what this tool can do, how to open it, how to operate each step, what results to expect, and things to watch out for while testing.
+> A feature introduction and operations manual for users. This document explains what this tool can do, how to open it, how to operate each step, what results to expect, and things to watch out for while using it.
 >
 > Companion docs: **Deployment** → `DEPLOY.md`, **Contributing** → `CONTRIBUTING.md`.
-> **中文版** → `TESTING.md`.
+> **中文版** → `GUIDE.md`.
 
 ---
 

@@ -9,7 +9,7 @@
 > 📦 文档导航：
 > - **English version** → **`README.en.md`**
 > - **部署流程**（完整版，含两种模式/参数/故障排查/升级卸载）→ 见 **`DEPLOY.md`**
-> - **测试者指南**（功能/操作/预期/回归表 + **个人经验回传给开发者的方法**）→ 见 **`TESTING.md`**
+> - **用户指南**（功能/操作/预期/回归表 + **个人经验回传给开发者的方法**）→ 见 **`GUIDE.md`**
 > - **知识流水线**（14 个 skill 怎么生产出来的：提取→核验→引擎验证）→ 见 **`docs/knowledge-pipeline.md`**
 > - **贡献指南**（三层经验隔离 + 提交规范）→ 见 **`CONTRIBUTING.md`**
 > - **术语表**（Ren'Py 中英术语对照）→ 见 **`docs/glossary.md`**
@@ -78,7 +78,7 @@ cd D:\dsh-renpy-dev
    - 改一行 → `Ctrl+S` 保存 → 顶栏 **⚠ 检查** → lint 通过
    - 顶栏 **▶ 运行** → 游戏窗口弹出 → **📷 截图** → **■ 停止**
 
-详细测试清单见 `TESTING.md`。
+详细测试清单见 `GUIDE.md`。
 
 ---
 
@@ -89,7 +89,7 @@ dsh-renpy-dev/
 ├── deploy.ps1                        # 一键部署脚本（入口）
 ├── README.md                         # 本文件（快速上手）
 ├── DEPLOY.md                         # 部署流程完整指南（两种模式/参数/排查/升级卸载）
-├── TESTING.md                        # 测试者指南（功能/操作/预期/回归表）
+├── GUIDE.md                        # 用户指南（功能/操作/预期/回归表）
 ├── CONTRIBUTING.md                   # 贡献指南（三层经验隔离 + 提交规范）
 ├── LICENSE                           # MIT License
 ├── NOTICE                            # 第三方许可声明（Ren'Py / DSH）
