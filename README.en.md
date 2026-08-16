@@ -72,11 +72,11 @@ cd D:\dsh-renpy-dev
 1. Restart dsh, **create a new session**, and select the **RenPy Dev** preset.
 2. Find and open the **Ren'Py** tab in the session.
 3. Enter a project path in the top input (a Ren'Py project root containing `game/`) → click **⟳ Load**.
-   - No project? Ask the AI to run `renpy_scaffold` to generate one, or open a built-in SDK example (`<SDK>\the_question`).
+   - No project? Ask the AI via the chat box to run `renpy_scaffold` to generate one, or have the AI open a built-in SDK example (`<SDK>\the_question`).
 4. Quick smoke test:
    - File tree appears on the left → open a `.rpy` → the editor opens
    - Modify a line → `Ctrl+S` → click **⚠ Check** in the toolbar → lint passes
-   - Click **▶ Run** → the game window pops up → **📷 Screenshot** → **■ Stop**
+   - Click **▶ Run** in the toolbar → the game window pops up → **📷 Screenshot** → **■ Stop**
 
 See `GUIDE.md` for the detailed test checklist.
 

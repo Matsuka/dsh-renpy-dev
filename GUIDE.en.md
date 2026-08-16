@@ -91,7 +91,7 @@ In one sentence: **the whole Ren'Py development loop — "read code → edit cod
 - **Test points**:
   - Type `menu`, `if`, `label` to see completion snippets
   - `Ctrl+F` find: verify match highlighting, `Enter/Shift+Enter` navigation, replace single/all
-  - Modify without saving → a「📝 Unsaved changes +N -M [Save] [Revert]」bar appears below the editor
+  - Modify without saving → a「📝 Unsaved changes +N lines -M lines [Save] [Revert]」bar appears below the editor
   - Have the AI modify the same file while unsaved → a「⚠ External change conflict」notice appears (local changes kept); closing the tab and reopening loads the external version
 
 ### 4.3 Syntax check (lint) ★

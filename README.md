@@ -103,7 +103,8 @@ dsh-renpy-dev/
 ├── skills/
 │   └── renpy-*.md                    # 14 个 Ren'Py 知识库（按需加载）
 ├── docs/
-│   └── knowledge-pipeline.md         # 知识生产方法论（提取→核验→引擎验证）
+│   ├── knowledge-pipeline.md         # 知识生产方法论（提取→核验→引擎验证）
+│   └── glossary.md                   # 中英术语对照表（翻译/本地化基准）
 ├── verification/                     # 验证资产（仓库版独有）
 │   ├── scripts/                      # 提取/验证脚本（extract-*.js、verify-text.py）
 │   ├── extracts/                     # 结构化提取产物（*-extract.json）

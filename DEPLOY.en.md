@@ -1,4 +1,4 @@
-# Deployment Guide (deploy.ps1 reference)
+# Deployment Guide (deploy.ps1 full guide)
 
 > This document is for **deployers** (people installing this Ren'Py development mode on a target machine).
 > It fully explains the one-click deployment flow, both modes, parameters, verification, and troubleshooting.
@@ -104,7 +104,7 @@ Examples:
 
 Script output uses `==>` for steps, `✓` for success, `!` for notices, `x` for fatal errors.
 
-> **Note**: the script's console output is in Chinese (it is the actual `Write-Host` text of `deploy.ps1`). The block below shows the real output verbatim; translations are provided inline.
+> **Note**: the script's console output is in Chinese (it is the actual `Write-Host` text of `deploy.ps1`). The block below shows the real output, with placeholders localized (e.g. `<you>` for `<你>`, `<release>` for `<发布包>`) and English translations provided inline.
 
 ```
 ==> 检测环境                                          (Detect environment)
