@@ -3702,6 +3702,12 @@ window.__ModuleLoader__.load({
 					),
 					React.createElement("div", { style: { flex: 1, margin: 4, borderRadius: 4, border: "1px dashed " + ACCENT, opacity: .5 } }),
 				) : null,
+				// ── 视口边缘吸附指示：snapPreview 命中 bottom/left 但该区域尚无面板（未渲染）时，在视口边缘显示高亮条，提示松手落点 ──
+				(snapPreview && !(panelLayout[snapPreview.region] || { panels: [] }).panels.length)
+					? (snapPreview.region === "bottom"
+						? React.createElement("div", { style: { position: "fixed", left: 0, right: 0, bottom: 0, height: 4, background: ACCENT, boxShadow: "0 0 10px " + ACCENT, zIndex: 9998, pointerEvents: "none" } })
+						: React.createElement("div", { style: { position: "fixed", left: 0, top: 0, bottom: 0, width: 4, background: ACCENT, boxShadow: "0 0 10px " + ACCENT, zIndex: 9998, pointerEvents: "none" } }))
+					: null,
 				// ── 顶栏（类 VSCode：项目输入 + 图标+文字操作 + 强调工作范围 + 对话） ──
 				React.createElement("div", { style: { ...row, gap: 6, flexWrap: "wrap" } },
 					React.createElement("span", { style: { color: TXT2, fontSize: 13, flexShrink: 0 } }, "项目"),
