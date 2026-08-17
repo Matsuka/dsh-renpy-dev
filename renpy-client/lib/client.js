@@ -599,8 +599,8 @@ window.__ModuleLoader__.load({
 			vars: { title: "运行时变量", icon: "📊" },
 			cp: { title: "修改面板", icon: "✎" },
 		};
-		// 默认布局（可拖拽重组；持久化到 localStorage.renpy-panel-layout）
-		const LAYOUT_DEFAULT = { left: { tabs: ["files", "assets", "edits"], active: "files" }, bottom: { tabs: ["log"], active: "log" } };
+		// 默认布局（Win11 式：区域内多面板平铺平分；持久化到 localStorage.renpy-panel-layout）
+		const LAYOUT_DEFAULT = { left: { panels: ["files", "assets", "edits"] }, bottom: { panels: ["log"] } };
 
 		// ── 控件规范库（§5：统一按钮/输入/胶囊/行/徽标；直接引用 DSH token，任何组件可用） ──
 		// 高度 24-26、圆角 6、全 token 驱动；状态：idle→hover→active→disabled(降透明度)
@@ -2737,60 +2737,120 @@ window.__ModuleLoader__.load({
 			const [hoverMsgId, setHoverMsgId] = React.useState(null);
 			const [expandedReason, setExpandedReason] = React.useState({});
 			const composerRef = React.useRef(null);
-			// ── P2 面板停靠布局：区域 {tabs, active} + 拖拽重组 + localStorage 持久化 ──
+			// ── P2 面板停靠（Win11 式）：区域内多面板平铺平分；标题栏拖拽 + 分区吸附示意 ──
 			const [panelLayout, setPanelLayout] = React.useState(() => {
 				try {
 					const saved = typeof localStorage !== "undefined" && localStorage.getItem("renpy-panel-layout");
-					if (saved) { const j = JSON.parse(saved); if (j && j.left && j.bottom) return j; }
+					if (saved) {
+						const j = JSON.parse(saved);
+						// 兼容旧格式 {tabs, active} → {panels}
+						const fix = (g) => ({ panels: (g && (g.panels || g.tabs)) || [] });
+						if (j && j.left && j.bottom) return { left: fix(j.left), bottom: fix(j.bottom) };
+					}
 				} catch (e) { /* ignore */ }
 				return JSON.parse(JSON.stringify(LAYOUT_DEFAULT));
 			});
 			React.useEffect(() => {
 				try { if (typeof localStorage !== "undefined") localStorage.setItem("renpy-panel-layout", JSON.stringify(panelLayout)); } catch (e) { /* ignore */ }
 			}, [panelLayout]);
-			// 面板移入区域（从所有区域移除后加入目标；拖拽落点 / 导航切换）
+			// 面板移入区域（从所有区域移除后加入目标；拖拽吸附 / 导航切换）
 			const movePanel = (id, region) => {
 				setPanelLayout((l) => {
 					const n = {};
 					for (const r of ["left", "bottom"]) {
-						const g = l[r] || { tabs: [], active: null };
-						const tabs = g.tabs.filter((t) => t !== id);
-						n[r] = { tabs, active: g.active === id ? (tabs[0] || null) : g.active };
+						const g = l[r] || { panels: [] };
+						n[r] = { panels: g.panels.filter((p) => p !== id) };
 					}
-					const t = n[region] || { tabs: [], active: null };
-					if (!t.tabs.includes(id)) { t.tabs.push(id); t.active = id; }
+					const t = n[region] || { panels: [] };
+					if (!t.panels.includes(id)) t.panels.push(id);
 					return n;
 				});
 			};
-			// ── P2 面板停靠：长按手柄 ⠿ 拖出浮动窗 + 边缘吸附（Adobe 式） ──
-			// floating: { [panelId]: {x, y, w, h} }——从区域拖出的浮动面板
-			const [floating, setFloating] = React.useState(panelState.floating || {});
-			const longPressRef = React.useRef(null); // {id, timer, sx, sy}
-			// 长按手柄 → 面板脱离区域成为浮动窗（出现在鼠标附近）
-			const startFloat = (id, e) => {
-				const sx = e.clientX, sy = e.clientY;
-				longPressRef.current = { id, sx, sy, timer: setTimeout(() => {
-					const vw = (typeof window !== "undefined" ? window.innerWidth : 1400);
-					const vh = (typeof window !== "undefined" ? window.innerHeight : 900);
-					const x = Math.min(Math.max(0, sx - 220), Math.max(0, vw - 460));
-					const y = Math.min(Math.max(0, sy - 20), Math.max(0, vh - 120));
-					setFloating((f) => ({ ...f, [id]: { x, y, w: 440, h: 320 } }));
-					setPanelLayout((l) => {
-						const n = JSON.parse(JSON.stringify(l));
-						for (const r of ["left", "bottom"]) {
-							const g = n[r];
-							if (g) { g.tabs = g.tabs.filter((t) => t !== id); if (g.active === id) g.active = g.tabs[0] || null; }
-						}
-						return n;
-					});
-					longPressRef.current = null;
-				}, 350) };
+			// 面板移除（所有区域与浮动；导航栏可重开）
+			const removePanel = (id) => {
+				setPanelLayout((l) => {
+					const n = {};
+					for (const r of ["left", "bottom"]) n[r] = { panels: (l[r] || { panels: [] }).panels.filter((p) => p !== id) };
+					return n;
+				});
+				setFloating((f) => { const n = { ...f }; delete n[id]; return n; });
 			};
-			const cancelFloat = () => { if (longPressRef.current && longPressRef.current.timer) { clearTimeout(longPressRef.current.timer); } longPressRef.current = null; };
-			// 浮动窗吸附回区域（靠左边缘→left，靠下边缘→bottom）
+			// floating: { [panelId]: {x, y, w, h} }——拖出无分区时成为浮动窗
+			const [floating, setFloating] = React.useState(panelState.floating || {});
+			// 浮动窗吸附回区域
 			const dockPanel = (id, region) => {
 				setFloating((f) => { const n = { ...f }; delete n[id]; return n; });
 				movePanel(id, region);
+			};
+			// ── 标题栏拖拽 + 分区吸附示意（Win11 snap：拖到分区显示高亮，松手停靠） ──
+			const dragPanelRef = React.useRef(null); // {id, sx, sy, moved}
+			const [snapPreview, setSnapPreview] = React.useState(null); // "left" | "bottom" | null
+			const regionRefs = { left: React.useRef(null), bottom: React.useRef(null) };
+			const detectSnap = (e) => {
+				const vw = (typeof window !== "undefined" ? window.innerWidth : 0);
+				const vh = (typeof window !== "undefined" ? window.innerHeight : 0);
+				if (e.clientX < 80) return "left";      // 视口左缘 → 左栏
+				if (e.clientY > vh - 90) return "bottom"; // 视口下缘 → 底部区
+				for (const r of ["left", "bottom"]) {
+					const el = regionRefs[r] && regionRefs[r].current;
+					if (el) {
+						const rect = el.getBoundingClientRect();
+						if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) return r;
+					}
+				}
+				return null;
+			};
+			const startDragPanel = (id, e) => { e.preventDefault(); dragPanelRef.current = { id, sx: e.clientX, sy: e.clientY, moved: false }; };
+			React.useEffect(() => {
+				const onMove = (e) => {
+					const d = dragPanelRef.current;
+					if (!d) return;
+					if (!d.moved && Math.abs(e.clientX - d.sx) + Math.abs(e.clientY - d.sy) > 5) d.moved = true;
+					setSnapPreview(detectSnap(e));
+				};
+				const onUp = (e) => {
+					const d = dragPanelRef.current;
+					if (d && d.moved) {
+						const snap = detectSnap(e);
+						if (snap) { movePanel(d.id, snap); }
+						else {
+							// 无分区 → 浮动窗（鼠标附近）
+							const vw = window.innerWidth, vh = window.innerHeight;
+							setFloating((f) => ({ ...f, [d.id]: { x: Math.max(0, Math.min(e.clientX - 220, vw - 460)), y: Math.max(0, Math.min(e.clientY - 20, vh - 120)), w: 440, h: 320 } }));
+							setPanelLayout((l) => {
+								const n = {};
+								for (const r of ["left", "bottom"]) n[r] = { panels: (l[r] || { panels: [] }).panels.filter((p) => p !== d.id) };
+								return n;
+							});
+						}
+					}
+					dragPanelRef.current = null;
+					setSnapPreview(null);
+				};
+				window.addEventListener("mousemove", onMove);
+				window.addEventListener("mouseup", onUp);
+				return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+			}, []);
+			// 区域渲染：多面板平铺平分（左栏垂直堆叠 / 底部水平排布），各面板标题栏可拖拽；吸附示意高亮区域
+			const renderRegion = (region) => {
+				const g = panelLayout[region] || { panels: [] };
+				const isLeft = region === "left";
+				return React.createElement("div", { ref: regionRefs[region], style: { flex: 1, minHeight: 0, display: "flex", flexDirection: isLeft ? "column" : "row", overflow: "hidden", outline: snapPreview === region ? "2px solid " + ACCENT : "none", outlineOffset: -2, position: "relative" } },
+					g.panels.map((id) => {
+						const meta = PANEL_META[id] || { title: id, icon: "📦" };
+						const last = g.panels.length > 1;
+						return React.createElement("div", { key: id, style: { flex: 1, minWidth: 0, minHeight: 0, display: "flex", flexDirection: "column", borderBottom: isLeft && last ? "1px solid " + BORDER : "none", borderRight: !isLeft && last ? "1px solid " + BORDER : "none" } },
+							React.createElement("div", { onMouseDown: (e) => startDragPanel(id, e), title: "拖拽：拖到左/下分区吸附，或拖出成浮动窗", style: { display: "flex", alignItems: "center", gap: 6, padding: "3px 8px", background: LAYER, borderBottom: "1px solid " + BORDER, cursor: "grab", userSelect: "none", flexShrink: 0, flexWrap: "wrap" } },
+								React.createElement("span", { style: { fontSize: 11 } }, meta.icon),
+								React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: TXT } }, meta.title),
+								React.createElement("span", { style: { flex: 1 } }),
+								React.createElement("span", { style: { fontSize: 10, color: TXT3 } }, "⠿"),
+								React.createElement("span", { title: "移除面板（导航可重开）", style: { fontSize: 12, color: TXT3, cursor: "pointer" }, onClick: (e) => { e.stopPropagation(); removePanel(id); } }, "✕"),
+							),
+							React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto" } }, renderPanel(id)),
+						);
+					}),
+				);
 			};
 			// 侧栏面板内容（files/assets/edits；区域与浮动窗共用）
 			const renderSidePanel = (id) => {
@@ -2868,20 +2928,6 @@ window.__ModuleLoader__.load({
 			const renderPanel = (id) => {
 				if (id === "log") return React.createElement("pre", { style: { fontFamily: CODE, fontSize: 12, lineHeight: 1.6, whiteSpace: "pre-wrap", margin: 0, color: TXT2 } }, log || "（操作日志）");
 				return renderSidePanel(id);
-			};
-			// 区域标签头：手柄 ⠿ 长按拖出浮动；点击切换激活
-			const renderRegionTabs = (region) => {
-				const g = panelLayout[region] || { tabs: [], active: null };
-				return React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 2, padding: "3px 6px", borderBottom: "1px solid " + BORDER, background: LAYER, flexShrink: 0, overflowX: "auto", minHeight: 30 } },
-					g.tabs.map((id) => {
-						const meta = PANEL_META[id] || { title: id, icon: "📦" };
-						const act = g.active === id;
-						return React.createElement("span", { key: id, title: meta.title + "（长按手柄 ⠿ 拖出为浮动窗；拖到视口边缘松手吸附回区域）", style: { display: "inline-flex", alignItems: "center", gap: 4, height: 24, padding: "0 8px", borderRadius: 5, cursor: "pointer", fontSize: 12, whiteSpace: "nowrap", userSelect: "none", background: act ? GHOST : "transparent", color: act ? ACCENT : TXT2, border: "1px solid " + (act ? BORDER : "transparent") } },
-							React.createElement("span", { onMouseDown: (ev) => { ev.preventDefault(); ev.stopPropagation(); startFloat(id, ev); }, onMouseMove: (ev) => { if (longPressRef.current && Math.abs(ev.clientX - longPressRef.current.sx) + Math.abs(ev.clientY - longPressRef.current.sy) > 8) cancelFloat(); }, onMouseUp: cancelFloat, onMouseLeave: cancelFloat, title: "长按拖出为浮动窗", style: { cursor: "grab", fontSize: 10, color: TXT3, padding: "0 2px" } }, "⠿"),
-							React.createElement("span", { onClick: () => setPanelLayout((l) => { const n = JSON.parse(JSON.stringify(l)); if (n[region]) n[region].active = id; return n; }) }, meta.icon + " " + meta.title),
-						);
-					}),
-				);
 			};
 			// ── 类 VSCode 布局：活动视图切换 + 光标位置（状态栏） ──
 			const [activeView, setActiveView] = React.useState("files");
@@ -3380,11 +3426,11 @@ window.__ModuleLoader__.load({
 						abIcon("📷", "整屏截图", doShot, { title: "整屏截图（游戏窗口反馈）" }),
 						React.createElement("div", { style: { width: 148, height: 1, background: BORDER, margin: "4px 0 6px", alignSelf: "center" } }),
 						// 视图
-						[["files", "📄", "项目文件"], ["assets", "🖼", "项目素材"], ["edits", "✎", "基线更改"]].map(([k, icon, label]) => React.createElement("div", { key: k, title: label, onClick: () => movePanel(k, "left"), style: { position: "relative", width: "100%", height: 32, marginBottom: 2, display: "flex", alignItems: "center", gap: 7, padding: "0 10px", cursor: "pointer" } },
+						[["files", "📄", "项目文件"], ["assets", "🖼", "项目素材"], ["edits", "✎", "基线更改"]].map(([k, icon, label]) => { const inLeft = (panelLayout.left.panels || []).includes(k); return React.createElement("div", { key: k, title: label, onClick: () => movePanel(k, "left"), style: { position: "relative", width: "100%", height: 32, marginBottom: 2, display: "flex", alignItems: "center", gap: 7, padding: "0 10px", cursor: "pointer" } },
 							React.createElement("span", { style: { fontSize: 14, flexShrink: 0 } }, icon),
-							React.createElement("span", { style: { flex: 1, minWidth: 0, fontSize: 12, color: panelLayout.left.active === k ? ACCENT : TXT2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontWeight: panelLayout.left.active === k ? 600 : 400 } }, label),
-							React.createElement("span", { style: { position: "absolute", left: 0, top: 5, bottom: 5, width: 2, borderRadius: 1, background: panelLayout.left.active === k ? ACCENT : "transparent" } }),
-						)),
+							React.createElement("span", { style: { flex: 1, minWidth: 0, fontSize: 12, color: inLeft ? ACCENT : TXT2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontWeight: inLeft ? 600 : 400 } }, label),
+							React.createElement("span", { style: { position: "absolute", left: 0, top: 5, bottom: 5, width: 2, borderRadius: 1, background: inLeft ? ACCENT : "transparent" } }),
+						); }),
 						React.createElement("div", { style: { width: 148, height: 1, background: BORDER, margin: "4px 0 6px", alignSelf: "center" } }),
 						// 验证
 						abIcon("⚠", "语法检查", doLint, { title: "Ren'Py 语法检查（lint）" }),
@@ -3402,8 +3448,7 @@ window.__ModuleLoader__.load({
 						abIcon("🎨", "GUI 主题", openGuiPanel, { opacity: active ? 1 : .4, title: "GUI 主题定制（分辨率/色/字号，写回 gui.rpy）" }),
 					),
 					React.createElement("div", { style: { ...colL, overflow: "hidden", padding: 0, display: "flex", flexDirection: "column" } },
-						renderRegionTabs("left"),
-						renderPanel(panelLayout.left.active),
+						renderRegion("left"),
 					),
 					React.createElement("div", { ref: colRRef, style: colR },
 						React.createElement("div", { style: tabBar },
@@ -3769,12 +3814,9 @@ window.__ModuleLoader__.load({
 							React.createElement("button", { style: { ...btnPrimary, padding: "3px 14px" }, onClick: confirmTeach }, "确认生成"),
 						),
 					) : null,
-					// ── 底部面板区（P2：标签组 + 内容，手柄长按拖出浮动） ──
-					(panelLayout.bottom && panelLayout.bottom.tabs.length) ? React.createElement("div", { style: { display: "flex", flexDirection: "column", flexShrink: 0, height: 170, minHeight: 0, borderTop: "1px solid " + BORDER, background: BG } },
-						renderRegionTabs("bottom"),
-						React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", padding: "4px 8px" } },
-							renderPanel(panelLayout.bottom.active),
-						),
+					// ── 底部面板区（P2：多面板水平平分，标题栏拖拽/吸附） ──
+					(panelLayout.bottom && panelLayout.bottom.panels.length) ? React.createElement("div", { style: { display: "flex", flexDirection: "column", flexShrink: 0, height: 170, minHeight: 0, borderTop: "1px solid " + BORDER, background: BG } },
+						renderRegion("bottom"),
 					) : null,
 					// ── 状态栏（规范 §2：项目 | 运行状态 | 文件 | 行列 | 保存态） ──
 					React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 14, padding: "2px 10px", borderTop: "1px solid " + BORDER, background: LAYER, fontSize: 11, color: TXT3, flexShrink: 0, minHeight: 22, whiteSpace: "nowrap" } },
