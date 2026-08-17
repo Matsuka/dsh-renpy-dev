@@ -2784,8 +2784,10 @@ window.__ModuleLoader__.load({
 			};
 			// ── 标题栏拖拽 + 分区吸附（Win11 snap）：ghost 拖影跟随 + 分区高亮填充；区域优先判定 ──
 			const dragPanelRef = React.useRef(null); // {id, sx, sy, moved}
-			const [snapPreview, setSnapPreview] = React.useState(null); // "left" | "bottom" | null
-			const [dragGhost, setDragGhost] = React.useState(null); // {id, x, y}——拖影
+			const [snapPreview, setSnapPreview] = React.useState(null); // {region, index} | null
+			const snapPreviewRef = React.useRef(null); // 限频镜像（位置没变不 setState）
+			const [dragGhost, setDragGhost] = React.useState(null); // {id}——拖影显隐（位置走 ghostRef DOM，避免重渲染风暴）
+			const ghostRef = React.useRef(null);
 			const regionRefs = { left: React.useRef(null), bottom: React.useRef(null) };
 			const panelLayoutRef = React.useRef(panelLayout);
 			panelLayoutRef.current = panelLayout;
@@ -2825,7 +2827,7 @@ window.__ModuleLoader__.load({
 				});
 			};
 			const movePanel = (id, region) => movePanelTo(id, region, undefined);
-			const startDragPanel = (id, e) => { e.preventDefault(); dragPanelRef.current = { id, sx: e.clientX, sy: e.clientY, moved: false }; };
+			const startDragPanel = (id, e) => { e.preventDefault(); dragPanelRef.current = { id, sx: e.clientX, sy: e.clientY, moved: false }; setDragGhost({ id }); };
 			const navCollapsedRef = React.useRef(navCollapsed);
 			navCollapsedRef.current = navCollapsed;
 			React.useEffect(() => {
@@ -2833,8 +2835,11 @@ window.__ModuleLoader__.load({
 					const d = dragPanelRef.current;
 					if (d) {
 						if (!d.moved && Math.abs(e.clientX - d.sx) + Math.abs(e.clientY - d.sy) > 5) d.moved = true;
-						setSnapPreview(detectSnap(e));
-						setDragGhost({ id: d.id, x: e.clientX + 12, y: e.clientY + 6 });
+						// ghost 位置直接操作 DOM（不走 React，避免拖拽时高频重渲染卡死）
+						if (ghostRef.current) { ghostRef.current.style.left = (e.clientX + 12) + "px"; ghostRef.current.style.top = (e.clientY + 6) + "px"; }
+						const s = detectSnap(e);
+						const pr = snapPreviewRef.current;
+						if (s === null || pr === null || pr.region !== s.region || pr.index !== s.index) { snapPreviewRef.current = s; setSnapPreview(s); }
 					} else {
 						// 自动隐藏侧栏：鼠标靠近左缘(<44)展开，离开(>210)自动收起；导航区域内保持
 						if (e.clientX < 44) { if (navCollapsedRef.current) setNavCollapsed(false); }
@@ -3424,8 +3429,8 @@ window.__ModuleLoader__.load({
 					const meta = PANEL_META[id] || { title: id, icon: "📦" };
 					return React.createElement(FloatingPanel, { key: id, meta, win, onChange: (w) => setFloating((f) => ({ ...f, [id]: w })), onDock: (region) => dockPanel(id, region), onClose: () => dockPanel(id, "left"), TXT, TXT2, TXT3, BORDER, BG, LAYER }, renderPanel(id));
 				}),
-				// ── 拖拽 ghost 拖影（跟随鼠标；Win11 拖拽视觉指示） ──
-				dragGhost ? React.createElement("div", { style: { position: "fixed", left: dragGhost.x, top: dragGhost.y, zIndex: 9999, pointerEvents: "none", display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", background: LAYER, border: "1px solid " + ACCENT, borderRadius: 6, boxShadow: "0 6px 20px rgba(0,0,0,.3)", fontSize: 12, color: TXT, opacity: .92 } },
+				// ── 拖拽 ghost 拖影（跟随鼠标；位置由 ghostRef DOM 控制，避免重渲染风暴） ──
+				dragGhost ? React.createElement("div", { ref: ghostRef, style: { position: "fixed", left: 0, top: 0, zIndex: 9999, pointerEvents: "none", display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", background: LAYER, border: "1px solid " + ACCENT, borderRadius: 6, boxShadow: "0 6px 20px rgba(0,0,0,.3)", fontSize: 12, color: TXT, opacity: .92 } },
 					React.createElement("span", { style: { fontSize: 13 } }, (PANEL_META[dragGhost.id] || {}).icon || "📦"),
 					React.createElement("span", {}, (PANEL_META[dragGhost.id] || {}).title || dragGhost.id),
 				) : null,
