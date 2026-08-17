@@ -1114,6 +1114,55 @@ window.__ModuleLoader__.load({
 			return ReactDOM.createPortal(body, document.body);
 		}
 
+		// ── 浮动面板（P2：长按手柄拖出的可缩放浮动窗；拖到左/下视口边缘松手吸附回区域） ──
+		function FloatingPanel(props) {
+			const { meta, win, onChange, onDock, onClose, children, TXT, TXT2, TXT3, BORDER, BG, LAYER } = props;
+			const dragRef = React.useRef(null);
+			const [dragState, setDragState] = React.useState(null);
+			const winRef = React.useRef(win);
+			winRef.current = win;
+			const onBarDown = (e) => { e.preventDefault(); dragRef.current = { sx: e.clientX, sy: e.clientY, ox: win.x, oy: win.y, resize: false }; setDragState("move"); };
+			const onResizeDown = (e) => { e.preventDefault(); e.stopPropagation(); dragRef.current = { sx: e.clientX, sy: e.clientY, ow: win.w, oh: win.h, resize: true }; setDragState("resize"); };
+			React.useEffect(() => {
+				if (!dragState) return;
+				const onMove = (e) => {
+					const w = winRef.current, d = dragRef.current;
+					if (!d) return;
+					if (d.resize) onChange({ ...w, w: Math.max(300, d.ow + e.clientX - d.sx), h: Math.max(200, d.oh + e.clientY - d.sy) });
+					else onChange({ ...w, x: Math.max(0, d.ox + e.clientX - d.sx), y: Math.max(0, d.oy + e.clientY - d.sy) });
+				};
+				const onUp = () => {
+					const w = winRef.current, d = dragRef.current;
+					const vw = window.innerWidth, vh = window.innerHeight;
+					if (d && !d.resize) {
+						if (w.x < 60) { dragRef.current = null; setDragState(null); onDock("left"); return; }
+						if (w.y > vh - 80) { dragRef.current = null; setDragState(null); onDock("bottom"); return; }
+					}
+					dragRef.current = null;
+					setDragState(null);
+				};
+				window.addEventListener("mousemove", onMove);
+				window.addEventListener("mouseup", onUp);
+				return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+			}, [dragState, onChange, onDock]);
+			React.useEffect(() => {
+				const onKey = (e) => { const t = e.target; if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return; if (e.key === "Escape") onClose(); };
+				window.addEventListener("keydown", onKey);
+				return () => window.removeEventListener("keydown", onKey);
+			}, [onClose]);
+			if (typeof document === "undefined" || !document.body) return null;
+			const body = React.createElement("div", { style: { position: "fixed", left: win.x, top: win.y, width: win.w, height: win.h, zIndex: 10010, display: "flex", flexDirection: "column", background: BG, border: "1px solid " + BORDER, borderRadius: 10, boxShadow: "0 10px 40px rgba(0,0,0,.4)", overflow: "hidden", minWidth: 300, minHeight: 200 } },
+				React.createElement("div", { onMouseDown: onBarDown, style: { display: "flex", alignItems: "center", gap: 8, padding: "5px 10px", background: LAYER, borderBottom: "1px solid " + BORDER, cursor: dragState === "move" ? "grabbing" : "grab", userSelect: "none", flexShrink: 0 } },
+					React.createElement("span", { style: { fontSize: 13, fontWeight: 600, color: TXT } }, meta.icon + " " + meta.title),
+					React.createElement("span", { style: { fontSize: 10, color: TXT3, marginLeft: "auto", whiteSpace: "nowrap" } }, "拖到左/下边缘吸附"),
+					React.createElement("button", { onClick: onClose, title: "吸附回区域 (Esc)", style: { ...C.iconBtn, flexShrink: 0 } }, "✕"),
+				),
+				React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto" } }, children),
+				React.createElement("div", { onMouseDown: onResizeDown, title: "拖拽缩放", style: { position: "absolute", right: 0, bottom: 0, width: 18, height: 18, cursor: "nwse-resize", background: "linear-gradient(135deg, transparent 50%, rgba(128,128,128,.55) 50%)", borderBottomRightRadius: 10 } }),
+			);
+			return ReactDOM.createPortal(body, document.body);
+		}
+
 		const roundRect = (ctx, x, y, w, h, r) => {
 			ctx.beginPath();
 			ctx.moveTo(x + r, y);
@@ -1382,6 +1431,7 @@ window.__ModuleLoader__.load({
 				panelState.routeWin = routeWin;
 				panelState.shotWin = shotWin;
 				panelState.varWin = varWin;
+				panelState.floating = floating;
 				panelState.files = files;
 				panelState.tabs = tabs;
 				panelState.activeName = activeName;
@@ -2712,48 +2762,123 @@ window.__ModuleLoader__.load({
 					return n;
 				});
 			};
-			// ── P2 面板停靠：自研拖拽（HTML5 drag 在 iframe 下 dataTransfer 丢失，改用 mousedown 跟踪 + 区域命中检测） ──
-			const dragPanelRef = React.useRef(null); // {id, sx, sy, moved}
-			const [dragOverRegion, setDragOverRegion] = React.useState(null); // 当前高亮的停靠区域
-			const dragOverRegionRef = React.useRef(null); // 最新值镜像（闭包用）
-			const regionRefs = { left: React.useRef(null), bottom: React.useRef(null) };
-			React.useEffect(() => {
-				const onMove = (e) => {
-					const d = dragPanelRef.current;
-					if (!d) return;
-					if (!d.moved && Math.abs(e.clientX - d.sx) + Math.abs(e.clientY - d.sy) > 4) d.moved = true;
-					let over = null;
-					for (const r of ["left", "bottom"]) {
-						const el = regionRefs[r] && regionRefs[r].current;
-						if (el) {
-							const rect = el.getBoundingClientRect();
-							if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) { over = r; break; }
+			// ── P2 面板停靠：长按手柄 ⠿ 拖出浮动窗 + 边缘吸附（Adobe 式） ──
+			// floating: { [panelId]: {x, y, w, h} }——从区域拖出的浮动面板
+			const [floating, setFloating] = React.useState(panelState.floating || {});
+			const longPressRef = React.useRef(null); // {id, timer, sx, sy}
+			// 长按手柄 → 面板脱离区域成为浮动窗（出现在鼠标附近）
+			const startFloat = (id, e) => {
+				const sx = e.clientX, sy = e.clientY;
+				longPressRef.current = { id, sx, sy, timer: setTimeout(() => {
+					const vw = (typeof window !== "undefined" ? window.innerWidth : 1400);
+					const vh = (typeof window !== "undefined" ? window.innerHeight : 900);
+					const x = Math.min(Math.max(0, sx - 220), Math.max(0, vw - 460));
+					const y = Math.min(Math.max(0, sy - 20), Math.max(0, vh - 120));
+					setFloating((f) => ({ ...f, [id]: { x, y, w: 440, h: 320 } }));
+					setPanelLayout((l) => {
+						const n = JSON.parse(JSON.stringify(l));
+						for (const r of ["left", "bottom"]) {
+							const g = n[r];
+							if (g) { g.tabs = g.tabs.filter((t) => t !== id); if (g.active === id) g.active = g.tabs[0] || null; }
 						}
-					}
-					dragOverRegionRef.current = over;
-					setDragOverRegion(over);
-				};
-				const onUp = () => {
-					const d = dragPanelRef.current;
-					if (d && d.moved && dragOverRegionRef.current) movePanel(d.id, dragOverRegionRef.current);
-					dragPanelRef.current = null;
-					dragOverRegionRef.current = null;
-					setDragOverRegion(null);
-				};
-				window.addEventListener("mousemove", onMove);
-				window.addEventListener("mouseup", onUp);
-				return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
-			}, []);
-			// 区域标签头：按住面板标签拖到其他区域停靠（落点高亮）+ 激活切换
+						return n;
+					});
+					longPressRef.current = null;
+				}, 350) };
+			};
+			const cancelFloat = () => { if (longPressRef.current && longPressRef.current.timer) { clearTimeout(longPressRef.current.timer); } longPressRef.current = null; };
+			// 浮动窗吸附回区域（靠左边缘→left，靠下边缘→bottom）
+			const dockPanel = (id, region) => {
+				setFloating((f) => { const n = { ...f }; delete n[id]; return n; });
+				movePanel(id, region);
+			};
+			// 侧栏面板内容（files/assets/edits；区域与浮动窗共用）
+			const renderSidePanel = (id) => {
+				if (id === "files") return React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } },
+					React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 4, padding: "5px 8px", borderBottom: "1px solid " + BORDER, background: LAYER, flexShrink: 0 } },
+						React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: TXT } }, "📄 文件 (" + (files || []).length + ")"),
+						React.createElement("span", { style: { flex: 1 } }),
+						React.createElement("span", { style: { fontSize: 12, color: TXT2, cursor: "pointer", padding: "1px 5px", borderRadius: 4 }, onClick: () => loadFiles(project), title: "刷新文件列表" }, "⟳"),
+						React.createElement("span", { style: { fontSize: 12, color: TXT2, cursor: "pointer", padding: "1px 5px", borderRadius: 4 }, onClick: () => setExpandedFiles({}), title: "折叠全部" }, "▾"),
+					),
+					React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", padding: "4px 4px 10px" } },
+						renderFileTree(buildFileTree(files || []), 0, ""),
+						React.createElement("div", { style: { fontWeight: 600, padding: "10px 8px 3px", fontSize: 12, color: TXT3 } }, "导航"),
+						React.createElement("div", { style: { display: "flex", gap: 2, padding: "0 8px 4px", flexWrap: "wrap" } },
+							[["labels", "标签"], ["chars", "人物"], ["trans", "转场"], ["vars", "变量"], ["fonts", "字体"]].map(([k, label]) => React.createElement("span", {
+								key: k,
+								style: C.chip(navKind === k),
+								onClick: () => setNavKind(k),
+							}, label)),
+						),
+						navKind === "fonts" ? React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 1, padding: "2px 0 6px" } },
+							React.createElement("div", { style: { fontSize: 10, color: TXT3, padding: "2px 8px 4px" } }, "🔤 项目字体（" + (assets.font || []).length + " 个，点击预览；预览模式中 {font=} 自动真实渲染）"),
+							(assets.font || []).length ? assets.font.map((f) => React.createElement("div", { key: f.rel, style: { ...itemRow(false), display: "flex", alignItems: "center", gap: 5 }, onMouseEnter: () => setHoverRow("font:" + f.rel), onMouseLeave: () => setHoverRow(null), onClick: () => { ensureFont(f.rel); setPreviewFont(f); } },
+								React.createElement("span", { style: { fontSize: 11, flexShrink: 0 } }, "🔤"),
+								React.createElement("span", { style: { flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: CODE, fontSize: 12 } }, String(f.rel).split("/").pop()),
+								React.createElement("span", { style: { flexShrink: 0, fontSize: 10, color: TXT3 } }, fmtSize(f.size)),
+							)) : React.createElement("div", { style: { color: TXT2, fontSize: 12, padding: "2px 8px" } }, "暂无字体 — 把 .ttf/.otf 放进项目 game/ 目录后点 ⟳ 加载"),
+						) : (navKind === "labels" ? labels : navKind === "chars" ? chars : navKind === "trans" ? trans : vars).map((l) => React.createElement("div", { key: l.name, style: { ...itemRow(false), display: "flex", alignItems: "center", gap: 5, color: ACCENT }, onMouseEnter: () => setHoverRow(l.name), onMouseLeave: () => setHoverRow(null), onClick: () => jumpEntry(l) },
+							React.createElement("span", { style: { fontSize: 11, flexShrink: 0 } }, NAV_ICONS[navKind]),
+							React.createElement("span", { style: { flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, l.name),
+							React.createElement("span", { style: { flexShrink: 0, fontSize: 10, color: TXT3 } }, "@" + l.line),
+						)),
+					),
+				);
+				if (id === "assets") return React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } },
+					React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 4, padding: "5px 8px", borderBottom: "1px solid " + BORDER, background: LAYER, flexShrink: 0 } },
+						React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: TXT } }, "🖼 资源 (" + assetCats.reduce((n, [c]) => n + (assets[c] || []).length, 0) + ")"),
+						React.createElement("span", { style: { flex: 1 } }),
+						React.createElement("span", { style: { fontSize: 12, color: TXT2, cursor: "pointer", padding: "1px 5px", borderRadius: 4 }, onClick: () => loadAssets(project), title: "刷新资源" }, "⟳"),
+					),
+					React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", padding: "4px 4px 10px" } },
+						assetCats.map(([cat, label]) => {
+							const open = isOpen(cat);
+							const total = countFiles(assetTrees[cat]);
+							if (!total) return null;
+							return React.createElement("div", { key: cat },
+								React.createElement("div", { style: { ...itemRow(false), display: "flex", alignItems: "center", gap: 4, color: TXT2, fontWeight: 600 }, onMouseEnter: () => setHoverRow(cat), onMouseLeave: () => setHoverRow(null), onClick: () => toggleTree(cat) },
+									React.createElement("span", { style: { width: 12, flexShrink: 0, fontSize: 10, color: TXT3 } }, open ? "▾" : "▸"),
+									React.createElement("span", { style: { flexShrink: 0, fontSize: 12 } }, cat === "image" ? "🖼" : cat === "audio" ? "🎵" : cat === "video" ? "🎬" : cat === "font" ? "🔤" : "📦"),
+									React.createElement("span", { style: { flex: 1, minWidth: 0 } }, label),
+									React.createElement("span", { style: { flexShrink: 0, fontSize: 11, color: TXT3 } }, String(total)),
+								),
+								open ? React.createElement("div", null, renderAssetDir(cat, assetTrees[cat], 1, cat + "/")) : null,
+							);
+						}),
+					),
+				);
+				return React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } },
+					React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 4, padding: "5px 8px", borderBottom: "1px solid " + BORDER, background: LAYER, flexShrink: 0 } },
+						React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: TXT } }, "✎ 修改 (" + (cpDiff && cpDiff.files ? cpDiff.files.length : 0) + ")"),
+						React.createElement("span", { style: { flex: 1 } }),
+						React.createElement("span", { style: { fontSize: 12, color: TXT2, cursor: "pointer", padding: "1px 5px", borderRadius: 4 }, onClick: () => openCpPanel(), title: "打开修改面板" }, "↗"),
+					),
+					React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", padding: "4px 4px 10px" } },
+						(cpDiff && cpDiff.files.length) ? cpDiff.files.map((f) => React.createElement("div", { key: f.rel, style: { ...itemRow(false), display: "flex", alignItems: "center", gap: 5 }, onClick: () => openCpPanel() },
+							React.createElement("span", { style: { fontSize: 11, flexShrink: 0 } }, "✎"),
+							React.createElement("span", { style: { flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, f.rel),
+							React.createElement("span", { style: { flexShrink: 0, fontSize: 10, color: SUCCESS } }, "+" + f.added),
+							React.createElement("span", { style: { flexShrink: 0, fontSize: 10, color: ERRCOL } }, "-" + f.removed),
+						)) : React.createElement("div", { style: { color: TXT2, fontSize: 12, padding: 8 } }, "暂无修改 — 点顶栏 ✎ 打开修改面板"),
+					),
+				);
+			};
+			// 面板内容分发（区域 / 浮动窗共用）
+			const renderPanel = (id) => {
+				if (id === "log") return React.createElement("pre", { style: { fontFamily: CODE, fontSize: 12, lineHeight: 1.6, whiteSpace: "pre-wrap", margin: 0, color: TXT2 } }, log || "（操作日志）");
+				return renderSidePanel(id);
+			};
+			// 区域标签头：手柄 ⠿ 长按拖出浮动；点击切换激活
 			const renderRegionTabs = (region) => {
 				const g = panelLayout[region] || { tabs: [], active: null };
-				return React.createElement("div", { ref: regionRefs[region], style: { display: "flex", alignItems: "center", gap: 2, padding: "3px 6px", borderBottom: "1px solid " + BORDER, background: LAYER, flexShrink: 0, overflowX: "auto", minHeight: 30, outline: dragOverRegion === region ? "2px solid " + ACCENT : "none", outlineOffset: -1 } },
+				return React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 2, padding: "3px 6px", borderBottom: "1px solid " + BORDER, background: LAYER, flexShrink: 0, overflowX: "auto", minHeight: 30 } },
 					g.tabs.map((id) => {
 						const meta = PANEL_META[id] || { title: id, icon: "📦" };
 						const act = g.active === id;
-						return React.createElement("span", { key: id, onMouseDown: (e) => { e.preventDefault(); dragPanelRef.current = { id, sx: e.clientX, sy: e.clientY, moved: false }; }, onClick: () => setPanelLayout((l) => { const n = JSON.parse(JSON.stringify(l)); if (n[region]) n[region].active = id; return n; }), title: meta.title + "（按住拖到其他区域停靠）", style: { display: "inline-flex", alignItems: "center", gap: 4, height: 24, padding: "0 8px", borderRadius: 5, cursor: "grab", fontSize: 12, whiteSpace: "nowrap", userSelect: "none", background: act ? GHOST : "transparent", color: act ? ACCENT : TXT2, border: "1px solid " + (act ? BORDER : "transparent") } },
-							React.createElement("span", { style: { fontSize: 11 } }, meta.icon),
-							React.createElement("span", {}, meta.title),
+						return React.createElement("span", { key: id, title: meta.title + "（长按手柄 ⠿ 拖出为浮动窗；拖到视口边缘松手吸附回区域）", style: { display: "inline-flex", alignItems: "center", gap: 4, height: 24, padding: "0 8px", borderRadius: 5, cursor: "pointer", fontSize: 12, whiteSpace: "nowrap", userSelect: "none", background: act ? GHOST : "transparent", color: act ? ACCENT : TXT2, border: "1px solid " + (act ? BORDER : "transparent") } },
+							React.createElement("span", { onMouseDown: (ev) => { ev.preventDefault(); ev.stopPropagation(); startFloat(id, ev); }, onMouseMove: (ev) => { if (longPressRef.current && Math.abs(ev.clientX - longPressRef.current.sx) + Math.abs(ev.clientY - longPressRef.current.sy) > 8) cancelFloat(); }, onMouseUp: cancelFloat, onMouseLeave: cancelFloat, title: "长按拖出为浮动窗", style: { cursor: "grab", fontSize: 10, color: TXT3, padding: "0 2px" } }, "⠿"),
+							React.createElement("span", { onClick: () => setPanelLayout((l) => { const n = JSON.parse(JSON.stringify(l)); if (n[region]) n[region].active = id; return n; }) }, meta.icon + " " + meta.title),
 						);
 					}),
 				);
@@ -3216,6 +3341,12 @@ window.__ModuleLoader__.load({
 				shotWin.open ? React.createElement(ShotWindow, { project, api, win: shotWin, onChange: setShotWin, onClose: () => setShotWin((w) => ({ ...w, open: false })), TXT, TXT2, TXT3, BORDER, BG, LAYER, sessionId }) : null,
 				// ── 变量监控窗口（Portal 到 body，可拖可缩放） ──
 				varWin.open ? React.createElement(VarWindow, { vars: (routeStatus && routeStatus.vars) || {}, routeVars: (routeMap && routeMap.variables) || [], win: varWin, onChange: setVarWin, onClose: () => setVarWin((w) => ({ ...w, open: false })), onVarJump: jumpToVarDef, onVarFocus: setVarFocus, TXT, TXT2, TXT3, ACCENT, BORDER, BG, LAYER }) : null,
+				// ── P2 浮动面板（长按手柄拖出；拖到左/下边缘吸附回区域） ──
+				Object.keys(floating).map((id) => {
+					const win = floating[id];
+					const meta = PANEL_META[id] || { title: id, icon: "📦" };
+					return React.createElement(FloatingPanel, { key: id, meta, win, onChange: (w) => setFloating((f) => ({ ...f, [id]: w })), onDock: (region) => dockPanel(id, region), onClose: () => dockPanel(id, "left"), TXT, TXT2, TXT3, BORDER, BG, LAYER }, renderPanel(id));
+				}),
 				// ── 顶栏（类 VSCode：项目输入 + 图标+文字操作 + 强调工作范围 + 对话） ──
 				React.createElement("div", { style: { ...row, gap: 6, flexWrap: "wrap" } },
 					React.createElement("span", { style: { color: TXT2, fontSize: 13, flexShrink: 0 } }, "项目"),
@@ -3272,73 +3403,7 @@ window.__ModuleLoader__.load({
 					),
 					React.createElement("div", { style: { ...colL, overflow: "hidden", padding: 0, display: "flex", flexDirection: "column" } },
 						renderRegionTabs("left"),
-						panelLayout.left.active === "files" ? React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } },
-							React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 4, padding: "5px 8px", borderBottom: "1px solid " + BORDER, background: LAYER, flexShrink: 0 } },
-								React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: TXT } }, "📄 文件 (" + (files || []).length + ")"),
-								React.createElement("span", { style: { flex: 1 } }),
-								React.createElement("span", { style: { fontSize: 12, color: TXT2, cursor: "pointer", padding: "1px 5px", borderRadius: 4 }, onClick: () => loadFiles(project), title: "刷新文件列表" }, "⟳"),
-								React.createElement("span", { style: { fontSize: 12, color: TXT2, cursor: "pointer", padding: "1px 5px", borderRadius: 4 }, onClick: () => setExpandedFiles({}), title: "折叠全部" }, "▾"),
-							),
-							React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", padding: "4px 4px 10px" } },
-								renderFileTree(buildFileTree(files || []), 0, ""),
-								React.createElement("div", { style: { fontWeight: 600, padding: "10px 8px 3px", fontSize: 12, color: TXT3 } }, "导航"),
-								React.createElement("div", { style: { display: "flex", gap: 2, padding: "0 8px 4px", flexWrap: "wrap" } },
-									[["labels", "标签"], ["chars", "人物"], ["trans", "转场"], ["vars", "变量"], ["fonts", "字体"]].map(([k, label]) => React.createElement("span", {
-										key: k,
-										style: C.chip(navKind === k),
-										onClick: () => setNavKind(k),
-									}, label)),
-								),
-								navKind === "fonts" ? React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 1, padding: "2px 0 6px" } },
-									React.createElement("div", { style: { fontSize: 10, color: TXT3, padding: "2px 8px 4px" } }, "🔤 项目字体（" + (assets.font || []).length + " 个，点击预览；预览模式中 {font=} 自动真实渲染）"),
-									(assets.font || []).length ? assets.font.map((f) => React.createElement("div", { key: f.rel, style: { ...itemRow(false), display: "flex", alignItems: "center", gap: 5 }, onMouseEnter: () => setHoverRow("font:" + f.rel), onMouseLeave: () => setHoverRow(null), onClick: () => { ensureFont(f.rel); setPreviewFont(f); } },
-										React.createElement("span", { style: { fontSize: 11, flexShrink: 0 } }, "🔤"),
-										React.createElement("span", { style: { flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: CODE, fontSize: 12 } }, String(f.rel).split("/").pop()),
-										React.createElement("span", { style: { flexShrink: 0, fontSize: 10, color: TXT3 } }, fmtSize(f.size)),
-									)) : React.createElement("div", { style: { color: TXT2, fontSize: 12, padding: "2px 8px" } }, "暂无字体 — 把 .ttf/.otf 放进项目 game/ 目录后点 ⟳ 加载"),
-								) : (navKind === "labels" ? labels : navKind === "chars" ? chars : navKind === "trans" ? trans : vars).map((l) => React.createElement("div", { key: l.name, style: { ...itemRow(false), display: "flex", alignItems: "center", gap: 5, color: ACCENT }, onMouseEnter: () => setHoverRow(l.name), onMouseLeave: () => setHoverRow(null), onClick: () => jumpEntry(l) },
-									React.createElement("span", { style: { fontSize: 11, flexShrink: 0 } }, NAV_ICONS[navKind]),
-									React.createElement("span", { style: { flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, l.name),
-									React.createElement("span", { style: { flexShrink: 0, fontSize: 10, color: TXT3 } }, "@" + l.line),
-								)),
-							),
-						) : panelLayout.left.active === "assets" ? React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } },
-							React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 4, padding: "5px 8px", borderBottom: "1px solid " + BORDER, background: LAYER, flexShrink: 0 } },
-								React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: TXT } }, "🖼 资源 (" + assetCats.reduce((n, [c]) => n + (assets[c] || []).length, 0) + ")"),
-								React.createElement("span", { style: { flex: 1 } }),
-								React.createElement("span", { style: { fontSize: 12, color: TXT2, cursor: "pointer", padding: "1px 5px", borderRadius: 4 }, onClick: () => loadAssets(project), title: "刷新资源" }, "⟳"),
-							),
-							React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", padding: "4px 4px 10px" } },
-								assetCats.map(([cat, label]) => {
-									const open = isOpen(cat);
-									const total = countFiles(assetTrees[cat]);
-									if (!total) return null;
-									return React.createElement("div", { key: cat },
-										React.createElement("div", { style: { ...itemRow(false), display: "flex", alignItems: "center", gap: 4, color: TXT2, fontWeight: 600 }, onMouseEnter: () => setHoverRow(cat), onMouseLeave: () => setHoverRow(null), onClick: () => toggleTree(cat) },
-											React.createElement("span", { style: { width: 12, flexShrink: 0, fontSize: 10, color: TXT3 } }, open ? "▾" : "▸"),
-											React.createElement("span", { style: { flexShrink: 0, fontSize: 12 } }, cat === "image" ? "🖼" : cat === "audio" ? "🎵" : cat === "video" ? "🎬" : cat === "font" ? "🔤" : "📦"),
-											React.createElement("span", { style: { flex: 1, minWidth: 0 } }, label),
-											React.createElement("span", { style: { flexShrink: 0, fontSize: 11, color: TXT3 } }, String(total)),
-										),
-										open ? React.createElement("div", null, renderAssetDir(cat, assetTrees[cat], 1, cat + "/")) : null,
-									);
-								}),
-							),
-						) : React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } },
-							React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 4, padding: "5px 8px", borderBottom: "1px solid " + BORDER, background: LAYER, flexShrink: 0 } },
-								React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: TXT } }, "✎ 修改 (" + (cpDiff && cpDiff.files ? cpDiff.files.length : 0) + ")"),
-								React.createElement("span", { style: { flex: 1 } }),
-								React.createElement("span", { style: { fontSize: 12, color: TXT2, cursor: "pointer", padding: "1px 5px", borderRadius: 4 }, onClick: () => openCpPanel(), title: "打开修改面板" }, "↗"),
-							),
-							React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", padding: "4px 4px 10px" } },
-								(cpDiff && cpDiff.files.length) ? cpDiff.files.map((f) => React.createElement("div", { key: f.rel, style: { ...itemRow(false), display: "flex", alignItems: "center", gap: 5 }, onClick: () => openCpPanel() },
-									React.createElement("span", { style: { fontSize: 11, flexShrink: 0 } }, "✎"),
-									React.createElement("span", { style: { flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, f.rel),
-									React.createElement("span", { style: { flexShrink: 0, fontSize: 10, color: SUCCESS } }, "+" + f.added),
-									React.createElement("span", { style: { flexShrink: 0, fontSize: 10, color: ERRCOL } }, "-" + f.removed),
-								)) : React.createElement("div", { style: { color: TXT2, fontSize: 12, padding: 8 } }, "暂无修改 — 点顶栏 ✎ 打开修改面板"),
-							),
-						),
+						renderPanel(panelLayout.left.active),
 					),
 					React.createElement("div", { ref: colRRef, style: colR },
 						React.createElement("div", { style: tabBar },
@@ -3704,11 +3769,11 @@ window.__ModuleLoader__.load({
 							React.createElement("button", { style: { ...btnPrimary, padding: "3px 14px" }, onClick: confirmTeach }, "确认生成"),
 						),
 					) : null,
-					// ── 底部面板区（P2：标签组 + 内容，面板标签可拖到其他区域停靠） ──
+					// ── 底部面板区（P2：标签组 + 内容，手柄长按拖出浮动） ──
 					(panelLayout.bottom && panelLayout.bottom.tabs.length) ? React.createElement("div", { style: { display: "flex", flexDirection: "column", flexShrink: 0, height: 170, minHeight: 0, borderTop: "1px solid " + BORDER, background: BG } },
 						renderRegionTabs("bottom"),
 						React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", padding: "4px 8px" } },
-							panelLayout.bottom.active === "log" ? React.createElement("pre", { style: { fontFamily: CODE, fontSize: 12, lineHeight: 1.6, whiteSpace: "pre-wrap", margin: 0, color: TXT2 } }, log || "（操作日志）") : null,
+							renderPanel(panelLayout.bottom.active),
 						),
 					) : null,
 					// ── 状态栏（规范 §2：项目 | 运行状态 | 文件 | 行列 | 保存态） ──
