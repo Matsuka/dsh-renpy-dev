@@ -2893,15 +2893,20 @@ window.__ModuleLoader__.load({
 			// 区域尺寸拖拽：left 宽 / bottom 高（分隔条 mousedown → window mousemove）
 			const regionResizeRef = React.useRef(null); // {kind:"left"|"bottom", sx, sy, base}
 			const panelSplitRef = React.useRef(null); // {region, idx, sx, sy, a, b}——区域内面板比例拖拽
+			// 限频镜像（拖拽中每帧 setState 会引发整个面板重渲染风暴 → 值没变不 set）
+			const regionSizeMirrorRef = React.useRef(panelState.regionSize || { left: 220, bottom: 170 });
+			const panelSizesMirrorRef = React.useRef({}); // region -> {panelId: flex}
 			const startRegionResize = (kind, e) => {
 				e.preventDefault();
 				e.stopPropagation();
+				if (dragPanelRef.current) return; // 防御：面板拖拽中忽略
 				const base = kind === "left" ? regionSizeRef.current.left : regionSizeRef.current.bottom;
 				regionResizeRef.current = { kind, sx: e.clientX, sy: e.clientY, base };
 			};
 			const startPanelSplit = (region, idx, e) => {
 				e.preventDefault();
 				e.stopPropagation();
+				if (dragPanelRef.current) return; // 防御：面板拖拽中忽略
 				const g = panelLayoutRef.current[region] || { panels: [], sizes: {} };
 				const sizes = g.sizes || {};
 				panelSplitRef.current = { region, idx, sx: e.clientX, sy: e.clientY, a: sizes[g.panels[idx]] || 1, b: sizes[g.panels[idx + 1]] || 1 };
@@ -2929,32 +2934,9 @@ window.__ModuleLoader__.load({
 			navCollapsedRef.current = navCollapsed;
 			React.useEffect(() => {
 				const onMove = (e) => {
-					// 区域尺寸拖拽（left 宽 / bottom 高）
-					const rr = regionResizeRef.current;
-					if (rr) {
-						const delta = rr.kind === "left" ? (e.clientX - rr.sx) : (e.clientY - rr.sy);
-						if (rr.kind === "left") setRegionSize((s) => ({ ...s, left: Math.max(140, Math.min(560, rr.base + delta)) }));
-						else setRegionSize((s) => ({ ...s, bottom: Math.max(80, Math.min(600, rr.base + delta)) }));
-						return;
-					}
-					// 区域内面板比例拖拽（改相邻两面板 flex 权重）
-					const ps = panelSplitRef.current;
-					if (ps) {
-						const g = panelLayoutRef.current[ps.region] || { panels: [], sizes: {} };
-						const p0 = g.panels[ps.idx], p1 = g.panels[ps.idx + 1];
-						if (p0 && p1) {
-							const delta = ps.region === "left" ? (e.clientY - ps.sy) : (e.clientX - ps.sx);
-							const a = Math.max(0.15, ps.a + delta / 60);
-							const b = Math.max(0.15, ps.b - delta / 60);
-							setPanelLayout((l) => {
-								const ng = l[ps.region] || { panels: [], sizes: {} };
-								return { ...l, [ps.region]: { panels: ng.panels, sizes: { ...(ng.sizes || {}), [p0]: a, [p1]: b } } };
-							});
-						}
-						return;
-					}
-					const d = dragPanelRef.current;
-					if (d) {
+					// 面板拖拽优先（若已在拖面板，忽略区域/比例拖拽，避免模式切换引发布局重排风暴）
+					if (dragPanelRef.current) {
+						const d = dragPanelRef.current;
 						if (d.mode === "float") {
 							// 长按弹出后跟手：浮动窗位置 DOM 直改（避免重渲染风暴）+ 分区吸附指示
 							d.moved = true;
@@ -2975,14 +2957,49 @@ window.__ModuleLoader__.load({
 						const s = detectSnap(e);
 						const pr = snapPreviewRef.current;
 						if (s === null || pr === null || pr.region !== s.region || pr.index !== s.index) { snapPreviewRef.current = s; setSnapPreview(s); }
-					} else {
-						// 自动隐藏侧栏：按控件栏自身位置判定（不受原生侧栏宽度影响）——靠近展开，离开收起
-						const nav = navRef.current;
-						if (nav) {
-							const rect = nav.getBoundingClientRect();
-							if (e.clientX <= rect.right + 6) { if (navCollapsedRef.current) setNavCollapsed(false); }
-							else if (e.clientX > rect.right + 6) { if (!navCollapsedRef.current) setNavCollapsed(true); }
+						return;
+					}
+					// 区域尺寸拖拽（left 宽 / bottom 高；限频：值没变不 setState，避免重渲染风暴）
+					const rr = regionResizeRef.current;
+					if (rr) {
+						const delta = rr.kind === "left" ? (e.clientX - rr.sx) : (e.clientY - rr.sy);
+						const next = rr.kind === "left"
+							? Math.max(140, Math.min(560, rr.base + delta))
+							: Math.max(80, Math.min(600, rr.base + delta));
+						const cur = rr.kind === "left" ? regionSizeMirrorRef.current.left : regionSizeMirrorRef.current.bottom;
+						if (Math.abs(next - cur) >= 2) {
+							regionSizeMirrorRef.current = rr.kind === "left" ? { ...regionSizeMirrorRef.current, left: next } : { ...regionSizeMirrorRef.current, bottom: next };
+							setRegionSize(regionSizeMirrorRef.current);
 						}
+						return;
+					}
+					// 区域内面板比例拖拽（改相邻两面板 flex 权重；限频同上）
+					const ps = panelSplitRef.current;
+					if (ps) {
+						const g = panelLayoutRef.current[ps.region] || { panels: [], sizes: {} };
+						const p0 = g.panels[ps.idx], p1 = g.panels[ps.idx + 1];
+						if (p0 && p1) {
+							const delta = ps.region === "left" ? (e.clientY - ps.sy) : (e.clientX - ps.sx);
+							const a = Math.max(0.15, ps.a + delta / 60);
+							const b = Math.max(0.15, ps.b - delta / 60);
+							const mirror = panelSizesMirrorRef.current[ps.region] || {};
+							if (Math.abs((mirror[p0] || 1) - a) >= 0.02 || Math.abs((mirror[p1] || 1) - b) >= 0.02) {
+								const nm = { ...panelSizesMirrorRef.current, [ps.region]: { ...mirror, [p0]: a, [p1]: b } };
+								panelSizesMirrorRef.current = nm;
+								setPanelLayout((l) => {
+									const ng = l[ps.region] || { panels: [], sizes: {} };
+									return { ...l, [ps.region]: { panels: ng.panels, sizes: { ...(ng.sizes || {}), [p0]: a, [p1]: b } } };
+								});
+							}
+						}
+						return;
+					}
+					// 无任何拖拽 → 自动隐藏侧栏：按控件栏自身位置判定（不受原生侧栏宽度影响）——靠近展开，离开收起
+					const nav = navRef.current;
+					if (nav) {
+						const rect = nav.getBoundingClientRect();
+						if (e.clientX <= rect.right + 6) { if (navCollapsedRef.current) setNavCollapsed(false); }
+						else if (e.clientX > rect.right + 6) { if (!navCollapsedRef.current) setNavCollapsed(true); }
 					}
 				};
 				const onUp = (e) => {
@@ -4037,8 +4054,8 @@ window.__ModuleLoader__.load({
 					) : null,
 					// ── 底部面板区（P2：多面板水平平分，标题栏拖拽/吸附；顶部拖拽条调高） ──
 					(panelLayout.bottom && panelLayout.bottom.panels.length) ? React.createElement("div", { style: { display: "flex", flexDirection: "column", flexShrink: 0, height: regionSize.bottom, minHeight: 0, borderTop: "1px solid " + BORDER, background: BG, position: "relative" } },
-						// 底部区高拖拽条
-						React.createElement("div", { onMouseDown: (e) => startRegionResize("bottom", e), title: "拖动调整底部区高度", style: { position: "absolute", top: -3, left: 0, right: 0, height: 6, cursor: "row-resize", zIndex: 5 }, onMouseEnter: (e) => { e.currentTarget.style.background = "rgba(100,160,255,.25)"; }, onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; } }),
+						// 底部区高拖拽条（贴在区域上缘外侧，不遮挡面板标题栏；仅 4px hit 区）
+						React.createElement("div", { onMouseDown: (e) => startRegionResize("bottom", e), title: "拖动调整底部区高度", style: { position: "absolute", top: -4, left: 0, right: 0, height: 4, cursor: "row-resize", zIndex: 1 }, onMouseEnter: (e) => { e.currentTarget.style.background = "rgba(100,160,255,.35)"; }, onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; } }),
 						renderRegion("bottom"),
 					) : null,
 					// ── 状态栏（规范 §2：项目 | 运行状态 | 文件 | 行列 | 保存态） ──
