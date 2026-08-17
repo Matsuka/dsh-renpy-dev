@@ -2803,6 +2803,7 @@ window.__ModuleLoader__.load({
 							const isLeft = r === "left";
 							const pos = isLeft ? e.clientY - rect.top : e.clientX - rect.left;
 							const span = isLeft ? (rect.bottom - rect.top) : (rect.right - rect.left);
+							if (span <= 0) continue; // 防御：区域无实际尺寸时跳过
 							const index = Math.max(0, Math.min(n, Math.floor(pos / (span / n))));
 							return { region: r, index };
 						}
@@ -2866,9 +2867,18 @@ window.__ModuleLoader__.load({
 					setSnapPreview(null);
 					setDragGhost(null);
 				};
+				// 拖出 iframe/窗口（如拖到视口下侧外）时 mouseup 会丢失 → 强制取消拖拽，防止状态悬挂
+				const onBlur = () => {
+					if (dragPanelRef.current) {
+						dragPanelRef.current = null;
+						setSnapPreview(null);
+						setDragGhost(null);
+					}
+				};
 				window.addEventListener("mousemove", onMove);
 				window.addEventListener("mouseup", onUp);
-				return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+				window.addEventListener("blur", onBlur);
+				return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); window.removeEventListener("blur", onBlur); };
 			}, []);
 			// 面板标题栏操作（并入标题栏，避免内容区重复标题；mousedown 阻止拖拽）
 			const renderPanelOps = (id) => {
