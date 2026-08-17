@@ -1116,7 +1116,7 @@ window.__ModuleLoader__.load({
 
 		// ── 浮动面板（P2：长按手柄拖出的可缩放浮动窗；拖到左/下视口边缘松手吸附回区域） ──
 		function FloatingPanel(props) {
-			const { meta, win, onChange, onDock, onClose, children, TXT, TXT2, TXT3, BORDER, BG, LAYER } = props;
+			const { meta, win, rootRef, onChange, onDock, onClose, children, TXT, TXT2, TXT3, BORDER, BG, LAYER } = props;
 			const dragRef = React.useRef(null);
 			const [dragState, setDragState] = React.useState(null);
 			const [snapHint, setSnapHint] = React.useState(null); // "left" | "bottom" | null——吸附预览
@@ -1150,7 +1150,10 @@ window.__ModuleLoader__.load({
 				};
 				window.addEventListener("mousemove", onMove);
 				window.addEventListener("mouseup", onUp);
-				return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+				// 拖出 iframe/视口（左侧/下侧外）时 mouseup 丢失 → 取消拖拽防悬挂
+				const onBlur = () => { if (dragRef.current) { dragRef.current = null; setDragState(null); setSnapHint(null); } };
+				window.addEventListener("blur", onBlur);
+				return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); window.removeEventListener("blur", onBlur); };
 			}, [dragState, onChange, onDock]);
 			React.useEffect(() => {
 				const onKey = (e) => { const t = e.target; if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return; if (e.key === "Escape") onClose(); };
@@ -1158,7 +1161,7 @@ window.__ModuleLoader__.load({
 				return () => window.removeEventListener("keydown", onKey);
 			}, [onClose]);
 			if (typeof document === "undefined" || !document.body) return null;
-			const body = React.createElement("div", { style: { position: "fixed", left: win.x, top: win.y, width: win.w, height: win.h, zIndex: 10010, display: "flex", flexDirection: "column", background: BG, border: "1px solid " + BORDER, borderRadius: 10, boxShadow: "0 10px 40px rgba(0,0,0,.4)", overflow: "hidden", minWidth: 300, minHeight: 200 } },
+			const body = React.createElement("div", { ref: rootRef, style: { position: "fixed", left: win.x, top: win.y, width: win.w, height: win.h, zIndex: 10010, display: "flex", flexDirection: "column", background: BG, border: "1px solid " + BORDER, borderRadius: 10, boxShadow: "0 10px 40px rgba(0,0,0,.4)", overflow: "hidden", minWidth: 300, minHeight: 200 } },
 				React.createElement("div", { onMouseDown: onBarDown, style: { display: "flex", alignItems: "center", gap: 8, padding: "5px 10px", background: LAYER, borderBottom: "1px solid " + BORDER, cursor: dragState === "move" ? "grabbing" : "grab", userSelect: "none", flexShrink: 0 } },
 					React.createElement("span", { style: { fontSize: 13, fontWeight: 600, color: TXT } }, meta.icon + " " + meta.title),
 					React.createElement("span", { style: { fontSize: 10, color: TXT3, marginLeft: "auto", whiteSpace: "nowrap" } }, "拖到左/下边缘吸附"),
@@ -2790,6 +2793,7 @@ window.__ModuleLoader__.load({
 			const snapPreviewRef = React.useRef(null); // 限频镜像（位置没变不 setState）
 			const [dragGhost, setDragGhost] = React.useState(null); // {id}——拖影显隐（位置走 ghostRef DOM，避免重渲染风暴）
 			const ghostRef = React.useRef(null);
+			const floatElsRef = React.useRef({}); // 浮动窗根元素注册（长按跟手时 DOM 直改位置）
 			const regionRefs = { left: React.useRef(null), bottom: React.useRef(null) };
 			const panelLayoutRef = React.useRef(panelLayout);
 			panelLayoutRef.current = panelLayout;
@@ -2832,25 +2836,21 @@ window.__ModuleLoader__.load({
 			const movePanel = (id, region) => movePanelTo(id, region, undefined);
 			const startDragPanel = (id, e) => {
 				e.preventDefault();
-				dragPanelRef.current = { id, sx: e.clientX, sy: e.clientY, moved: false };
-				// 长按（350ms 不移动）→ 立即弹出浮动窗；短按拖动走吸附
+				dragPanelRef.current = { id, sx: e.clientX, sy: e.clientY, moved: false, mode: "snap" };
+				// 长按（350ms 不移动）→ 弹出浮动窗并进入"跟手"模式（继续移动时浮动窗跟随鼠标，靠近分区显示吸附指示，松手吸附）
 				if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
 				longPressTimerRef.current = setTimeout(() => {
 					longPressTimerRef.current = null;
 					const d = dragPanelRef.current;
 					if (!d || d.moved) return;
 					const vw = window.innerWidth, vh = window.innerHeight;
-					const x = Math.max(0, Math.min(d.sx - 220, vw - 460));
-					const y = Math.max(0, Math.min(d.sy - 20, vh - 120));
-					setFloating((f) => ({ ...f, [id]: { x, y, w: 440, h: 320 } }));
+					d.mode = "float"; // 进入浮动跟手模式（dragPanelRef 保留，mousemove 继续跟手）
+					setFloating((f) => ({ ...f, [id]: { x: Math.max(0, Math.min(d.sx - 220, vw - 460)), y: Math.max(0, Math.min(d.sy - 20, vh - 120)), w: 440, h: 320 } }));
 					setPanelLayout((l) => {
 						const n = {};
 						for (const r of ["left", "bottom"]) n[r] = { panels: (l[r] || { panels: [] }).panels.filter((p) => p !== id) };
 						return n;
 					});
-					dragPanelRef.current = null;
-					setSnapPreview(null);
-					setDragGhost(null);
 				}, 350);
 			};
 			const navCollapsedRef = React.useRef(navCollapsed);
@@ -2859,6 +2859,16 @@ window.__ModuleLoader__.load({
 				const onMove = (e) => {
 					const d = dragPanelRef.current;
 					if (d) {
+						if (d.mode === "float") {
+							// 长按弹出后跟手：浮动窗位置 DOM 直改（避免重渲染风暴）+ 分区吸附指示
+							d.moved = true;
+							const el = floatElsRef.current && floatElsRef.current[d.id];
+							if (el) { el.style.left = (e.clientX - 220) + "px"; el.style.top = (e.clientY - 20) + "px"; }
+							const s = detectSnap(e);
+							const pr = snapPreviewRef.current;
+							if (s === null || pr === null || pr.region !== s.region || pr.index !== s.index) { snapPreviewRef.current = s; setSnapPreview(s); }
+							return;
+						}
 						if (!d.moved && Math.abs(e.clientX - d.sx) + Math.abs(e.clientY - d.sy) > 5) {
 							d.moved = true;
 							setDragGhost({ id: d.id }); // 进入拖拽：显示 ghost
@@ -2883,17 +2893,29 @@ window.__ModuleLoader__.load({
 					if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
 					const d = dragPanelRef.current;
 					if (d && d.moved) {
-						const snap = detectSnap(e);
-						if (snap) { movePanelTo(d.id, snap.region, snap.index); }
-						else {
-							// 无分区 → 浮动窗（鼠标附近）
-							const vw = window.innerWidth, vh = window.innerHeight;
-							setFloating((f) => ({ ...f, [d.id]: { x: Math.max(0, Math.min(e.clientX - 220, vw - 460)), y: Math.max(0, Math.min(e.clientY - 20, vh - 120)), w: 440, h: 320 } }));
-							setPanelLayout((l) => {
-								const n = {};
-								for (const r of ["left", "bottom"]) n[r] = { panels: (l[r] || { panels: [] }).panels.filter((p) => p !== d.id) };
-								return n;
-							});
+						if (d.mode === "float") {
+							// 跟手结束：有分区 → 吸附回区域；无分区 → 停住（同步 React 状态）
+							const snap = detectSnap(e);
+							if (snap) {
+								setFloating((f) => { const n = { ...f }; delete n[d.id]; return n; });
+								movePanelTo(d.id, snap.region, snap.index);
+							} else {
+								const vw = window.innerWidth, vh = window.innerHeight;
+								setFloating((f) => ({ ...f, [d.id]: { x: Math.max(0, Math.min(e.clientX - 220, vw - 460)), y: Math.max(0, Math.min(e.clientY - 20, vh - 120)), w: 440, h: 320 } }));
+							}
+						} else {
+							const snap = detectSnap(e);
+							if (snap) { movePanelTo(d.id, snap.region, snap.index); }
+							else {
+								// 无分区 → 浮动窗（鼠标附近）
+								const vw = window.innerWidth, vh = window.innerHeight;
+								setFloating((f) => ({ ...f, [d.id]: { x: Math.max(0, Math.min(e.clientX - 220, vw - 460)), y: Math.max(0, Math.min(e.clientY - 20, vh - 120)), w: 440, h: 320 } }));
+								setPanelLayout((l) => {
+									const n = {};
+									for (const r of ["left", "bottom"]) n[r] = { panels: (l[r] || { panels: [] }).panels.filter((p) => p !== d.id) };
+									return n;
+								});
+							}
 						}
 					}
 					dragPanelRef.current = null;
@@ -3471,7 +3493,7 @@ window.__ModuleLoader__.load({
 				Object.keys(floating).map((id) => {
 					const win = floating[id];
 					const meta = PANEL_META[id] || { title: id, icon: "📦" };
-					return React.createElement(FloatingPanel, { key: id, meta, win, onChange: (w) => setFloating((f) => ({ ...f, [id]: w })), onDock: (region) => dockPanel(id, region), onClose: () => dockPanel(id, "left"), TXT, TXT2, TXT3, BORDER, BG, LAYER }, renderPanel(id));
+					return React.createElement(FloatingPanel, { key: id, meta, win, rootRef: (el) => { floatElsRef.current[id] = el; }, onChange: (w) => setFloating((f) => ({ ...f, [id]: w })), onDock: (region) => dockPanel(id, region), onClose: () => dockPanel(id, "left"), TXT, TXT2, TXT3, BORDER, BG, LAYER }, renderPanel(id));
 				}),
 				// ── 拖拽 ghost 拖影（跟随鼠标；位置由 ghostRef DOM 控制，避免重渲染风暴） ──
 				dragGhost ? React.createElement("div", { ref: ghostRef, style: { position: "fixed", left: 0, top: 0, zIndex: 9999, pointerEvents: "none", display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", background: LAYER, border: "1px solid " + ACCENT, borderRadius: 6, boxShadow: "0 6px 20px rgba(0,0,0,.3)", fontSize: 12, color: TXT, opacity: .92 } },
