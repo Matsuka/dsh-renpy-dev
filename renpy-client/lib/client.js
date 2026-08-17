@@ -2784,6 +2784,8 @@ window.__ModuleLoader__.load({
 			};
 			// ── 标题栏拖拽 + 分区吸附（Win11 snap）：ghost 拖影跟随 + 分区高亮填充；区域优先判定 ──
 			const dragPanelRef = React.useRef(null); // {id, sx, sy, moved}
+			const longPressTimerRef = React.useRef(null); // 长按弹出浮动窗计时器
+			const navRef = React.useRef(null); // 控件栏容器（自动隐藏按自身位置判定）
 			const [snapPreview, setSnapPreview] = React.useState(null); // {region, index} | null
 			const snapPreviewRef = React.useRef(null); // 限频镜像（位置没变不 setState）
 			const [dragGhost, setDragGhost] = React.useState(null); // {id}——拖影显隐（位置走 ghostRef DOM，避免重渲染风暴）
@@ -2828,26 +2830,57 @@ window.__ModuleLoader__.load({
 				});
 			};
 			const movePanel = (id, region) => movePanelTo(id, region, undefined);
-			const startDragPanel = (id, e) => { e.preventDefault(); dragPanelRef.current = { id, sx: e.clientX, sy: e.clientY, moved: false }; setDragGhost({ id }); };
+			const startDragPanel = (id, e) => {
+				e.preventDefault();
+				dragPanelRef.current = { id, sx: e.clientX, sy: e.clientY, moved: false };
+				// 长按（350ms 不移动）→ 立即弹出浮动窗；短按拖动走吸附
+				if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+				longPressTimerRef.current = setTimeout(() => {
+					longPressTimerRef.current = null;
+					const d = dragPanelRef.current;
+					if (!d || d.moved) return;
+					const vw = window.innerWidth, vh = window.innerHeight;
+					const x = Math.max(0, Math.min(d.sx - 220, vw - 460));
+					const y = Math.max(0, Math.min(d.sy - 20, vh - 120));
+					setFloating((f) => ({ ...f, [id]: { x, y, w: 440, h: 320 } }));
+					setPanelLayout((l) => {
+						const n = {};
+						for (const r of ["left", "bottom"]) n[r] = { panels: (l[r] || { panels: [] }).panels.filter((p) => p !== id) };
+						return n;
+					});
+					dragPanelRef.current = null;
+					setSnapPreview(null);
+					setDragGhost(null);
+				}, 350);
+			};
 			const navCollapsedRef = React.useRef(navCollapsed);
 			navCollapsedRef.current = navCollapsed;
 			React.useEffect(() => {
 				const onMove = (e) => {
 					const d = dragPanelRef.current;
 					if (d) {
-						if (!d.moved && Math.abs(e.clientX - d.sx) + Math.abs(e.clientY - d.sy) > 5) d.moved = true;
+						if (!d.moved && Math.abs(e.clientX - d.sx) + Math.abs(e.clientY - d.sy) > 5) {
+							d.moved = true;
+							setDragGhost({ id: d.id }); // 进入拖拽：显示 ghost
+							if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
+						}
 						// ghost 位置直接操作 DOM（不走 React，避免拖拽时高频重渲染卡死）
 						if (ghostRef.current) { ghostRef.current.style.left = (e.clientX + 12) + "px"; ghostRef.current.style.top = (e.clientY + 6) + "px"; }
 						const s = detectSnap(e);
 						const pr = snapPreviewRef.current;
 						if (s === null || pr === null || pr.region !== s.region || pr.index !== s.index) { snapPreviewRef.current = s; setSnapPreview(s); }
 					} else {
-						// 自动隐藏侧栏：鼠标靠近左缘(<44)展开，离开(>210)自动收起；导航区域内保持
-						if (e.clientX < 44) { if (navCollapsedRef.current) setNavCollapsed(false); }
-						else if (e.clientX > 210) { if (!navCollapsedRef.current) setNavCollapsed(true); }
+						// 自动隐藏侧栏：按控件栏自身位置判定（不受原生侧栏宽度影响）——靠近展开，离开收起
+						const nav = navRef.current;
+						if (nav) {
+							const rect = nav.getBoundingClientRect();
+							if (e.clientX <= rect.right + 6) { if (navCollapsedRef.current) setNavCollapsed(false); }
+							else if (e.clientX > rect.right + 6) { if (!navCollapsedRef.current) setNavCollapsed(true); }
+						}
 					}
 				};
 				const onUp = (e) => {
+					if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
 					const d = dragPanelRef.current;
 					if (d && d.moved) {
 						const snap = detectSnap(e);
@@ -2869,6 +2902,7 @@ window.__ModuleLoader__.load({
 				};
 				// 拖出 iframe/窗口（如拖到视口下侧外）时 mouseup 会丢失 → 强制取消拖拽，防止状态悬挂
 				const onBlur = () => {
+					if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
 					if (dragPanelRef.current) {
 						dragPanelRef.current = null;
 						setSnapPreview(null);
@@ -3478,8 +3512,8 @@ window.__ModuleLoader__.load({
 					busy ? React.createElement("span", { style: { color: TXT2 } }, "…") : null,
 				),
 				React.createElement("div", { style: { display: "flex", flex: 1, minHeight: 0, maxWidth: "100%", minWidth: 0 } },
-					// ── 控件总栏（点击打开面板/窗口；按键已统一到顶部；可收缩只显图标） ──
-					React.createElement("div", { style: { width: navCollapsed ? 46 : 172, flexShrink: 0, borderRight: "1px solid " + BORDER, background: LAYER, display: "flex", flexDirection: "column", paddingTop: 6, overflowY: "auto", overflowX: "hidden", transition: "width .15s" } },
+					// ── 控件总栏（点击打开面板/窗口；按键已统一到顶部；可收缩只显图标；自动隐藏基于自身位置） ──
+					React.createElement("div", { ref: navRef, style: { width: navCollapsed ? 46 : 172, flexShrink: 0, borderRight: "1px solid " + BORDER, background: LAYER, display: "flex", flexDirection: "column", paddingTop: 6, overflowY: "auto", overflowX: "hidden", transition: "width .15s" } },
 						// 调试控件（需运行游戏：桥接回报驱动）
 						!navCollapsed ? React.createElement("div", { style: { width: "100%", padding: "1px 10px 5px", fontSize: 10, color: TXT3, fontWeight: 600 } }, "调试 · 需运行") : null,
 						abIcon("🗺", "分支路线图", openRouteWin, { opacity: project ? 1 : .4, hideText: navCollapsed, title: "状态机图；查看不需运行，点击节点跳游戏需运行" }),
