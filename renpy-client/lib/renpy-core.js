@@ -120,15 +120,50 @@ const layoutRouteMap = (map, opts = {}) => {
     if (!layerOf.has(s.id)) layerOf.set(s.id, maxLayer)
   }
 
-  // 同层纵向排列
+  // 同层分组
   const byLayer = new Map()
   for (const s of map.states || []) {
     const l = layerOf.get(s.id)
     if (!byLayer.has(l)) byLayer.set(l, [])
     byLayer.get(l).push(s)
   }
-  for (const [l, states] of byLayer) {
-    states.forEach((s, i) => {
+  // 层内排序（重心法，2 遍）：按"上一层入边来源"的平均位置排列，减少跨层边交叉。
+  // 无上一层来源的节点保持原序（排末尾）；同层边/回边不参与（结构不变，保持稳定）。
+  const pred = new Map()
+  for (const t of map.transitions || []) {
+    if (t.to === null || t.to === undefined) continue
+    if (!pred.has(t.to)) pred.set(t.to, [])
+    pred.get(t.to).push(t.from)
+  }
+  const layerKeys = [...byLayer.keys()].sort((a, b) => a - b)
+  const idxInLayer = new Map()
+  for (const l of layerKeys) byLayer.get(l).forEach((s, i) => idxInLayer.set(s.id, i))
+  for (let pass = 0; pass < 2; pass++) {
+    for (const l of layerKeys) {
+      if (l === layerKeys[0]) continue // 起点层保持
+      const states = byLayer.get(l)
+      const prevLayer = byLayer.get(l - 1)
+      if (!prevLayer) continue
+      const bary = (id) => {
+        const ps = (pred.get(id) || []).filter((p) => layerOf.get(p) === l - 1)
+        if (!ps.length) return null
+        let sum = 0
+        for (const p of ps) sum += idxInLayer.get(p) === undefined ? prevLayer.length : idxInLayer.get(p)
+        return sum / ps.length
+      }
+      states.sort((a, b) => {
+        const ba = bary(a.id), bb = bary(b.id)
+        if (ba !== null && bb !== null) return ba - bb
+        if (ba !== null) return -1
+        if (bb !== null) return 1
+        return 0
+      })
+      states.forEach((s, i) => idxInLayer.set(s.id, i))
+    }
+  }
+  // 按排序后的层内序号分配坐标
+  for (const l of layerKeys) {
+    byLayer.get(l).forEach((s, i) => {
       byId[s.id] = { id: s.id, name: s.name, role: s.role || 'scene', x: l * gapX + 30, y: i * gapY + 30 }
     })
   }
@@ -136,7 +171,31 @@ const layoutRouteMap = (map, opts = {}) => {
   const edges = (map.transitions || []).map((t) => {
     const a = byId[t.from], b = byId[t.to]
     if (!a || !b) return null
-    return { from: t.from, to: t.to, type: t.type, x1: a.x + 60, y1: a.y + 24, x2: b.x, y2: b.y + 24 }
+    // 自环：坐标无意义（渲染端按 from===to 画环）
+    if (t.from === t.to) return { from: t.from, to: t.to, type: t.type, x1: a.x + 60, y1: a.y + 24, x2: a.x + 60, y2: a.y + 24 }
+    // 端点锚定：源/目标各选"离对方中心最近的边缘中点"——回边从右往左时贴目标右边缘进入，
+    // 上下排列时贴目标上/下边缘，线不再横穿节点框，箭头方向自然
+    const SW = 120, SH = 48
+    const scx = a.x + SW / 2, scy = a.y + SH / 2
+    const dcx = b.x + SW / 2, dcy = b.y + SH / 2
+    const nearest = (cx, cy, n) => {
+      const cands = [
+        { x: n.x, y: n.y + SH / 2 },        // 左
+        { x: n.x + SW, y: n.y + SH / 2 },   // 右
+        { x: n.x + SW / 2, y: n.y },        // 上
+        { x: n.x + SW / 2, y: n.y + SH },   // 下
+      ]
+      let best = cands[0]
+      let bd = (best.x - cx) * (best.x - cx) + (best.y - cy) * (best.y - cy)
+      for (const c of cands) {
+        const d = (c.x - cx) * (c.x - cx) + (c.y - cy) * (c.y - cy)
+        if (d < bd) { bd = d; best = c }
+      }
+      return best
+    }
+    const dstAnchor = nearest(scx, scy, b)   // 目标上离源中心最近的边缘
+    const srcAnchor = nearest(dcx, dcy, a)   // 源上离目标中心最近的边缘
+    return { from: t.from, to: t.to, type: t.type, x1: srcAnchor.x, y1: srcAnchor.y, x2: dstAnchor.x, y2: dstAnchor.y }
   }).filter(Boolean)
 
   return { states: Object.values(byId), edges }

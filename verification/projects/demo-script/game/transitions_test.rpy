@@ -48,8 +48,8 @@ init python:
 # ── Dict 转场：按层 ──
 define dis = { "master": Dissolve(1.0) }
 
-# ── 自动转场配置（scene/show/hide 后自动应用） ──
-define config.scene_show_hide_transition = Dissolve(0.25)
+# ── 自动转场配置（scene/show/hide 后自动应用；8.x 起为 store 变量，非 config） ──
+define _scene_show_hide_transition = Dissolve(0.25)
 
 label transitions_demo2:
     scene black

@@ -363,9 +363,13 @@ route-map.json（状态机结构）：
 
 ### 5.3 随机数锁定的实现思路
 
+> ⚠️ **2026-08 决定：本方案取消，不再自研。** 有认识的人正在 fork Ren'Py 做随机数控制的
+> 官方/底层 API 接口，后续直接用该接口实现随机锁定与稳定复现（注入 seed / 固定随机值），
+> 本节的 RENPY_DEBUG_RANDOM_FIXED 注入思路仅存档备查，不进入实现。
+
 ```
 正常：if renpy.random.random() < 0.3: jump branch_x
-调试锁定：注入覆盖（如环境变量/桥接指令）
+调试锁定（原思路，已废弃）：注入覆盖（如环境变量/桥接指令）
   RENPY_DEBUG_RANDOM_FIXED = 0.2  → 随机恒为 0.2
   → 稳定触发 branch_x（0.2 < 0.3），可重复验证该分支
   RENPY_DEBUG_RANDOM_FIXED = 0.8  → 稳定不触发，验证另一分支

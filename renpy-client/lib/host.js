@@ -35,25 +35,141 @@ function apply(ctx, config) {
   const renpyPy = sdkPath + '/renpy.py'
   const launcher = sdkPath + '/launcher'
   const userDir = cfg('userDir', sdkPath + '/../.renpy-user')
+  const defaultProject = cfg('defaultProject', '') // 工作台默认工程（无本地持久化值时使用）
 
-  // 桥接脚本（注入项目 game/_debug_bridge.rpy）：轮询项目 game/_route_cmd.json，执行 warp 跳转
-  // 指令格式: { action: "warp", spec: "file:line" }
-  // cmd.json 放项目内（沙箱允许写项目，且桥接用相对游戏目录路径自包含）
+  // 桥接脚本（注入项目 game/_debug_bridge.rpy）：
+  //   - 指令：轮询项目 game/_route_cmd.json（action=warp 跳转 / action=screenshot 截图）
+  //   - 回报：限频 0.5s 写 game/_route_status.json（label + file:line + vars 快照 + shot_at + 时间戳）
   const BRIDGE_RPY = `# dsh-renpy-dev 调试桥接（自动注入，勿删）
 init python:
-    import json, os
+    import json, os, time
     _bridge_cmd = os.path.join(renpy.config.basedir, 'game', '_route_cmd.json')
-    def _bridge_poll():
+    _bridge_status = os.path.join(renpy.config.basedir, 'game', '_route_status.json')
+    _bridge_shot = os.path.join(renpy.config.basedir, 'game', '_shot.png')
+    _bridge_label = None
+    _bridge_last = 0.0
+    _bridge_shot_at = 0
+    _bridge_shot_err = None
+    _bridge_vars_err = None
+    _bridge_last_click = None
+    # Ren'Py 引擎公开 store 全局（无 _ 前缀但属内部）：监控表噪音，过滤
+    _bridge_store_noise = ('PY2', 'basestring', 'main_menu', 'mouse_visible', 'suppress_overlay', 'save_name', 'nvl_list', 'menu', 'renpy')
+    def _bridge_on_label(name, abnormal):
+        global _bridge_label
+        _bridge_label = name
+    def _bridge_collect_vars():
+        # store 变量快照：过滤内部（_ 前缀 / dunder），基本类型直出，容器限深 3 层/50 项/字符串截断
+        # 注意：必须 list() 快照遍历——store 字典可能在遍历中被脚本修改（dictionary changed size）
+        global _bridge_vars_err
+        def ser(v, depth):
+            if depth > 3:
+                return '…'
+            if v is None or isinstance(v, (bool, int, float)):
+                return v
+            if isinstance(v, str):
+                return v[:80] + ('…' if len(v) > 80 else '')
+            if isinstance(v, (list, tuple)):
+                return [ser(x, depth + 1) for x in v[:50]]
+            if isinstance(v, dict):
+                out = {}
+                for i, (kk, vv) in enumerate(v.items()):
+                    if i >= 50:
+                        break
+                    out[str(kk)[:40]] = ser(vv, depth + 1)
+                return out
+            return None
         try:
+            out = {}
+            for k, v in list(renpy.store.__dict__.items()):
+                if k.startswith('_') or k in _bridge_store_noise:
+                    continue
+                sv = ser(v, 0)
+                if sv is not None:
+                    out[k] = sv
+            _bridge_vars_err = None
+            return out
+        except Exception as e:
+            _bridge_vars_err = repr(e)
+            return {}
+    def _bridge_take_shot():
+        global _bridge_shot_at, _bridge_shot_err
+        try:
+            # 截图用游戏虚拟分辨率：画面窗口点击坐标可 1:1 映射回游戏
+            data = renpy.screenshot_to_bytes((renpy.config.screen_width, renpy.config.screen_height))
+            if data:
+                tmp = _bridge_shot + '.tmp'
+                with open(tmp, 'wb') as fh:
+                    fh.write(data)
+                os.replace(tmp, _bridge_shot)
+                _bridge_shot_at = int(time.time() * 1000)
+                _bridge_shot_err = None
+            else:
+                _bridge_shot_err = 'screenshot_to_bytes returned None'
+        except Exception as e:
+            _bridge_shot_err = repr(e)
+    def _bridge_poll():
+        global _bridge_last
+        try:
+            now = time.time()
+            # ① 当前位置回报（限频 0.5s；含变量快照）
+            try:
+                if now - _bridge_last >= 0.5:
+                    _bridge_last = now
+                    try:
+                        f, l = renpy.get_filename_line()
+                        status = { 'label': _bridge_label, 'file': f.replace('\\\\', '/'), 'line': l, 'vars': _bridge_collect_vars(), 'vars_err': _bridge_vars_err, 'shot_at': _bridge_shot_at, 'shot_err': _bridge_shot_err, 'last_click': _bridge_last_click, 'at': int(now * 1000) }
+                        tmp = _bridge_status + '.tmp'
+                        with open(tmp, 'w', encoding='utf-8') as fh:
+                            json.dump(status, fh)
+                        os.replace(tmp, _bridge_status)
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+            # ② 指令处理——warp 不包 except（FullRestartException 必须穿行到主循环）
             if os.path.exists(_bridge_cmd):
-                with open(_bridge_cmd, 'r', encoding='utf-8') as f:
-                    cmd = json.load(f)
+                with open(_bridge_cmd, 'r', encoding='utf-8') as fh:
+                    cmd = json.load(fh)
                 os.remove(_bridge_cmd)
                 if cmd.get('action') == 'warp' and cmd.get('spec'):
                     renpy.warp.warp_spec = cmd['spec']
                     renpy.exports.full_restart()
+                elif cmd.get('action') == 'screenshot':
+                    _bridge_take_shot()
+                elif cmd.get('action') == 'dismiss':
+                    renpy.queue_event('dismiss')
+                elif cmd.get('action') == 'rollback':
+                    renpy.queue_event('rollback')
+                elif cmd.get('action') == 'click' and cmd.get('x') is not None and cmd.get('y') is not None:
+                    # 注入 pygame 鼠标事件（Button 只认 pygame 类型事件；且需先移动鼠标获得焦点）：
+                    # ① set_mouse_pos 移动鼠标到虚拟坐标（内部换算物理坐标，按钮聚焦）
+                    # ② post MOUSEMOTION + MOUSEBUTTONDOWN + MOUSEBUTTONUP（pos 为物理坐标）
+                    global _bridge_last_click
+                    try:
+                        renpy.set_mouse_pos(cmd['x'], cmd['y'])
+                        pw, ph = renpy.get_physical_size()
+                        sx = int(cmd['x'] * pw / renpy.config.screen_width)
+                        sy = int(cmd['y'] * ph / renpy.config.screen_height)
+                        renpy.pygame.event.post(renpy.pygame.event.Event(renpy.pygame.MOUSEMOTION, pos=(sx, sy), rel=(0, 0), buttons=(0, 0, 0)))
+                        renpy.pygame.event.post(renpy.pygame.event.Event(renpy.pygame.MOUSEBUTTONDOWN, pos=(sx, sy), button=1))
+                        renpy.pygame.event.post(renpy.pygame.event.Event(renpy.pygame.MOUSEBUTTONUP, pos=(sx, sy), button=1))
+                        _bridge_last_click = { 'v': (cmd['x'], cmd['y']), 'p': (sx, sy), 'phys': (pw, ph), 'at': int(time.time() * 1000) }
+                    except Exception as e:
+                        _bridge_last_click = { 'err': repr(e), 'at': int(time.time() * 1000) }
+                elif cmd.get('action') == 'nav':
+                    # 菜单键盘导航（EVENTNAME 机制，headless 也可靠）：focus_up/down 移动 + button_select 确认
+                    try:
+                        if cmd.get('dir') in ('up', 'down', 'left', 'right'):
+                            renpy.queue_event('focus_' + cmd['dir'])
+                        if cmd.get('select'):
+                            renpy.queue_event('button_select')
+                    except Exception:
+                        pass
+        except renpy.game.FullRestartException:
+            raise
         except Exception:
             pass
+    config.label_callbacks.append(_bridge_on_label)
     config.periodic_callbacks.append(_bridge_poll)
 `
   // 注入桥接：写 bridge 文件到项目 game/
@@ -707,24 +823,19 @@ init python:
     }
   }
 
-  // ── route-map 状态机提取（轻量分析器，host 侧运行） ────────────────
+  // ── route-map 状态机提取（轻量分析器，host 侧运行；与 verification/scripts/extract-route-map.js 同源同逻辑） ──
   const extractRouteMap = (project) => {
-    const { readdirSync, readFileSync, statSync } = require('fs')
+    const { readdirSync, readFileSync } = require('fs')
     const path = require('path')
     const gameDir = path.join(project, 'game')
     const states = [], transitions = [], variables = []
     const labelToId = new Map()
     const relFor = (p) => path.relative(project, p).replace(/\\/g, '/')
     let curState = null
+    let lastFlow = 'none'   // 当前 label 最后一条流程语句是否出口（顺序落入检测）
+    let curFile = null      // 当前 label 所在文件（顺序落入只限同文件）
+    const returnExits = new Set() // 顶层 return 出口的 label id（角色推断：ending）
 
-    const walk = (d) => {
-      for (const e of readdirSync(d, { withFileTypes: true })) {
-        if (e.name.startsWith('.') || e.name.startsWith('_')) continue
-        const p = path.join(d, e.name)
-        if (e.isDirectory()) walk(p)
-        else if (e.name.endsWith('.rpy')) parseFile(p)
-      }
-    }
     const addState = (name, line, file) => {
       if (labelToId.has(name)) {
         const id = labelToId.get(name)
@@ -739,10 +850,22 @@ init python:
     }
     const addTrans = (from, to, type, extra = {}) => {
       if (!from || !to) return
+      // 去重：同 from/to/type/label 只保留一条（guard 更具体的优先）
+      const dup = transitions.find((t) => t.from === from && t.to === to && t.type === type && t.label === (extra.label || null))
+      if (!dup && type === 'jump' && !extra.guard) {
+        const hasCond = transitions.find((t) => t.from === from && t.to === to && t.type === 'conditional')
+        if (hasCond) return hasCond.id
+      }
+      if (dup) {
+        if (!dup.guard && extra.guard) { dup.guard = extra.guard; dup.branch = extra.branch }
+        return dup.id
+      }
       const id = 't_' + transitions.length
-      transitions.push(Object.assign({ id, from, to, type }, extra))
+      const t = Object.assign({ id, from, to, type }, extra)
+      transitions.push(t)
       const s = states.find((x) => x.id === from)
       if (s) s.outTransitions.push(id)
+      return id
     }
     const trackVar = (name, kind, line, file) => {
       let v = variables.find((x) => x.name === name)
@@ -750,7 +873,54 @@ init python:
       if (kind === 'default' || kind === 'define') { v.kind = kind; v.definedAt = { file, line } }
       else if (kind === 'write') { if (curState && !v.writtenIn.includes(curState)) v.writtenIn.push(curState) }
       else if (kind === 'read') { if (curState && !v.readIn.includes(curState)) v.readIn.push(curState) }
+      else if (kind === 'guard') { if (!v.usedInGuards.includes(line)) v.usedInGuards.push(line) }
       return v
+    }
+    // 跳过 if-elif-else 整条链（含后续同级 elif/else；只跳这一条链，不跳后续同级独立 if）
+    const skipBlock = (lines, i) => {
+      const baseIndent = (lines[i].match(/^\s*/) || [''])[0].length
+      let j = i + 1
+      while (j < lines.length) {
+        const ol = lines[j]
+        if (/^\s*$/.test(ol)) { j++; continue }
+        const oIndent = (ol.match(/^\s*/) || [''])[0].length
+        if (oIndent <= baseIndent) {
+          if (/^\s*(elif|else)\s*:/.test(ol)) { j++; continue }
+          break
+        }
+        j++
+      }
+      return j - 1
+    }
+    // 收集 if 分支"直接子语句"层级的 jump/call 目标（嵌套控制块跳过，不收集其内部跳转）
+    const findBranchTargets = (lines, i) => {
+      const baseIndent = (lines[i].match(/^\s*/) || [''])[0].length
+      const targets = []
+      let j = i + 1
+      while (j < lines.length) {
+        const ol = lines[j]
+        if (/^\s*$/.test(ol)) { j++; continue }
+        const oIndent = (ol.match(/^\s*/) || [''])[0].length
+        if (oIndent <= baseIndent) break
+        if (/^\s*(if|elif|else|menu|python|with|while|for)\b/.test(ol)) { j = skipNestedBlock(lines, j, oIndent); continue }
+        const jm = ol.match(/^\s*jump\s+([a-zA-Z_.]+)/)
+        if (jm) { targets.push({ label: jm[1] }); j++; continue }
+        const cm = ol.match(/^\s*call\s+([a-zA-Z_.]+)/)
+        if (cm) { targets.push({ label: cm[1] }); j++; continue }
+        j++
+      }
+      return targets
+    }
+    const skipNestedBlock = (lines, i, blockIndent) => {
+      let j = i + 1
+      while (j < lines.length) {
+        const ol = lines[j]
+        if (/^\s*$/.test(ol)) { j++; continue }
+        const oIndent = (ol.match(/^\s*/) || [''])[0].length
+        if (oIndent <= blockIndent) break
+        j++
+      }
+      return j - 1
     }
 
     const parseFile = (file) => {
@@ -760,59 +930,145 @@ init python:
         const line = lines[i], ln = i + 1
         // 插值读取
         for (const m of line.matchAll(/\[([a-zA-Z_][a-zA-Z0-9_]*)\]/g)) trackVar(m[1], 'read', ln, rel)
-        // default/define
+        // default/define（label 内外都提取）
         let dm = line.match(/^\s*default\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)$/)
         if (dm) { trackVar(dm[1], 'default', ln, rel); trackVar(dm[1], 'write', ln, rel); continue }
         dm = line.match(/^\s*define\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)$/)
         if (dm) { trackVar(dm[1], 'define', ln, rel); continue }
-        // label
+        // label（顺序落入：上一 label 未以出口结束且同文件 → 隐式 sequential 转移）
         const lm = line.match(/^\s*label\s+([a-zA-Z_][a-zA-Z0-9_.]*)\s*:/)
-        if (lm) { curState = addState(lm[1], ln, rel); continue }
+        if (lm) {
+          if (curState && lastFlow !== 'exit' && curFile === rel) addTrans(curState, addState(lm[1], ln, rel), 'sequential', {})
+          curState = addState(lm[1], ln, rel)
+          curFile = rel
+          lastFlow = 'none'
+          continue
+        }
         if (!curState) continue
-        // 赋值
+        // 赋值 $ x = y
         const am = line.match(/^\s*\$?\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)$/)
         if (am && !line.trim().startsWith('#')) { trackVar(am[1], 'write', ln, rel); continue }
-        // menu
+        // menu 块
         if (line.match(/^\s*menu:/)) {
           const mIndent = (line.match(/^\s*/) || [''])[0].length
           for (let j = i + 1; j < lines.length; j++) {
             const ml = lines[j]
             const ind = (ml.match(/^\s*/) || [''])[0].length
             if (ind <= mIndent) break
+            if (/^\s*$/.test(ml) || /^\s*#/.test(ml)) continue
             const item = ml.match(/^\s*"([^"]+)"(?:\s+if\s+(.+))?\s*:\s*$/)
             if (item) {
+              const guard = item[2] || null
+              const optIndent = ind
               for (let k = j + 1; k < lines.length; k++) {
                 const ol = lines[k], oInd = (ol.match(/^\s*/) || [''])[0].length
-                if (oInd <= ind) break
+                if (oInd <= optIndent) break
                 const ojm = ol.match(/^\s*jump\s+([a-zA-Z_.]+)/)
-                if (ojm) { addTrans(curState, addState(ojm[1], -1, rel), 'menu', { event: 'choice:"' + item[1] + '"', choiceText: item[1], guard: item[2] || null, label: ojm[1] }); break }
+                if (ojm) { addTrans(curState, addState(ojm[1], -1, rel), 'menu', { event: 'choice:"' + item[1] + '"', guard, choiceText: item[1], label: ojm[1] }); break }
+                const ocm = ol.match(/^\s*call\s+([a-zA-Z_.]+)/)
+                if (ocm) { addTrans(curState, addState(ocm[1], -1, rel), 'menu', { event: 'choice:"' + item[1] + '"', guard, choiceText: item[1], label: ocm[1] }); break }
               }
             }
           }
+          i = skipBlock(lines, i)
+          lastFlow = 'exit'  // menu 必然暂停交互，所有路径从选项继续
           continue
         }
-        // if（简化：只处理直接 jump）
+        // if-elif-else 完整链
         const im = line.match(/^\s*if\s+(.+):/)
         if (im) {
-          for (let j = i + 1; j < lines.length; j++) {
+          const ifIndent = (line.match(/^\s*/) || [''])[0].length
+          const chain = []
+          chain.push({ guard: im[1], targets: findBranchTargets(lines, i) })
+          let j = i + 1
+          while (j < lines.length) {
             const ol = lines[j]
-            if (!/^\s+/.test(ol) || /^\s*$/.test(ol)) break
-            const ojm = ol.match(/^\s*jump\s+([a-zA-Z_.]+)/)
-            if (ojm) { addTrans(curState, addState(ojm[1], -1, rel), 'conditional', { guard: im[1], label: ojm[1], branch: 'true' }); break }
+            if (/^\s*$/.test(ol)) { j++; continue }
+            const oIndent = (ol.match(/^\s*/) || [''])[0].length
+            if (oIndent < ifIndent) break
+            if (oIndent > ifIndent) { j++; continue }
+            const em = ol.match(/^\s*elif\s+(.+):\s*$/)
+            if (em) { chain.push({ guard: em[1], targets: findBranchTargets(lines, j) }); j++; continue }
+            const elseM = ol.match(/^\s*else\s*:\s*$/)
+            if (elseM) { chain.push({ guard: 'else', targets: findBranchTargets(lines, j) }); j++; continue }
+            break
           }
+          for (const c of chain) {
+            if (c.guard !== 'else') {
+              for (const vm of c.guard.matchAll(/[a-zA-Z_][a-zA-Z0-9_]*/g)) {
+                if (!/^(True|False|None|and|or|not|in|is|if|else|>=|<=|==|!=|>|<|\d+)$/.test(vm[0])) trackVar(vm[0], 'guard', ln, rel)
+              }
+            }
+            for (const t of c.targets) {
+              addTrans(curState, addState(t.label, -1, rel), 'conditional', { guard: c.guard === 'else' ? 'else' : c.guard, label: t.label, branch: c.guard === 'else' ? 'false' : 'true' })
+            }
+          }
+          i = skipBlock(lines, i)
+          // 完整 if-elif-else 链：有"带跳转的 else"才保证全分支出口；否则条件全不满足时顺序落入
+          lastFlow = chain.some((c) => c.guard === 'else' && c.targets.length > 0) ? 'exit' : 'flow'
           continue
         }
         // jump / call / return
         const jm = line.match(/^\s*jump\s+([a-zA-Z_.]+)/)
-        if (jm) { addTrans(curState, addState(jm[1], -1, rel), 'jump', { label: jm[1] }); continue }
+        if (jm) { addTrans(curState, addState(jm[1], -1, rel), 'jump', { label: jm[1] }); lastFlow = 'exit'; continue }
         const cm = line.match(/^\s*call\s+([a-zA-Z_.]+)/)
-        if (cm) { addTrans(curState, addState(cm[1], -1, rel), 'call', { label: cm[1] }); continue }
-        if (line.match(/^\s*return\b/)) { addTrans(curState, null, 'return', {}); continue }
+        if (cm) { addTrans(curState, addState(cm[1], -1, rel), 'call', { label: cm[1] }); lastFlow = 'flow'; continue }
+        if (line.match(/^\s*return\b/)) { if (curState) returnExits.add(curState); lastFlow = 'exit'; continue }
       }
     }
 
-    try { walk(gameDir) } catch (e) { return { error: String(e) } }
-    return { schema: 'route-map/1.0', project: path.basename(project), initialState: 'start', states, transitions, variables }
+    const walk = (d) => {
+      for (const e of readdirSync(d, { withFileTypes: true })) {
+        if (e.name.startsWith('.') || e.name.startsWith('_')) continue
+        const p = path.join(d, e.name)
+        if (e.isDirectory()) walk(p)
+        else if (e.name.endsWith('.rpy')) parseFile(p)
+      }
+    }
+
+    // 角色推断（与独立分析器同规则；按优先级：start > ending/dead_end > loop > choice > orphan > scene）
+    const inferRoles = (initialState) => {
+      const byId = new Map(states.map((s) => [s.id, s]))
+      const incoming = new Map(), selfLoop = new Set(), hasOut = new Set()
+      for (const t of transitions) {
+        if (t.to === null || t.to === undefined || !byId.has(t.to) || !t.from) continue
+        hasOut.add(t.from)
+        if (t.from === t.to) selfLoop.add(t.from)
+        if (!incoming.has(t.to)) incoming.set(t.to, [])
+        incoming.get(t.to).push(t.from)
+      }
+      const callOnly = new Set()
+      for (const [to, froms] of incoming) {
+        const allCall = froms.every((f) => transitions.some((t) => t.from === f && t.to === to && t.type === 'call'))
+        if (allCall) callOnly.add(to)
+      }
+      const isEndingName = (name) => /(?:^|_)(?:end|ending|finale|fin)(?:_|$)/i.test(String(name || '')) || /结局/.test(String(name || ''))
+      for (const s of states) {
+        let role
+        if (s.name === initialState) role = 'start'
+        else if (!hasOut.has(s.id)) role = (returnExits.has(s.id) && !callOnly.has(s.id)) || isEndingName(s.name) ? 'ending' : 'dead_end'
+        else if (selfLoop.has(s.id)) role = 'loop'
+        else if (transitions.some((t) => t.from === s.id && t.type === 'menu')) role = 'choice'
+        else if (!incoming.has(s.id)) role = 'orphan'
+        else role = 'scene'
+        s.role = role
+      }
+    }
+
+    try {
+      walk(gameDir)
+      inferRoles('start')
+    } catch (e) { return { error: String(e) } }
+    return {
+      schema: 'route-map/1.0', project: path.basename(project), initialState: 'start',
+      states, transitions, variables,
+      meta: {
+        totalStates: states.length,
+        totalTransitions: transitions.length,
+        endStates: states.filter((s) => s.role === 'ending' && !states.some((o) => o.id !== s.id && o.name.startsWith(s.name + '_'))).map((s) => s.id),
+        unresolvedLabels: [...new Set(transitions.filter((t) => t.label && !labelToId.has(t.label)).map((t) => t.label))],
+      },
+    }
   }
 
   const runIndex = async (project, session) => {
@@ -874,10 +1130,22 @@ init python:
     const session = sessionId ? ctx.sessions.get(sessionId) : undefined
     try {
       if (req.method === 'GET' && p === '/renpy-dev/style.css') { respond(res, 200, EDITOR_CSS, 'text/css'); return }
-      if (req.method === 'GET' && p === '/renpy-dev/info') { respond(res, 200, { sdkPath, userDir }); return }
+      if (req.method === 'GET' && p === '/renpy-dev/info') { respond(res, 200, { sdkPath, userDir, defaultProject }); return }
       if (req.method === 'GET' && p === '/renpy-dev/list-files') { respond(res, 200, { files: await listRpy(u.searchParams.get('project') || '') }); return }
       if (req.method === 'GET' && p === '/renpy-dev/read-file') { respond(res, 200, { content: await readText(u.searchParams.get('path') || '') }); return }
       if (req.method === 'GET' && p === '/renpy-dev/asset') { await serveAsset(u.searchParams.get('project') || '', u.searchParams.get('path') || '', res); return }
+      if (req.method === 'GET' && p === '/renpy-dev/shot-image') {
+        // 读游戏内截图（game/_shot.png），返回 image/png
+        try {
+          const proj = String(u.searchParams.get('project') || '').trim()
+          if (!proj) { respond(res, 400, { error: 'missing project' }); return }
+          const bytes = await ctx.fs.readBytes(await ctx.fs.resolve(proj.replace(/[\\/]+$/, '') + '/game/_shot.png'), undefined, 16 * 1024 * 1024)
+          respond(res, 200, Buffer.from(bytes), 'image/png')
+        } catch (e) {
+          respond(res, 404, { error: 'no shot yet' })
+        }
+        return
+      }
       if (req.method === 'POST') {
         const body = await readBody(req)
         if (p === '/renpy-dev/write-file') {
@@ -923,10 +1191,54 @@ init python:
           // 写桥接指令到项目 game/_route_cmd.json（项目内，沙箱允许写）
           // 游戏侧 _debug_bridge.rpy 的 periodic_callbacks 轮询该文件执行 warp
           try {
+            const proj = String(body.project || '').trim()
+            if (!proj) { respond(res, 400, { ok: false, error: 'missing project' }); return }
             const cmd = JSON.stringify({ action: 'warp', spec: body.spec || '' })
-            const cmdPath = body.project.replace(/[\\/]+$/, '') + '/game/_route_cmd.json'
+            const cmdPath = proj.replace(/[\\/]+$/, '') + '/game/_route_cmd.json'
             await writeText(cmdPath, cmd, session)
             respond(res, 200, { ok: true, state: body.state, spec: body.spec })
+          } catch (e) {
+            respond(res, 500, { ok: false, error: String(e) })
+          }
+          return
+        }
+        if (p === '/renpy-dev/route-status') {
+          // 读游戏侧桥接回报的当前位置（_route_status.json）；无文件或超过 15s 视为未在调试
+          try {
+            const sp = body.project.replace(/[\\/]+$/, '') + '/game/_route_status.json'
+            const content = await readText(sp)
+            const j = JSON.parse(content)
+            const fresh = j && j.at && (Date.now() - Number(j.at)) < 15000
+            respond(res, 200, fresh ? { running: true, label: j.label || null, file: j.file || '', line: Number(j.line) || 0, vars: j.vars || {}, shotAt: Number(j.shot_at) || 0, shotErr: j.shot_err || null } : { running: false })
+          } catch (e) {
+            respond(res, 200, { running: false })
+          }
+          return
+        }
+        if (p === '/renpy-dev/route-shot') {
+          // 写截图指令到项目 game/_route_cmd.json，桥接轮询到后执行 screenshot_to_bytes
+          try {
+            const proj = String(body.project || '').trim()
+            if (!proj) { respond(res, 400, { ok: false, error: 'missing project' }); return }
+            await writeText(proj.replace(/[\\/]+$/, '') + '/game/_route_cmd.json', JSON.stringify({ action: 'screenshot' }), session)
+            respond(res, 200, { ok: true })
+          } catch (e) {
+            respond(res, 500, { ok: false, error: String(e) })
+          }
+          return
+        }
+        if (p === '/renpy-dev/route-act') {
+          // 通用交互指令：dismiss 推进 / rollback 回滚 / click 点击（x,y 虚拟分辨率坐标）/ nav 菜单导航（dir+select）
+          try {
+            const proj = String(body.project || '').trim()
+            if (!proj) { respond(res, 400, { ok: false, error: 'missing project' }); return }
+            const cmd = { action: String(body.action || '') }
+            if (body.x !== undefined && body.x !== null) cmd.x = Number(body.x)
+            if (body.y !== undefined && body.y !== null) cmd.y = Number(body.y)
+            if (body.dir) cmd.dir = String(body.dir)
+            if (body.select) cmd.select = true
+            await writeText(proj.replace(/[\\/]+$/, '') + '/game/_route_cmd.json', JSON.stringify(cmd), session)
+            respond(res, 200, { ok: true })
           } catch (e) {
             respond(res, 500, { ok: false, error: String(e) })
           }

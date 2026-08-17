@@ -50,10 +50,12 @@ const variables = []
 const labelToState = new Map()
 // 当前正在解析的 label 上下文
 let curState = null
-// 当前 label 内的"待处理跳转"（顺序语句之间）
-let pendingSeq = null
-// label 内隐式顺序转移的起点
-let seqStart = null
+// 当前 label 内"最后一条流程语句"是否出口（jump/menu/return/带 else 的完整 if 链）——顺序落入检测用
+let lastFlow = 'none'
+// 当前 label 所在文件（顺序落入只限同文件）
+let curFile = null
+// 顶层 return 出口的 label id（角色推断：ending；嵌套 if/menu 块内的 return 不算 label 出口）
+const returnExits = new Set()
 
 function addState(name, line, file) {
   // 若已存在：真实定义（line>0）应更新位置；占位定义（line=-1）保留等真实定义
@@ -148,10 +150,13 @@ for (const file of rpyFiles) {
     // label 定义
     const lm = line.match(LABEL)
     if (lm) {
-      // 结束上一个 label 的隐式顺序链
-      if (seqStart && curState) { /* 隐式链在跳转处已闭合 */ }
+      // 顺序落入：上一 label 体未以出口语句结束、且同文件 → 隐式顺序转移
+      if (curState && lastFlow !== 'exit' && curFile === rel) {
+        addTransition(curState, addState(lm[1], ln, rel), 'sequential', {})
+      }
       curState = addState(lm[1], ln, rel)
-      seqStart = curState
+      curFile = rel
+      lastFlow = 'none'
       continue
     }
 
@@ -199,7 +204,7 @@ for (const file of rpyFiles) {
         }
       }
       i = skipBlock(lines, i)
-      seqStart = null
+      lastFlow = 'exit'  // menu 必然暂停交互，所有路径从选项继续
       continue
     }
 
@@ -248,7 +253,8 @@ for (const file of rpyFiles) {
         }
       }
       i = skipBlock(lines, i)
-      seqStart = null
+      // 完整 if-elif-else 链：有"带跳转的 else"才保证全分支出口；否则条件全不满足时顺序落入
+      lastFlow = chain.some((c) => c.guard === 'else' && c.targets.length > 0) ? 'exit' : 'flow'
       continue
     }
 
@@ -256,21 +262,22 @@ for (const file of rpyFiles) {
     const jm = line.match(JUMP)
     if (jm) {
       addTransition(curState, labelToState.get(jm[1]) || addState(jm[1], -1, rel), 'jump', { label: jm[1] })
-      seqStart = null
+      lastFlow = 'exit'
       continue
     }
 
-    // call
+    // call（返回后继续本 label 后续语句 → 不算出口）
     const cm = line.match(CALL)
     if (cm) {
       addTransition(curState, labelToState.get(cm[1]) || addState(cm[1], -1, rel), 'call', { label: cm[1] })
+      lastFlow = 'flow'
       continue
     }
 
-    // return
+    // return（顶层 return = label 出口；记入 returnExits 供角色推断，转移本身不落图）
     if (line.match(RETN)) {
-      addTransition(curState, null, 'return', {})
-      seqStart = null
+      if (curState) returnExits.add(curState)
+      lastFlow = 'exit'
       continue
     }
 
@@ -349,6 +356,50 @@ function skipNestedBlock(lines, i, blockIndent) {
   return j - 1
 }
 
+// ── 角色推断（分支类型：start/choice/ending/dead_end/orphan/loop） ────
+// 规则（按优先级）：
+//   1. 初始状态 → start
+//   2. 无出向状态转移（终点）→ 顶层 return 出口且非"仅被 call 进入"（子例程）或结局命名 → ending；否则 → dead_end
+//   3. 有自环转移 → loop
+//   4. 有 menu 出转移 → choice（玩家选择点）
+//   5. 无入转移（不可达，非起点）→ orphan
+//   6. 其余 → scene
+// 结局命名启发式：_end 结尾 / end / ending / finale / fin_ / 结局
+const isEndingName = (name) => /(?:^|_)(?:end|ending|finale|fin)(?:_|$)/i.test(String(name || '')) || /结局/.test(String(name || ''))
+function inferRoles(states, transitions, initialState, returnExits) {
+  const byId = new Map(states.map((s) => [s.id, s]))
+  const incoming = new Map()   // to → [from...]
+  const selfLoop = new Set()   // 自环
+  const hasOut = new Set()     // 有指向真实状态的出转移
+  for (const t of transitions) {
+    if (t.to === null || t.to === undefined || !byId.has(t.to)) continue
+    if (!t.from) continue
+    hasOut.add(t.from)
+    if (t.from === t.to) selfLoop.add(t.from)
+    if (!incoming.has(t.to)) incoming.set(t.to, [])
+    incoming.get(t.to).push(t.from)
+  }
+  // 仅被 call 进入（所有入转移都是 call）→ 子例程：return 返回调用方，不是结局
+  const callOnly = new Set()
+  for (const [to, froms] of incoming) {
+    const allCall = froms.every((f) => transitions.some((t) => t.from === f && t.to === to && t.type === 'call'))
+    if (allCall) callOnly.add(to)
+  }
+  for (const s of states) {
+    let role
+    if (s.name === initialState) role = 'start'
+    else if (!hasOut.has(s.id)) {
+      role = (returnExits.has(s.id) && !callOnly.has(s.id)) || isEndingName(s.name) ? 'ending' : 'dead_end'
+    }
+    else if (selfLoop.has(s.id)) role = 'loop'
+    else if (transitions.some((t) => t.from === s.id && t.type === 'menu')) role = 'choice'
+    else if (!incoming.has(s.id)) role = 'orphan'
+    else role = 'scene'
+    s.role = role
+  }
+}
+inferRoles(states, transitions, 'start', returnExits)
+
 // ── 输出 ────────────────────────────────────────────────────────────
 const routeMap = {
   schema: 'route-map/1.0',
@@ -362,9 +413,9 @@ const routeMap = {
   meta: {
     totalStates: states.length,
     totalTransitions: transitions.length,
-    // endStates：无出转移 且 无嵌套子状态（排除 route_listen 这类有子 label 的父状态）
+    // endStates：role=ending 且无嵌套子状态（排除 route_listen 这类有子 label 的父状态）
     endStates: states.filter((s) => {
-      if (s.outTransitions.length) return false
+      if (s.role !== 'ending') return false
       const hasChild = states.some((o) => o.id !== s.id && o.name.startsWith(s.name + '_'))
       return !hasChild
     }).map((s) => s.id),
