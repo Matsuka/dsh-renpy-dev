@@ -3093,9 +3093,11 @@ window.__ModuleLoader__.load({
 				return () => clearInterval(t);
 			}, [routeWin.open, varWin.open, project]);
 
-			// 活动栏图标按钮（规范 §2：40×36、圆角 6、hover/激活态、可禁用降透明度）
-			const abIcon = (icon, label, onClick, opts) => React.createElement("div", { key: label, title: label, onClick: onClick, style: { position: "relative", width: 40, height: 36, marginBottom: 4, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", opacity: opts && opts.opacity } },
-				React.createElement("div", { style: { width: 34, height: 32, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, background: opts && opts.active ? GHOST : "transparent", color: (opts && opts.color) || TXT2, border: "1px solid " + (opts && opts.active ? BORDER : "transparent") } }, icon),
+			// 活动栏项（改良：图标+文字横排，直接可读；激活加粗+品牌色+左指示条）
+			const abIcon = (icon, label, onClick, opts) => React.createElement("div", { key: label, title: label, onClick: onClick, style: { position: "relative", width: "100%", height: 32, marginBottom: 2, display: "flex", alignItems: "center", gap: 7, padding: "0 10px", cursor: "pointer", opacity: opts && opts.opacity } },
+				React.createElement("span", { style: { fontSize: 14, flexShrink: 0 } }, icon),
+				React.createElement("span", { style: { flex: 1, minWidth: 0, fontSize: 12, color: (opts && opts.color) || TXT2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontWeight: opts && opts.active ? 600 : 400 } }, label),
+				React.createElement("span", { style: { position: "absolute", left: 0, top: 5, bottom: 5, width: 2, borderRadius: 1, background: (opts && opts.active) ? ACCENT : "transparent" } }),
 			);
 
 			return React.createElement("div", { ref: rootRef, style: { position: "relative", display: "flex", flexDirection: "column", flex: "1 1 0", minWidth: 0, minHeight: 0, maxWidth: "100%", overflow: "hidden", background: BG, color: TXT, fontFamily: UI, fontSize: 13 } },
@@ -3124,11 +3126,12 @@ window.__ModuleLoader__.load({
 					busy ? React.createElement("span", { style: { color: TXT2 } }, "…") : null,
 				),
 				React.createElement("div", { style: { display: "flex", flex: 1, minHeight: 0, maxWidth: "100%", minWidth: 0 } },
-					// ── 活动栏（类 VSCode：视图切换 + 运行 + 工具，图标导航，规范 §2） ──
-					React.createElement("div", { style: { width: 44, flexShrink: 0, borderRight: "1px solid " + BORDER, background: LAYER, display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 6, overflowY: "auto", overflowX: "hidden" } },
-						[["files", "📄", "文件"], ["assets", "🖼", "资源"], ["edits", "✎", "修改"]].map(([k, icon, label]) => React.createElement("div", { key: k, title: label, onClick: () => setActiveView(k), style: { position: "relative", width: 40, height: 36, marginBottom: 4, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" } },
-							React.createElement("div", { style: { width: 34, height: 32, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, background: activeView === k ? GHOST : "transparent", color: activeView === k ? ACCENT : TXT2, border: "1px solid " + (activeView === k ? BORDER : "transparent") } }, icon),
-							React.createElement("span", { style: { position: "absolute", left: 0, top: 4, bottom: 4, width: 2, borderRadius: 1, background: activeView === k ? ACCENT : "transparent" } }),
+					// ── 导航栏（图标+文字横排，直接可读；视图切换 + 运行 + 工具） ──
+					React.createElement("div", { style: { width: 116, flexShrink: 0, borderRight: "1px solid " + BORDER, background: LAYER, display: "flex", flexDirection: "column", paddingTop: 6, overflowY: "auto", overflowX: "hidden" } },
+						[["files", "📄", "文件"], ["assets", "🖼", "资源"], ["edits", "✎", "修改"]].map(([k, icon, label]) => React.createElement("div", { key: k, title: label, onClick: () => setActiveView(k), style: { position: "relative", width: "100%", height: 32, marginBottom: 2, display: "flex", alignItems: "center", gap: 7, padding: "0 10px", cursor: "pointer" } },
+							React.createElement("span", { style: { fontSize: 14, flexShrink: 0 } }, icon),
+							React.createElement("span", { style: { flex: 1, minWidth: 0, fontSize: 12, color: activeView === k ? ACCENT : TXT2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontWeight: activeView === k ? 600 : 400 } }, label),
+							React.createElement("span", { style: { position: "absolute", left: 0, top: 5, bottom: 5, width: 2, borderRadius: 1, background: activeView === k ? ACCENT : "transparent" } }),
 						)),
 						React.createElement("div", { style: { width: 28, height: 1, background: BORDER, margin: "4px 0 6px" } }),
 						// 运行组
