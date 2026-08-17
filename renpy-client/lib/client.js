@@ -2976,7 +2976,7 @@ window.__ModuleLoader__.load({
 						const sign = rr.kind === "left" ? 1 : -1;
 						const clamp = rr.kind === "bottom" ? [80, 600] : [140, 560];
 						const next = Math.max(clamp[0], Math.min(clamp[1], rr.base + sign * delta));
-						const cur = regionSizeMirrorRef.current[rr.kind];
+						const cur = regionSizeMirrorRef.current[rr.kind] || (rr.kind === "bottom" ? 170 : 220);
 						if (Math.abs(next - cur) >= 2) {
 							regionSizeMirrorRef.current = { ...regionSizeMirrorRef.current, [rr.kind]: next };
 							setRegionSize(regionSizeMirrorRef.current);
@@ -3894,6 +3894,14 @@ window.__ModuleLoader__.load({
 						) : null,
 						shot ? React.createElement("img", { src: "data:image/png;base64," + shot, style: { maxWidth: "100%", maxHeight: 200, borderTop: "1px solid " + BORDER } }) : null,
 					),
+					// ── 右侧栏（P2：调试面板停靠区，与 left 对称；左缘拖拽条调宽，空时不占空间） ──
+					(panelLayout.right && panelLayout.right.panels.length) ? React.createElement(React.Fragment, null,
+						// 右栏宽拖拽条（在右栏左缘：向左拖变大 → base - delta）
+						React.createElement("div", { onMouseDown: (e) => startRegionResize("right", e), title: "拖动调整右栏宽度", style: { width: 5, flexShrink: 0, cursor: "col-resize", background: "transparent", alignSelf: "stretch" }, onMouseEnter: (e) => { e.currentTarget.style.background = "rgba(100,160,255,.25)"; }, onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; } }),
+						React.createElement("div", { style: { ...colL, width: regionSize.right || 220, overflow: "hidden", padding: 0, display: "flex", flexDirection: "column", position: "relative", borderRight: "none", borderLeft: "1px solid " + BORDER, flexShrink: 0 } },
+							renderRegion("right"),
+						),
+					) : null,
 				),
 				// ── 保存历史弹层（版本列表 + 预览 + 一键恢复） ──
 				histOpen ? React.createElement("div", { style: { position: "absolute", inset: 0, background: "rgba(0,0,0,.4)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 } },
@@ -4070,14 +4078,6 @@ window.__ModuleLoader__.load({
 						React.createElement("div", { style: { display: "flex", gap: 8, justifyContent: "flex-end" } },
 							React.createElement("button", { style: { ...btn, padding: "3px 14px" }, onClick: cancelTeach }, "取消"),
 							React.createElement("button", { style: { ...btnPrimary, padding: "3px 14px" }, onClick: confirmTeach }, "确认生成"),
-						),
-					) : null,
-					// ── 右侧栏（P2：调试面板停靠区；左缘拖拽条调宽，空时不占空间） ──
-					(panelLayout.right && panelLayout.right.panels.length) ? React.createElement(React.Fragment, null,
-						// 右栏宽拖拽条（在右栏左缘：向左拖变大 → base - delta）
-						React.createElement("div", { onMouseDown: (e) => startRegionResize("right", e), title: "拖动调整右栏宽度", style: { width: 5, flexShrink: 0, cursor: "col-resize", background: "transparent", alignSelf: "stretch" }, onMouseEnter: (e) => { e.currentTarget.style.background = "rgba(100,160,255,.25)"; }, onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; } }),
-						React.createElement("div", { style: { ...colL, width: regionSize.right, overflow: "hidden", padding: 0, display: "flex", flexDirection: "column", position: "relative", borderRight: "none", borderLeft: "1px solid " + BORDER, flexShrink: 0 } },
-							renderRegion("right"),
 						),
 					) : null,
 					// ── 底部面板区（P2：多面板水平平分，标题栏拖拽/吸附；顶部拖拽条调高） ──
