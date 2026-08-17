@@ -3108,6 +3108,15 @@ window.__ModuleLoader__.load({
 				return () => clearInterval(t);
 			}, [routeWin.open, varWin.open, project]);
 
+			// 隐藏 DSH 原生对话输入框（data-composer-seat；本面板自带输入区，避免双输入框；卸载时恢复）
+			React.useEffect(() => {
+				if (typeof document === "undefined") return;
+				const style = document.createElement("style");
+				style.textContent = "[data-composer-seat]{display:none!important}";
+				document.head.appendChild(style);
+				return () => { try { document.head.removeChild(style); } catch (e) { /* ignore */ } };
+			}, []);
+
 			// 活动栏项（改良：图标+文字横排，直接可读；激活加粗+品牌色+左指示条）
 			const abIcon = (icon, label, onClick, opts) => React.createElement("div", { key: label, title: (opts && opts.title) || label, onClick: onClick, style: { position: "relative", width: "100%", height: 32, marginBottom: 2, display: "flex", alignItems: "center", gap: 7, padding: "0 10px", cursor: "pointer", opacity: opts && opts.opacity } },
 				React.createElement("span", { style: { fontSize: 14, flexShrink: 0 } }, icon),
