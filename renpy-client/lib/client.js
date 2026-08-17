@@ -602,7 +602,7 @@ window.__ModuleLoader__.load({
 			cp: { title: "修改面板", icon: "✎" },
 		};
 		// 默认布局（Win11 式：区域内多面板平铺平分；持久化到 localStorage.renpy-panel-layout）
-		const LAYOUT_DEFAULT = { left: { panels: ["files", "nav", "assets", "edits"] }, right: { panels: [] }, bottom: { panels: ["chat", "log"] } };
+		const LAYOUT_DEFAULT = { left: { panels: ["files", "nav", "assets", "edits"] }, right: { panels: ["chat"] }, bottom: { panels: ["log"] } };
 		// 停靠区域列表（left/right 垂直堆叠、bottom 水平排布；统一遍历）
 		const REGIONS = ["left", "right", "bottom"];
 
@@ -2801,9 +2801,16 @@ window.__ModuleLoader__.load({
 						const fix = (g) => ({ panels: (g && (g.panels || g.tabs)) || [], sizes: (g && g.sizes) || {} });
 						if (j && j.left && j.bottom) {
 							const l = fix(j.left);
+							const r = fix(j.right) || { panels: [], sizes: {} };
+							const b = fix(j.bottom);
 							// 旧版布局迁移：文件面板含导航 → 拆出独立 nav 面板（跟在 files 后）
 							if (l.panels.includes("files") && !l.panels.includes("nav")) l.panels.splice(l.panels.indexOf("files") + 1, 0, "nav");
-							return { left: l, right: fix(j.right) || { panels: [], sizes: {} }, bottom: fix(j.bottom) };
+							// 旧版布局迁移：对话从底部区移到右侧栏（右侧是对话/调试的默认停靠区）
+							if (b.panels.includes("chat") && !r.panels.includes("chat")) {
+								b.panels = b.panels.filter((p) => p !== "chat");
+								r.panels.push("chat");
+							}
+							return { left: l, right: r, bottom: b };
 						}
 					}
 				} catch (e) { /* ignore */ }
@@ -3752,7 +3759,7 @@ window.__ModuleLoader__.load({
 					React.createElement("button", { style: { ...iconBtnText, opacity: active ? 1 : .4 }, onClick: openGuiPanel, disabled: !active, title: "GUI 主题定制（gui.rpy）" }, React.createElement("span", {}, "🎨"), React.createElement("span", {}, "主题")),
 					React.createElement("button", { style: { ...iconBtnText, opacity: active ? 1 : .4 }, onClick: convertCurrentLine, disabled: !active, title: "Ren'Py ↔ Python 等价对照" }, React.createElement("span", {}, "⇄"), React.createElement("span", {}, "对照")),
 					React.createElement("button", { style: { ...iconBtnText, opacity: active ? 1 : .4, background: stylePreview ? "rgba(100,160,255,.18)" : "transparent", border: stylePreview ? "1px solid rgba(100,160,255,.45)" : "1px solid transparent" }, onClick: () => { if (active) setStylePreview((v) => !v); }, disabled: !active, title: "文本样式预览（所见即所得）" }, React.createElement("span", { style: { fontFamily: CODE, fontWeight: 700 } }, "Aa"), React.createElement("span", {}, "样式")),
-					React.createElement("button", { style: { ...iconBtnText, color: (panelLayout.bottom.panels || []).includes("chat") ? ACCENT : TXT2 }, onClick: () => movePanel("chat", "bottom"), title: "对话面板（停靠底部区）" }, "💬", React.createElement("span", {}, "对话")),
+					React.createElement("button", { style: { ...iconBtnText, color: (panelLayout.right.panels || []).includes("chat") ? ACCENT : TXT2 }, onClick: () => movePanel("chat", "right"), title: "对话面板（停靠右侧栏）" }, "💬", React.createElement("span", {}, "对话")),
 					busy ? React.createElement("span", { style: { color: TXT2 } }, "…") : null,
 				),
 				React.createElement("div", { style: { display: "flex", flex: 1, minHeight: 0, maxWidth: "100%", minWidth: 0 } },
