@@ -2764,19 +2764,6 @@ window.__ModuleLoader__.load({
 			React.useEffect(() => {
 				try { if (typeof localStorage !== "undefined") localStorage.setItem("renpy-panel-layout", JSON.stringify(panelLayout)); } catch (e) { /* ignore */ }
 			}, [panelLayout]);
-			// 面板移入区域（从所有区域移除后加入目标；拖拽吸附 / 导航切换）
-			const movePanel = (id, region) => {
-				setPanelLayout((l) => {
-					const n = {};
-					for (const r of ["left", "bottom"]) {
-						const g = l[r] || { panels: [] };
-						n[r] = { panels: g.panels.filter((p) => p !== id) };
-					}
-					const t = n[region] || { panels: [] };
-					if (!t.panels.includes(id)) t.panels.push(id);
-					return n;
-				});
-			};
 			// 面板移除（所有区域与浮动；导航栏可重开）
 			const removePanel = (id) => {
 				setPanelLayout((l) => {
