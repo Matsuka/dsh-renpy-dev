@@ -3093,6 +3093,11 @@ window.__ModuleLoader__.load({
 				return () => clearInterval(t);
 			}, [routeWin.open, varWin.open, project]);
 
+			// 活动栏图标按钮（规范 §2：40×36、圆角 6、hover/激活态、可禁用降透明度）
+			const abIcon = (icon, label, onClick, opts) => React.createElement("div", { key: label, title: label, onClick: onClick, style: { position: "relative", width: 40, height: 36, marginBottom: 4, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", opacity: opts && opts.opacity } },
+				React.createElement("div", { style: { width: 34, height: 32, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, background: opts && opts.active ? GHOST : "transparent", color: (opts && opts.color) || TXT2, border: "1px solid " + (opts && opts.active ? BORDER : "transparent") } }, icon),
+			);
+
 			return React.createElement("div", { ref: rootRef, style: { position: "relative", display: "flex", flexDirection: "column", flex: "1 1 0", minWidth: 0, minHeight: 0, maxWidth: "100%", overflow: "hidden", background: BG, color: TXT, fontFamily: UI, fontSize: 13 } },
 				// ── 路线图弹出窗口（Portal 到 body，可拖可缩放） ──
 				routeWin.open ? React.createElement(RouteWindow, { map: routeMap, onNodeClick: jumpToState, currentId: routeCurrentId, focusNodes: varNodes, win: routeWin, onChange: setRouteWin, onClose: () => setRouteWin((w) => ({ ...w, open: false })), TXT, TXT2, TXT3, ACCENT, BORDER, BG, GHOST, LAYER }) : null,
@@ -3115,33 +3120,40 @@ window.__ModuleLoader__.load({
 						React.createElement("span", { style: { fontSize: 15 } }, "✖"),
 						React.createElement("span", {}, "清除"),
 					) : null,
-					React.createElement("div", { style: { width: 1, height: 22, background: BORDER, flexShrink: 0 } }),
-					React.createElement("button", { style: iconBtnText, onClick: () => loadFiles(project), title: "加载项目" }, React.createElement("span", {}, "⟳"), React.createElement("span", {}, "加载")),
-					React.createElement("button", { style: iconBtnText, onClick: doLint, title: "Lint 检查" }, React.createElement("span", {}, "⚠"), React.createElement("span", {}, "检查")),
-					React.createElement("button", { style: iconBtnText, onClick: doTest, title: "运行自动化测试（rpytest：testsuite/testcase）" }, React.createElement("span", {}, "🧪"), React.createElement("span", {}, "测试")),
-					React.createElement("button", { style: iconBtnText, onClick: openRouteWin, disabled: !project, title: "加载路线图并弹出窗口（可拖可缩放，点击节点跳编辑器）" }, React.createElement("span", {}, "🗺"), React.createElement("span", {}, "路线图")),
-					React.createElement("button", { style: iconBtnText, onClick: () => setShotWin((w) => ({ ...w, open: true })), disabled: !project, title: "游戏画面窗口（游戏内截图，3s 自动刷新）" }, React.createElement("span", {}, "🎬"), React.createElement("span", {}, "画面")),
-					React.createElement("button", { style: iconBtnText, onClick: () => setVarWin((w) => ({ ...w, open: true })), disabled: !project, title: "变量监控窗口（运行时变量表 + 变化高亮；点击行跳定义/高亮路线图节点）" }, React.createElement("span", {}, "📊"), React.createElement("span", {}, "变量")),
-					React.createElement("button", { style: { ...iconBtnText, opacity: active ? 1 : .4, color: learnResult ? SUCCESS : TXT2, background: learnResult ? "rgba(76,175,80,.12)" : "transparent" }, onClick: startTeach, disabled: !active || learnBusy, title: "学习注释：为当前文件（或工作区域限定范围）的语句行批量生成 AI 学习注释（写入 # 📖 学习:，消耗 AI 资源弹确认）" }, React.createElement("span", {}, "📖"), React.createElement("span", {}, "学习")),
-					React.createElement("button", { style: { ...iconBtnText, background: ACCENT, color: "#fff", borderRadius: 5 }, onClick: doRun, title: "运行游戏" }, React.createElement("span", {}, "▶"), React.createElement("span", {}, "运行")),
-					React.createElement("button", { style: iconBtnText, onClick: doStop, title: "停止游戏" }, React.createElement("span", {}, "■"), React.createElement("span", {}, "停止")),
-					React.createElement("button", { style: iconBtnText, onClick: doShot, title: "截图" }, React.createElement("span", {}, "📷"), React.createElement("span", {}, "截图")),
-					React.createElement("button", { style: { ...iconBtnText, opacity: active ? 1 : .4 }, onClick: saveFile, disabled: !active, title: "保存 (Ctrl+S)" }, React.createElement("span", {}, "💾"), React.createElement("span", {}, "保存")),
-					React.createElement("button", { style: { ...iconBtnText, opacity: active ? 1 : .4 }, onClick: openHistory, disabled: !active, title: "保存历史与回滚" }, React.createElement("span", {}, "🕘"), React.createElement("span", {}, "历史")),
-					React.createElement("button", { style: { ...iconBtnText, opacity: active ? 1 : .4 }, onClick: openGuiPanel, disabled: !active, title: "GUI 主题定制：分辨率/主题色/字号/字体（写回 gui.rpy）" }, React.createElement("span", {}, "🎨"), React.createElement("span", {}, "GUI")),
-					React.createElement("button", { style: { ...iconBtnText, opacity: active ? 1 : .4 }, onClick: convertCurrentLine, disabled: !active, title: "把光标所在 Ren'Py 语句转换为 Python 等价（源码核验映射）" }, React.createElement("span", {}, "⇄"), React.createElement("span", {}, "Python")),
-					React.createElement("button", { style: { ...iconBtnText, opacity: active ? 1 : .4, background: stylePreview ? "rgba(100,160,255,.18)" : "transparent", border: stylePreview ? "1px solid rgba(100,160,255,.45)" : "1px solid transparent" }, onClick: () => { if (active) setStylePreview((v) => !v); }, disabled: !active, title: "切换文本样式预览：编辑器内 say 文本直接显示样式（粗/斜/下/删/色/透明/字距所见即所得；字号/字体/插值等以标记+提示显示）" }, React.createElement("span", { style: { fontFamily: CODE, fontWeight: 700 } }, "Aa"), React.createElement("span", {}, stylePreview ? "预览中" : "预览")),
-					React.createElement("button", { style: cpChanged ? iconBtnAct : iconBtnText, onClick: openCpPanel, title: "修改（相对上次对话/保存）" }, React.createElement("span", {}, "✎"), React.createElement("span", {}, "修改" + (cpChanged ? " " + cpDiff.summary.files : ""))),
 					!props.hideSidebar ? React.createElement("button", { style: sideBtn, onClick: () => setSideOpen(!sideOpen) }, "💬 对话") : null,
 					busy ? React.createElement("span", { style: { color: TXT2 } }, "…") : null,
 				),
 				React.createElement("div", { style: { display: "flex", flex: 1, minHeight: 0, maxWidth: "100%", minWidth: 0 } },
-					// ── 活动栏（类 VSCode：视图切换 + 激活指示条） ──
-					React.createElement("div", { style: { width: 44, flexShrink: 0, borderRight: "1px solid " + BORDER, background: LAYER, display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 6 } },
+					// ── 活动栏（类 VSCode：视图切换 + 运行 + 工具，图标导航，规范 §2） ──
+					React.createElement("div", { style: { width: 44, flexShrink: 0, borderRight: "1px solid " + BORDER, background: LAYER, display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 6, overflowY: "auto", overflowX: "hidden" } },
 						[["files", "📄", "文件"], ["assets", "🖼", "资源"], ["edits", "✎", "修改"]].map(([k, icon, label]) => React.createElement("div", { key: k, title: label, onClick: () => setActiveView(k), style: { position: "relative", width: 40, height: 36, marginBottom: 4, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" } },
 							React.createElement("div", { style: { width: 34, height: 32, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, background: activeView === k ? GHOST : "transparent", color: activeView === k ? ACCENT : TXT2, border: "1px solid " + (activeView === k ? BORDER : "transparent") } }, icon),
 							React.createElement("span", { style: { position: "absolute", left: 0, top: 4, bottom: 4, width: 2, borderRadius: 1, background: activeView === k ? ACCENT : "transparent" } }),
 						)),
+						React.createElement("div", { style: { width: 28, height: 1, background: BORDER, margin: "4px 0 6px" } }),
+						// 运行组
+						abIcon("▶", "运行游戏", doRun, { color: ACCENT }),
+						abIcon("■", "停止游戏", doStop),
+						React.createElement("div", { style: { width: 28, height: 1, background: BORDER, margin: "4px 0 6px" } }),
+						// 工具组（项目类）
+						abIcon("⟳", "加载项目", () => loadFiles(project)),
+						abIcon("⚠", "Lint 检查", doLint),
+						abIcon("🧪", "自动化测试（rpytest）", doTest),
+						abIcon("💾", "保存 (Ctrl+S)", saveFile, { opacity: active ? 1 : .4 }),
+						abIcon("📷", "截图", doShot),
+						abIcon("🕘", "保存历史与回滚", openHistory, { opacity: active ? 1 : .4 }),
+						React.createElement("div", { style: { width: 28, height: 1, background: BORDER, margin: "4px 0 6px" } }),
+						// 调试工具组（弹窗）
+						abIcon("🗺", "路线图（弹窗，点击节点跳转）", openRouteWin, { opacity: project ? 1 : .4 }),
+						abIcon("🎬", "游戏画面（弹窗，截图交互）", () => setShotWin((w) => ({ ...w, open: true })), { opacity: project ? 1 : .4 }),
+						abIcon("📊", "变量监控（弹窗，变化高亮）", () => setVarWin((w) => ({ ...w, open: true })), { opacity: project ? 1 : .4 }),
+						React.createElement("div", { style: { width: 28, height: 1, background: BORDER, margin: "4px 0 6px" } }),
+						// 编辑器工具组
+						abIcon("📖", "学习注释（AI 逐行讲解）", startTeach, { active: !!learnResult, color: learnResult ? SUCCESS : undefined, opacity: active && !learnBusy ? 1 : .4 }),
+						abIcon("🎨", "GUI 主题定制（gui.rpy）", openGuiPanel, { opacity: active ? 1 : .4 }),
+						abIcon("⇄", "Ren'Py ↔ Python 等价", convertCurrentLine, { opacity: active ? 1 : .4 }),
+						abIcon("Aa", "文本样式预览", () => { if (active) setStylePreview((v) => !v); }, { active: stylePreview, color: stylePreview ? ACCENT : undefined, opacity: active ? 1 : .4 }),
+						abIcon("✎", "修改（相对基线）", openCpPanel, { active: cpChanged, color: cpChanged ? ACCENT : undefined }),
 					),
 					React.createElement("div", { style: { ...colL, overflow: "hidden", padding: 0, display: "flex", flexDirection: "column" } },
 						activeView === "files" ? React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } },
@@ -3577,8 +3589,10 @@ window.__ModuleLoader__.load({
 							React.createElement("button", { style: { ...btnPrimary, padding: "3px 14px" }, onClick: confirmTeach }, "确认生成"),
 						),
 					) : null,
-					// ── 状态栏（类 VSCode：文件 | 行列 | 语言 | 保存态） ──
+					// ── 状态栏（规范 §2：项目 | 运行状态 | 文件 | 行列 | 保存态） ──
 					React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 14, padding: "2px 10px", borderTop: "1px solid " + BORDER, background: LAYER, fontSize: 11, color: TXT3, flexShrink: 0, minHeight: 22, whiteSpace: "nowrap" } },
+						React.createElement("span", { style: { maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", color: TXT2 } }, project ? String(project).split(/[\\/]/).pop() : "未选项目"),
+						React.createElement("span", { style: { color: routeStatus && routeStatus.running ? SUCCESS : TXT3 } }, (routeStatus && routeStatus.running) ? "🟢 运行中" + (routeStatus.label ? " · " + routeStatus.label : "") : "⚪ 未运行"),
 						React.createElement("span", { style: { maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis" } }, active ? active.name : "未打开文件"),
 						React.createElement("span", {}, "行 " + cursorPos.line + "，列 " + cursorPos.col),
 						React.createElement("span", { style: { flex: 1 } }),
