@@ -2909,7 +2909,12 @@ window.__ModuleLoader__.load({
 				if (dragPanelRef.current) return; // 防御：面板拖拽中忽略
 				const g = panelLayoutRef.current[region] || { panels: [], sizes: {} };
 				const sizes = g.sizes || {};
-				panelSplitRef.current = { region, idx, sx: e.clientX, sy: e.clientY, a: sizes[g.panels[idx]] || 1, b: sizes[g.panels[idx + 1]] || 1 };
+				// 记录像素上下文：区域可用尺寸 + 当前总权重，拖拽时按像素位移换算权重（高度变化严格跟手）
+				const el = regionRefs[region] && regionRefs[region].current;
+				const rect = el ? el.getBoundingClientRect() : null;
+				const total = rect ? (region === "left" ? rect.height : rect.width) : 300;
+				const S = g.panels.reduce((s, p) => s + (sizes[p] || 1), 0) || 1;
+				panelSplitRef.current = { region, idx, sx: e.clientX, sy: e.clientY, a: sizes[g.panels[idx]] || 1, b: sizes[g.panels[idx + 1]] || 1, total, S };
 			};
 			const startDragPanel = (id, e) => {
 				e.preventDefault();
@@ -2959,13 +2964,15 @@ window.__ModuleLoader__.load({
 						if (s === null || pr === null || pr.region !== s.region || pr.index !== s.index) { snapPreviewRef.current = s; setSnapPreview(s); }
 						return;
 					}
-					// 区域尺寸拖拽（left 宽 / bottom 高；限频：值没变不 setState，避免重渲染风暴）
+					// 区域尺寸拖拽：left 宽（右缘条：向右拖变大）/ bottom 高（上缘条：向上拖变大；限频：值没变不 setState）
 					const rr = regionResizeRef.current;
 					if (rr) {
+						// bottom 拖拽条在区域上缘 → 向上拖(delta负)区域变大：next = base - delta
+						// left 拖拽条在右缘 → 向右拖(delta正)区域变大：next = base + delta
 						const delta = rr.kind === "left" ? (e.clientX - rr.sx) : (e.clientY - rr.sy);
 						const next = rr.kind === "left"
 							? Math.max(140, Math.min(560, rr.base + delta))
-							: Math.max(80, Math.min(600, rr.base + delta));
+							: Math.max(80, Math.min(600, rr.base - delta));
 						const cur = rr.kind === "left" ? regionSizeMirrorRef.current.left : regionSizeMirrorRef.current.bottom;
 						if (Math.abs(next - cur) >= 2) {
 							regionSizeMirrorRef.current = rr.kind === "left" ? { ...regionSizeMirrorRef.current, left: next } : { ...regionSizeMirrorRef.current, bottom: next };
@@ -2973,15 +2980,17 @@ window.__ModuleLoader__.load({
 						}
 						return;
 					}
-					// 区域内面板比例拖拽（改相邻两面板 flex 权重；限频同上）
+					// 区域内面板比例拖拽（改相邻两面板 flex 权重；按像素位移换算权重 → 严格跟手；限频同上）
 					const ps = panelSplitRef.current;
 					if (ps) {
 						const g = panelLayoutRef.current[ps.region] || { panels: [], sizes: {} };
 						const p0 = g.panels[ps.idx], p1 = g.panels[ps.idx + 1];
 						if (p0 && p1) {
 							const delta = ps.region === "left" ? (e.clientY - ps.sy) : (e.clientX - ps.sx);
-							const a = Math.max(0.15, ps.a + delta / 60);
-							const b = Math.max(0.15, ps.b - delta / 60);
+							// 像素位移 → 权重增量：权重变化 Δw 使面板高度变化 Δw/S*total 像素 → Δw = delta*S/total
+							const dw = delta * ps.S / Math.max(1, ps.total);
+							const a = Math.max(0.15, ps.a + dw);
+							const b = Math.max(0.15, ps.b - dw);
 							const mirror = panelSizesMirrorRef.current[ps.region] || {};
 							if (Math.abs((mirror[p0] || 1) - a) >= 0.02 || Math.abs((mirror[p1] || 1) - b) >= 0.02) {
 								const nm = { ...panelSizesMirrorRef.current, [ps.region]: { ...mirror, [p0]: a, [p1]: b } };
