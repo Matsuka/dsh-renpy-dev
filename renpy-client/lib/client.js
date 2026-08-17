@@ -893,7 +893,7 @@ window.__ModuleLoader__.load({
 					React.createElement("span", { style: { fontSize: 13, fontWeight: 600, color: TXT } }, "🗺 路线图"),
 					React.createElement("span", { style: { fontSize: 11, color: TXT2 } }, map ? ((map.states || []).length) + " 状态 / " + ((map.transitions || []).length) + " 转移" : "未加载"),
 					React.createElement("span", { style: { fontSize: 11, color: TXT3, marginLeft: "auto", whiteSpace: "nowrap" } }, "拖动移动 · 右下角缩放 · Esc 关闭"),
-					React.createElement("button", { onClick: onClose, title: "关闭 (Esc)", style: { width: 22, height: 22, flexShrink: 0, cursor: "pointer", background: "transparent", color: TXT2, border: "none", borderRadius: 5, fontSize: 13, lineHeight: 1 } }, "✕"),
+					React.createElement("button", { onClick: onClose, title: "关闭 (Esc)", style: { ...C.iconBtn, flexShrink: 0 } }, "✕"),
 				),
 				React.createElement("div", { style: { flex: 1, minHeight: 0, position: "relative" } },
 					map && map.layout
@@ -998,20 +998,20 @@ window.__ModuleLoader__.load({
 				React.createElement("div", { onMouseDown: onBarDown, style: { display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", background: LAYER, borderBottom: "1px solid " + BORDER, cursor: dragState === "move" ? "grabbing" : "grab", userSelect: "none", flexShrink: 0 } },
 					React.createElement("span", { style: { fontSize: 13, fontWeight: 600, color: TXT } }, "🎬 游戏画面"),
 					React.createElement("span", { style: { fontSize: 11, color: TXT3, marginLeft: "auto", whiteSpace: "nowrap" } }, lastAt ? "更新于 " + new Date(lastAt).toLocaleTimeString() : "未获取"),
-					React.createElement("button", { onClick: refresh, title: "立即刷新截图（触发游戏截图并拉取）", style: { padding: "2px 8px", cursor: "pointer", background: "transparent", color: TXT2, border: "1px solid " + BORDER, borderRadius: 5, fontSize: 12 } }, loading ? "…" : "⟳ 刷新"),
-					React.createElement("button", { onClick: onClose, title: "关闭 (Esc)", style: { width: 22, height: 22, flexShrink: 0, cursor: "pointer", background: "transparent", color: TXT2, border: "none", borderRadius: 5, fontSize: 13, lineHeight: 1 } }, "✕"),
+					React.createElement("button", { onClick: refresh, title: "立即刷新截图（触发游戏截图并拉取）", style: C.btn }, loading ? "…" : "⟳ 刷新"),
+					React.createElement("button", { onClick: onClose, title: "关闭 (Esc)", style: { ...C.iconBtn, flexShrink: 0 } }, "✕"),
 				),
 				React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#000", position: "relative" } },
 					imgUrl ? React.createElement("img", { src: imgUrl, onClick: onClickImg, title: "点击画面 = 点击游戏（选项/按钮）", style: { maxWidth: "100%", maxHeight: "100%", objectFit: "contain", cursor: "crosshair" } })
 						: React.createElement("span", { style: { color: TXT3, fontSize: 12 } }, "游戏运行后自动显示画面（无画面请点刷新）"),
 				),
 				React.createElement("div", { style: { flexShrink: 0, display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", borderTop: "1px solid " + BORDER, background: LAYER } },
-					React.createElement("button", { onClick: () => sendAct("rollback", "⟲ 回滚"), title: "回滚上一句", style: { padding: "2px 10px", cursor: "pointer", background: "transparent", color: TXT2, border: "1px solid " + BORDER, borderRadius: 5, fontSize: 12 } }, "⟲ 回滚"),
-					React.createElement("button", { onClick: () => sendAct("dismiss", "⏩ 推进"), title: "推进对话/交互", style: { padding: "2px 10px", cursor: "pointer", background: "transparent", color: TXT2, border: "1px solid " + BORDER, borderRadius: 5, fontSize: 12 } }, "⏩ 推进"),
+					React.createElement("button", { onClick: () => sendAct("rollback", "⟲ 回滚"), title: "回滚上一句", style: C.btn }, "⟲ 回滚"),
+					React.createElement("button", { onClick: () => sendAct("dismiss", "⏩ 推进"), title: "推进对话/交互", style: C.btn }, "⏩ 推进"),
 					React.createElement("span", { style: { width: 1, height: 16, background: BORDER, flexShrink: 0 } }),
-					React.createElement("button", { onClick: () => api("route-act", {}, { project, action: "nav", dir: "up" }).then(() => setLastAct("↑ 菜单上移")).catch(() => setLastAct("↑ 失败")), title: "菜单选项上移（EVENTNAME 机制，headless 也可靠）", style: { padding: "2px 8px", cursor: "pointer", background: "transparent", color: TXT2, border: "1px solid " + BORDER, borderRadius: 5, fontSize: 12 } }, "↑"),
-					React.createElement("button", { onClick: () => api("route-act", {}, { project, action: "nav", dir: "down" }).then(() => setLastAct("↓ 菜单下移")).catch(() => setLastAct("↓ 失败")), title: "菜单选项下移", style: { padding: "2px 8px", cursor: "pointer", background: "transparent", color: TXT2, border: "1px solid " + BORDER, borderRadius: 5, fontSize: 12 } }, "↓"),
-					React.createElement("button", { onClick: () => api("route-act", {}, { project, action: "nav", select: true }).then(() => setLastAct("✓ 确认选择")).catch(() => setLastAct("✓ 失败")), title: "确认当前选项", style: { padding: "2px 8px", cursor: "pointer", background: "transparent", color: "#4caf50", border: "1px solid " + BORDER, borderRadius: 5, fontSize: 12 } }, "✓ 确定"),
+					React.createElement("button", { onClick: () => api("route-act", {}, { project, action: "nav", dir: "up" }).then(() => setLastAct("↑ 菜单上移")).catch(() => setLastAct("↑ 失败")), title: "菜单选项上移（EVENTNAME 机制，headless 也可靠）", style: C.btn }, "↑"),
+					React.createElement("button", { onClick: () => api("route-act", {}, { project, action: "nav", dir: "down" }).then(() => setLastAct("↓ 菜单下移")).catch(() => setLastAct("↓ 失败")), title: "菜单选项下移", style: C.btn }, "↓"),
+					React.createElement("button", { onClick: () => api("route-act", {}, { project, action: "nav", select: true }).then(() => setLastAct("✓ 确认选择")).catch(() => setLastAct("✓ 失败")), title: "确认当前选项", style: { ...C.btn, color: "#4caf50", borderColor: "#4caf50" } }, "✓ 确定"),
 					React.createElement("span", { style: { flex: 1 } }),
 					React.createElement("span", { style: { fontSize: 10, color: TXT3 } }, lastAct ? "最近: " + lastAct : "点击画面可操作游戏"),
 				),
@@ -1080,14 +1080,14 @@ window.__ModuleLoader__.load({
 			const body = React.createElement("div", { style: { position: "fixed", left: win.x, top: win.y, width: win.w, height: win.h, zIndex: 10002, display: "flex", flexDirection: "column", background: BG, border: "1px solid " + BORDER, borderRadius: 10, boxShadow: "0 10px 40px rgba(0,0,0,.4)", overflow: "hidden", minWidth: 360, minHeight: 280 } },
 				React.createElement("div", { onMouseDown: onBarDown, style: { display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", background: LAYER, borderBottom: "1px solid " + BORDER, cursor: dragState === "move" ? "grabbing" : "grab", userSelect: "none", flexShrink: 0 } },
 					React.createElement("span", { style: { fontSize: 13, fontWeight: 600, color: TXT } }, "📊 变量监控"),
-					React.createElement("input", { value: query, onChange: (e) => setQuery(e.target.value), placeholder: "过滤变量名…", style: { flex: 1, minWidth: 60, background: "rgba(128,128,128,.12)", color: TXT, border: "1px solid " + BORDER, borderRadius: 5, fontSize: 12, padding: "2px 7px", outline: "none" } }),
+					React.createElement("input", { value: query, onChange: (e) => setQuery(e.target.value), placeholder: "过滤变量名…", style: { flex: 1, minWidth: 60, ...C.inp } }),
 					React.createElement("span", { style: { fontSize: 11, color: TXT3, whiteSpace: "nowrap" } }, names.length + " 个"),
-					React.createElement("button", { onClick: onClose, title: "关闭 (Esc)", style: { width: 22, height: 22, flexShrink: 0, cursor: "pointer", background: "transparent", color: TXT2, border: "none", borderRadius: 5, fontSize: 13, lineHeight: 1 } }, "✕"),
+					React.createElement("button", { onClick: onClose, title: "关闭 (Esc)", style: { ...C.iconBtn, flexShrink: 0 } }, "✕"),
 				),
 				React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", padding: "4px 6px" } },
 					names.length === 0
 						? React.createElement("div", { style: { color: TXT3, fontSize: 12, padding: "16px 8px", textAlign: "center" } }, "游戏运行后自动显示变量（无变量请确认游戏在跑且有桥接）")
-						: filtered.map((n) => React.createElement("div", { key: n, title: "点击：编辑器跳转定义处 + 路线图高亮关联节点", onClick: () => { onVarJump && onVarJump(n); onVarFocus && onVarFocus(n); }, style: { display: "flex", alignItems: "center", gap: 8, padding: "3px 8px", borderRadius: 5, cursor: "pointer", border: "1px solid transparent", background: "transparent" }, onMouseEnter: (e) => { e.currentTarget.style.background = "rgba(128,128,128,.12)"; e.currentTarget.style.borderColor = BORDER; }, onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "transparent"; } },
+						: filtered.map((n) => React.createElement("div", { key: n, title: "点击：编辑器跳转定义处 + 路线图高亮关联节点", onClick: () => { onVarJump && onVarJump(n); onVarFocus && onVarFocus(n); }, style: { ...C.listRow(false), gap: 8 }, onMouseEnter: (e) => { e.currentTarget.style.background = "var(--dsw-alias-interactive-bg-hover)"; }, onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; } },
 							React.createElement("span", { style: { flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "monospace", fontSize: 12, color: routeVarNames.has(n) ? ACCENT : TXT } }, n),
 							React.createElement("span", { style: { width: 26, flexShrink: 0, fontSize: 10, color: TXT3, textAlign: "center" } }, typeOf(vars[n])),
 							React.createElement("span", { style: { flex: 1.4, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "monospace", fontSize: 12, color: TXT2 } }, valStr(vars[n])),
@@ -2924,12 +2924,13 @@ window.__ModuleLoader__.load({
 			const row = { display: "flex", gap: 8, padding: "7px 12px", alignItems: "center", flexWrap: "wrap", borderBottom: "1px solid " + BORDER, background: LAYER, color: TXT };
 			const colL = { width: 200, flexShrink: 0, minHeight: 0, borderRight: "1px solid " + BORDER, overflow: "auto", padding: 4, background: LAYER, color: TXT };
 			const colR = { flex: "1 1 0", minWidth: 0, minHeight: 0, maxWidth: "100%", display: "flex", flexDirection: "column", background: BG, color: TXT, overflow: "hidden" };
-			const btn = { padding: "3px 10px", cursor: "pointer", background: "transparent", color: TXT, border: "1px solid " + BORDER, borderRadius: 6, fontSize: 13, lineHeight: 1.5, whiteSpace: "nowrap", fontFamily: "inherit" };
-			const btnPrimary = { padding: "3px 12px", cursor: "pointer", background: ACCENT, color: "#fff", border: "1px solid " + ACCENT, borderRadius: 6, fontSize: 13, lineHeight: 1.5, whiteSpace: "nowrap", fontFamily: "inherit" };
-			const iconBtn = { padding: "4px 9px", cursor: "pointer", background: "transparent", color: TXT2, border: "1px solid transparent", borderRadius: 6, fontSize: 14, lineHeight: 1, whiteSpace: "nowrap" };
+			// 控件常量 = 规范库 C 的本地引用（token 变量同名覆盖；所有 {...btn} 使用处自动继承规范 §5）
+			const btn = { ...C.btn };
+			const btnPrimary = { ...C.btnPrimary };
+			const iconBtn = { ...C.iconBtn };
 			const iconBtnAct = { ...iconBtn, background: GHOST, color: ACCENT, border: "1px solid " + BORDER };
 			// 图标 + 简短文字
-			const iconBtnText = { display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 9px", cursor: "pointer", background: "transparent", color: TXT2, border: "1px solid transparent", borderRadius: 6, fontSize: 12, lineHeight: 1.4, whiteSpace: "nowrap" };
+			const iconBtnText = { ...C.btn, color: TXT2, border: "1px solid transparent" };
 			// 工作范围强调按钮（单独放大）
 			const wsBtn = { display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 16px", cursor: "pointer", background: "rgba(100,160,255,.14)", color: "#fff", border: "1px solid rgba(100,160,255,.5)", borderRadius: 9, fontSize: 13, fontWeight: 600, lineHeight: 1.4, whiteSpace: "nowrap", boxShadow: "0 1px 6px rgba(100,160,255,.25)" };
 			const pre = { fontFamily: CODE, fontSize: 12, lineHeight: 1.6, whiteSpace: "pre-wrap", margin: 0, padding: 6, maxHeight: 140, overflow: "auto", borderTop: "1px solid " + BORDER, background: CODEBLK, color: TXT2 };
@@ -2961,7 +2962,7 @@ window.__ModuleLoader__.load({
 			const tabStyle = (act) => ({ padding: "3px 10px", cursor: "pointer", background: act ? GHOST : "transparent", border: "1px solid " + (act ? BORDER : "transparent"), borderRadius: 6, fontSize: 13, whiteSpace: "nowrap", color: act ? ACCENT : TXT, fontFamily: "inherit" });
 			const sideBtn = { padding: "3px 10px", cursor: "pointer", background: sideOpen ? GHOST : "transparent", color: sideOpen ? ACCENT : TXT, border: "1px solid " + (sideOpen ? BORDER : BORDER), borderRadius: 6, fontSize: 13, fontFamily: "inherit" };
 			const statusText = active ? active.name + (active.dirty ? " ●" : "") + "（" + String(lineCount) + " 行）" : "从左侧选择 .rpy 文件打开";
-			const itemRow = (active2) => ({ padding: "3px 8px", fontSize: 13, cursor: "pointer", background: active2 ? GHOST : "transparent", color: TXT, borderRadius: 5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontFamily: "inherit" });
+			const itemRow = (active2) => ({ ...C.listRow(active2) });
 
 			// 当前编辑文件相对激活检查点的行级修改标记
 			const curDiff = cpDiff ? (cpDiff.files.find((f) => f.rel === activeName) || null) : null;
@@ -3138,7 +3139,7 @@ window.__ModuleLoader__.load({
 					) : null,
 					React.createElement("div", { style: { width: 1, height: 22, background: BORDER, flexShrink: 0 } }),
 					// 全局主操作（常驻可见）：运行 / 停止
-					React.createElement("button", { style: { ...iconBtnText, background: ACCENT, color: "#fff", borderRadius: 5, padding: "4px 12px" }, onClick: doRun, title: "运行游戏（调试桥接自动注入）" }, React.createElement("span", { style: { fontSize: 13 } }, "▶"), React.createElement("span", {}, "运行游戏")),
+					React.createElement("button", { style: { ...iconBtnText, background: ACCENT, color: "#fff", borderRadius: 6, padding: "4px 12px" }, onClick: doRun, title: "运行游戏（调试桥接自动注入）" }, React.createElement("span", { style: { fontSize: 13 } }, "▶"), React.createElement("span", {}, "运行游戏")),
 					React.createElement("button", { style: iconBtnText, onClick: doStop, title: "停止游戏" }, React.createElement("span", { style: { fontSize: 13 } }, "■"), React.createElement("span", {}, "停止游戏")),
 					!props.hideSidebar ? React.createElement("button", { style: sideBtn, onClick: () => setSideOpen(!sideOpen) }, "💬 对话") : null,
 					busy ? React.createElement("span", { style: { color: TXT2 } }, "…") : null,
@@ -3461,7 +3462,7 @@ window.__ModuleLoader__.load({
 					React.createElement("div", { style: { width: 720, maxWidth: "100%", height: "82%", background: BG, border: "1px solid " + BORDER, borderRadius: 10, display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 10px 40px rgba(0,0,0,.35)" } },
 						React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderBottom: "1px solid " + BORDER, background: LAYER, flexWrap: "wrap" } },
 							React.createElement("span", { style: { fontWeight: 600, fontSize: 13 } }, "检查点修改"),
-							React.createElement("select", { value: cpActive || "", onChange: (e) => pickCp(e.target.value), style: { background: INPUTBG, color: TXT, border: "1px solid " + BORDER, borderRadius: 6, fontSize: 12, padding: "2px 6px", outline: "none" } },
+							React.createElement("select", { value: cpActive || "", onChange: (e) => pickCp(e.target.value), style: C.inp },
 								cpList.length ? cpList.map((c) => React.createElement("option", { key: c.id, value: c.id }, fmtStamp(c.id) + "（" + c.files + " 文件）")) : React.createElement("option", { value: "" }, "暂无检查点"),
 							),
 							React.createElement("span", { style: { fontSize: 12, color: cpChanged ? ACCENT : TXT3 } }, cpChanged ? (cpDiff.summary.files + " 个文件，+" + cpDiff.summary.added + " -" + cpDiff.summary.removed) : "无修改"),
@@ -3568,21 +3569,21 @@ window.__ModuleLoader__.load({
 						React.createElement("div", { style: { padding: 10, display: "flex", flexDirection: "column", gap: 8, maxHeight: 420, overflow: "auto" } },
 							React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, fontSize: 12 } },
 								React.createElement("span", { style: { width: 70, color: TXT2, flexShrink: 0 } }, "分辨率"),
-								React.createElement("input", { type: "number", value: guiVars.width || 1280, onChange: (e) => setGuiForm((f) => Object.assign({}, f, { width: parseInt(e.target.value, 10) || 0 })), style: { width: 70, background: INPUTBG, color: TXT, border: "1px solid " + BORDER, borderRadius: 5, fontSize: 12, padding: "2px 6px" } }),
+								React.createElement("input", { type: "number", value: guiVars.width || 1280, onChange: (e) => setGuiForm((f) => Object.assign({}, f, { width: parseInt(e.target.value, 10) || 0 })), style: { width: 70, ...C.inp } }),
 								React.createElement("span", { style: { color: TXT3 } }, "×"),
-								React.createElement("input", { type: "number", value: guiVars.height || 720, onChange: (e) => setGuiForm((f) => Object.assign({}, f, { height: parseInt(e.target.value, 10) || 0 })), style: { width: 70, background: INPUTBG, color: TXT, border: "1px solid " + BORDER, borderRadius: 5, fontSize: 12, padding: "2px 6px" } }),
+								React.createElement("input", { type: "number", value: guiVars.height || 720, onChange: (e) => setGuiForm((f) => Object.assign({}, f, { height: parseInt(e.target.value, 10) || 0 })), style: { width: 70, ...C.inp } }),
 								React.createElement("span", { style: { fontSize: 10, color: TXT3 } }, "gui.init(宽, 高)"),
 							),
 							React.createElement("div", { style: { fontSize: 10, color: TXT3, borderBottom: "1px solid " + BORDER, paddingBottom: 4 } }, "主题色（颜色框直接选；无定义项会追加）"),
 							[["accent_color", "强调色"], ["idle_color", "按钮空闲"], ["hover_color", "悬停"], ["selected_color", "选中"], ["insensitive_color", "禁用"], ["text_color", "对话文本"], ["interface_text_color", "界面文本"]].map(([name, label]) => React.createElement("div", { key: name, style: { display: "flex", alignItems: "center", gap: 8, fontSize: 12 } },
 								React.createElement("span", { style: { width: 70, color: TXT2, flexShrink: 0 } }, label),
-								React.createElement("input", { type: "color", value: (/^#[0-9a-fA-F]{6}/.exec(guiVars.vars["gui." + name] || "#888888") || [])[0] || "#888888", onChange: (e) => setGuiForm((f) => { const v = Object.assign({}, f.vars); v["gui." + name] = e.target.value; return Object.assign({}, f, { vars: v }); }), style: { width: 42, height: 26, border: "1px solid " + BORDER, borderRadius: 5, background: "transparent", padding: 0 } }),
+								React.createElement("input", { type: "color", value: (/^#[0-9a-fA-F]{6}/.exec(guiVars.vars["gui." + name] || "#888888") || [])[0] || "#888888", onChange: (e) => setGuiForm((f) => { const v = Object.assign({}, f.vars); v["gui." + name] = e.target.value; return Object.assign({}, f, { vars: v }); }), style: { width: 42, height: 26, border: "1px solid " + BORDER, borderRadius: 6, background: "transparent", padding: 0 } }),
 								React.createElement("span", { style: { fontSize: 10, color: TXT3, fontFamily: CODE, flex: 1, overflow: "hidden", textOverflow: "ellipsis" } }, "gui." + name + " = " + (guiVars.vars["gui." + name] || "（未定义）")),
 							)),
 							React.createElement("div", { style: { fontSize: 10, color: TXT3, borderBottom: "1px solid " + BORDER, paddingBottom: 4 } }, "字号（像素）"),
 							[["text_size", "对话"], ["name_text_size", "角色名"], ["interface_text_size", "界面"], ["title_text_size", "标题"]].map(([name, label]) => React.createElement("div", { key: name, style: { display: "flex", alignItems: "center", gap: 8, fontSize: 12 } },
 								React.createElement("span", { style: { width: 70, color: TXT2, flexShrink: 0 } }, label),
-								React.createElement("input", { type: "number", value: parseInt(guiVars.vars["gui." + name], 10) || 0, onChange: (e) => setGuiForm((f) => { const v = Object.assign({}, f.vars); v["gui." + name] = String(parseInt(e.target.value, 10) || 0); return Object.assign({}, f, { vars: v }); }), style: { width: 60, background: INPUTBG, color: TXT, border: "1px solid " + BORDER, borderRadius: 5, fontSize: 12, padding: "2px 6px" } }),
+								React.createElement("input", { type: "number", value: parseInt(guiVars.vars["gui." + name], 10) || 0, onChange: (e) => setGuiForm((f) => { const v = Object.assign({}, f.vars); v["gui." + name] = String(parseInt(e.target.value, 10) || 0); return Object.assign({}, f, { vars: v }); }), style: { width: 60, ...C.inp } }),
 								React.createElement("span", { style: { fontSize: 10, color: TXT3, fontFamily: CODE } }, "gui." + name),
 							)),
 							React.createElement("div", { style: { display: "flex", gap: 8, paddingTop: 4 } },
