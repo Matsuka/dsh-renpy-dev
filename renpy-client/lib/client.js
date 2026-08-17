@@ -588,6 +588,20 @@ window.__ModuleLoader__.load({
 		};
 		const ROLE_LABEL = { start: "起点", choice: "选择", ending: "结局", dead_end: "死路", orphan: "孤立", loop: "循环", scene: "场景" };
 
+		// ── 面板注册表（P2 停靠系统：面板元数据；内容渲染在组件内按 id 分发） ──
+		const PANEL_META = {
+			files: { title: "项目文件", icon: "📄" },
+			assets: { title: "项目素材", icon: "🖼" },
+			edits: { title: "基线更改", icon: "✎" },
+			log: { title: "操作日志", icon: "📋" },
+			route: { title: "分支路线图", icon: "🗺" },
+			shot: { title: "实时画面", icon: "🎬" },
+			vars: { title: "运行时变量", icon: "📊" },
+			cp: { title: "修改面板", icon: "✎" },
+		};
+		// 默认布局（可拖拽重组；持久化到 localStorage.renpy-panel-layout）
+		const LAYOUT_DEFAULT = { left: { tabs: ["files", "assets", "edits"], active: "files" }, bottom: { tabs: ["log"], active: "log" } };
+
 		// ── 控件规范库（§5：统一按钮/输入/胶囊/行/徽标；直接引用 DSH token，任何组件可用） ──
 		// 高度 24-26、圆角 6、全 token 驱动；状态：idle→hover→active→disabled(降透明度)
 		const C = {
@@ -2673,6 +2687,45 @@ window.__ModuleLoader__.load({
 			const [hoverMsgId, setHoverMsgId] = React.useState(null);
 			const [expandedReason, setExpandedReason] = React.useState({});
 			const composerRef = React.useRef(null);
+			// ── P2 面板停靠布局：区域 {tabs, active} + 拖拽重组 + localStorage 持久化 ──
+			const [panelLayout, setPanelLayout] = React.useState(() => {
+				try {
+					const saved = typeof localStorage !== "undefined" && localStorage.getItem("renpy-panel-layout");
+					if (saved) { const j = JSON.parse(saved); if (j && j.left && j.bottom) return j; }
+				} catch (e) { /* ignore */ }
+				return JSON.parse(JSON.stringify(LAYOUT_DEFAULT));
+			});
+			React.useEffect(() => {
+				try { if (typeof localStorage !== "undefined") localStorage.setItem("renpy-panel-layout", JSON.stringify(panelLayout)); } catch (e) { /* ignore */ }
+			}, [panelLayout]);
+			// 面板移入区域（从所有区域移除后加入目标；拖拽落点 / 导航切换）
+			const movePanel = (id, region) => {
+				setPanelLayout((l) => {
+					const n = {};
+					for (const r of ["left", "bottom"]) {
+						const g = l[r] || { tabs: [], active: null };
+						const tabs = g.tabs.filter((t) => t !== id);
+						n[r] = { tabs, active: g.active === id ? (tabs[0] || null) : g.active };
+					}
+					const t = n[region] || { tabs: [], active: null };
+					if (!t.tabs.includes(id)) { t.tabs.push(id); t.active = id; }
+					return n;
+				});
+			};
+			// 区域标签头：可拖拽面板标签（拖到其他区域停靠）+ 激活切换
+			const renderRegionTabs = (region) => {
+				const g = panelLayout[region] || { tabs: [], active: null };
+				return React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 2, padding: "3px 6px", borderBottom: "1px solid " + BORDER, background: LAYER, flexShrink: 0, overflowX: "auto", minHeight: 30 }, onDragOver: (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }, onDrop: (e) => { e.preventDefault(); const id = e.dataTransfer.getData("text/plain"); if (id && PANEL_META[id]) movePanel(id, region); } },
+					g.tabs.map((id) => {
+						const meta = PANEL_META[id] || { title: id, icon: "📦" };
+						const act = g.active === id;
+						return React.createElement("span", { key: id, draggable: true, onDragStart: (e) => { e.dataTransfer.setData("text/plain", id); e.dataTransfer.effectAllowed = "move"; }, onClick: () => setPanelLayout((l) => { const n = JSON.parse(JSON.stringify(l)); if (n[region]) n[region].active = id; return n; }), title: meta.title + "（可拖到其他区域停靠）", style: { display: "inline-flex", alignItems: "center", gap: 4, height: 24, padding: "0 8px", borderRadius: 5, cursor: "grab", fontSize: 12, whiteSpace: "nowrap", background: act ? GHOST : "transparent", color: act ? ACCENT : TXT2, border: "1px solid " + (act ? BORDER : "transparent") } },
+							React.createElement("span", { style: { fontSize: 11 } }, meta.icon),
+							React.createElement("span", {}, meta.title),
+						);
+					}),
+				);
+			};
 			// ── 类 VSCode 布局：活动视图切换 + 光标位置（状态栏） ──
 			const [activeView, setActiveView] = React.useState("files");
 			const [expandedFiles, setExpandedFiles] = React.useState({}); // 文件树目录展开态
@@ -3164,10 +3217,10 @@ window.__ModuleLoader__.load({
 						abIcon("📷", "整屏截图", doShot, { title: "整屏截图（游戏窗口反馈）" }),
 						React.createElement("div", { style: { width: 148, height: 1, background: BORDER, margin: "4px 0 6px", alignSelf: "center" } }),
 						// 视图
-						[["files", "📄", "项目文件"], ["assets", "🖼", "项目素材"], ["edits", "✎", "基线更改"]].map(([k, icon, label]) => React.createElement("div", { key: k, title: label, onClick: () => setActiveView(k), style: { position: "relative", width: "100%", height: 32, marginBottom: 2, display: "flex", alignItems: "center", gap: 7, padding: "0 10px", cursor: "pointer" } },
+						[["files", "📄", "项目文件"], ["assets", "🖼", "项目素材"], ["edits", "✎", "基线更改"]].map(([k, icon, label]) => React.createElement("div", { key: k, title: label, onClick: () => movePanel(k, "left"), style: { position: "relative", width: "100%", height: 32, marginBottom: 2, display: "flex", alignItems: "center", gap: 7, padding: "0 10px", cursor: "pointer" } },
 							React.createElement("span", { style: { fontSize: 14, flexShrink: 0 } }, icon),
-							React.createElement("span", { style: { flex: 1, minWidth: 0, fontSize: 12, color: activeView === k ? ACCENT : TXT2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontWeight: activeView === k ? 600 : 400 } }, label),
-							React.createElement("span", { style: { position: "absolute", left: 0, top: 5, bottom: 5, width: 2, borderRadius: 1, background: activeView === k ? ACCENT : "transparent" } }),
+							React.createElement("span", { style: { flex: 1, minWidth: 0, fontSize: 12, color: panelLayout.left.active === k ? ACCENT : TXT2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontWeight: panelLayout.left.active === k ? 600 : 400 } }, label),
+							React.createElement("span", { style: { position: "absolute", left: 0, top: 5, bottom: 5, width: 2, borderRadius: 1, background: panelLayout.left.active === k ? ACCENT : "transparent" } }),
 						)),
 						React.createElement("div", { style: { width: 148, height: 1, background: BORDER, margin: "4px 0 6px", alignSelf: "center" } }),
 						// 验证
@@ -3186,7 +3239,8 @@ window.__ModuleLoader__.load({
 						abIcon("🎨", "GUI 主题", openGuiPanel, { opacity: active ? 1 : .4, title: "GUI 主题定制（分辨率/色/字号，写回 gui.rpy）" }),
 					),
 					React.createElement("div", { style: { ...colL, overflow: "hidden", padding: 0, display: "flex", flexDirection: "column" } },
-						activeView === "files" ? React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } },
+						renderRegionTabs("left"),
+						panelLayout.left.active === "files" ? React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } },
 							React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 4, padding: "5px 8px", borderBottom: "1px solid " + BORDER, background: LAYER, flexShrink: 0 } },
 								React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: TXT } }, "📄 文件 (" + (files || []).length + ")"),
 								React.createElement("span", { style: { flex: 1 } }),
@@ -3216,7 +3270,7 @@ window.__ModuleLoader__.load({
 									React.createElement("span", { style: { flexShrink: 0, fontSize: 10, color: TXT3 } }, "@" + l.line),
 								)),
 							),
-						) : activeView === "assets" ? React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } },
+						) : panelLayout.left.active === "assets" ? React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } },
 							React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 4, padding: "5px 8px", borderBottom: "1px solid " + BORDER, background: LAYER, flexShrink: 0 } },
 								React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: TXT } }, "🖼 资源 (" + assetCats.reduce((n, [c]) => n + (assets[c] || []).length, 0) + ")"),
 								React.createElement("span", { style: { flex: 1 } }),
@@ -3361,7 +3415,6 @@ window.__ModuleLoader__.load({
 							(testReport.output && testReport.output.length > 2000) ? React.createElement("pre", { style: { fontSize: 10, color: TXT2, margin: "4px 0 0", whiteSpace: "pre-wrap", fontFamily: CODE, maxHeight: 60, overflow: "auto" } }, testReport.output.slice(0, 2000) + "…") : null,
 						) : null,
 						shot ? React.createElement("img", { src: "data:image/png;base64," + shot, style: { maxWidth: "100%", maxHeight: 200, borderTop: "1px solid " + BORDER } }) : null,
-						React.createElement("pre", { style: pre }, log || "（操作日志）"),
 					),
 					(!props.hideSidebar && sideOpen) ? React.createElement("div", { style: { width: 330, flexShrink: 0, minHeight: 0, borderLeft: "1px solid " + BORDER, background: SIDEFILL, color: TXT, display: "flex", flexDirection: "column", minWidth: 0 } },
 						React.createElement("div", { style: { display: "flex", gap: 6, padding: "7px 10px", borderBottom: "1px solid " + BORDER, alignItems: "center", background: LAYER } },
@@ -3617,6 +3670,13 @@ window.__ModuleLoader__.load({
 						React.createElement("div", { style: { display: "flex", gap: 8, justifyContent: "flex-end" } },
 							React.createElement("button", { style: { ...btn, padding: "3px 14px" }, onClick: cancelTeach }, "取消"),
 							React.createElement("button", { style: { ...btnPrimary, padding: "3px 14px" }, onClick: confirmTeach }, "确认生成"),
+						),
+					) : null,
+					// ── 底部面板区（P2：标签组 + 内容，面板标签可拖到其他区域停靠） ──
+					(panelLayout.bottom && panelLayout.bottom.tabs.length) ? React.createElement("div", { style: { display: "flex", flexDirection: "column", flexShrink: 0, height: 170, minHeight: 0, borderTop: "1px solid " + BORDER, background: BG } },
+						renderRegionTabs("bottom"),
+						React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", padding: "4px 8px" } },
+							panelLayout.bottom.active === "log" ? React.createElement("pre", { style: { fontFamily: CODE, fontSize: 12, lineHeight: 1.6, whiteSpace: "pre-wrap", margin: 0, color: TXT2 } }, log || "（操作日志）") : null,
 						),
 					) : null,
 					// ── 状态栏（规范 §2：项目 | 运行状态 | 文件 | 行列 | 保存态） ──
