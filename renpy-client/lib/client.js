@@ -3132,18 +3132,19 @@ window.__ModuleLoader__.load({
 						abIcon("▶", "运行", doRun, { color: ACCENT }),
 						abIcon("■", "停止", doStop),
 						React.createElement("div", { style: { width: 92, height: 1, background: BORDER, margin: "4px 0 6px", alignSelf: "center" } }),
+						// 调试观测（需运行游戏：桥接回报驱动）
+						React.createElement("div", { style: { width: "100%", padding: "1px 10px 5px", fontSize: 10, color: TXT3, fontWeight: 600 } }, "调试 · 需运行"),
+						abIcon("🗺", "路线图", openRouteWin, { opacity: project ? 1 : .4, title: "分支路线图（状态机图；查看不需运行，点击节点跳游戏需运行）" }),
+						abIcon("🎬", "实时画面", () => setShotWin((w) => ({ ...w, open: true })), { opacity: project ? 1 : .4, title: "游戏实时画面（截图 + 点击/推进/回滚）" }),
+						abIcon("📊", "变量", () => setVarWin((w) => ({ ...w, open: true })), { opacity: project ? 1 : .4, title: "运行时变量监控（变化高亮）" }),
+						abIcon("📷", "截图", doShot, { title: "整屏截图（游戏窗口反馈）" }),
+						React.createElement("div", { style: { width: 92, height: 1, background: BORDER, margin: "4px 0 6px", alignSelf: "center" } }),
 						// 视图
 						[["files", "📄", "文件"], ["assets", "🖼", "素材"], ["edits", "✎", "更改"]].map(([k, icon, label]) => React.createElement("div", { key: k, title: label, onClick: () => setActiveView(k), style: { position: "relative", width: "100%", height: 32, marginBottom: 2, display: "flex", alignItems: "center", gap: 7, padding: "0 10px", cursor: "pointer" } },
 							React.createElement("span", { style: { fontSize: 14, flexShrink: 0 } }, icon),
 							React.createElement("span", { style: { flex: 1, minWidth: 0, fontSize: 12, color: activeView === k ? ACCENT : TXT2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontWeight: activeView === k ? 600 : 400 } }, label),
 							React.createElement("span", { style: { position: "absolute", left: 0, top: 5, bottom: 5, width: 2, borderRadius: 1, background: activeView === k ? ACCENT : "transparent" } }),
 						)),
-						React.createElement("div", { style: { width: 92, height: 1, background: BORDER, margin: "4px 0 6px", alignSelf: "center" } }),
-						// 调试观测
-						abIcon("🗺", "路线图", openRouteWin, { opacity: project ? 1 : .4, title: "分支路线图（状态机图，点击节点跳转/定位）" }),
-						abIcon("🎬", "实时画面", () => setShotWin((w) => ({ ...w, open: true })), { opacity: project ? 1 : .4, title: "游戏实时画面（截图 + 点击/推进/回滚）" }),
-						abIcon("📊", "变量", () => setVarWin((w) => ({ ...w, open: true })), { opacity: project ? 1 : .4, title: "运行时变量监控（变化高亮）" }),
-						abIcon("📷", "截图", doShot, { title: "整屏截图（游戏窗口反馈）" }),
 						React.createElement("div", { style: { width: 92, height: 1, background: BORDER, margin: "4px 0 6px", alignSelf: "center" } }),
 						// 验证
 						abIcon("⚠", "检查", doLint, { title: "Ren'Py 语法检查（lint）" }),
