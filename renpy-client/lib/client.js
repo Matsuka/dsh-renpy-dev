@@ -1119,6 +1119,7 @@ window.__ModuleLoader__.load({
 			const { meta, win, onChange, onDock, onClose, children, TXT, TXT2, TXT3, BORDER, BG, LAYER } = props;
 			const dragRef = React.useRef(null);
 			const [dragState, setDragState] = React.useState(null);
+			const [snapHint, setSnapHint] = React.useState(null); // "left" | "bottom" | null——吸附预览
 			const winRef = React.useRef(win);
 			winRef.current = win;
 			const onBarDown = (e) => { e.preventDefault(); dragRef.current = { sx: e.clientX, sy: e.clientY, ox: win.x, oy: win.y, resize: false }; setDragState("move"); };
@@ -1128,12 +1129,18 @@ window.__ModuleLoader__.load({
 				const onMove = (e) => {
 					const w = winRef.current, d = dragRef.current;
 					if (!d) return;
-					if (d.resize) onChange({ ...w, w: Math.max(300, d.ow + e.clientX - d.sx), h: Math.max(200, d.oh + e.clientY - d.sy) });
-					else onChange({ ...w, x: Math.max(0, d.ox + e.clientX - d.sx), y: Math.max(0, d.oy + e.clientY - d.sy) });
+					if (d.resize) { onChange({ ...w, w: Math.max(300, d.ow + e.clientX - d.sx), h: Math.max(200, d.oh + e.clientY - d.sy) }); return; }
+					onChange({ ...w, x: Math.max(0, d.ox + e.clientX - d.sx), y: Math.max(0, d.oy + e.clientY - d.sy) });
+					// 吸附预览：窗口靠近视口左/下边缘时显示高亮条
+					const nw = winRef.current;
+					const vw = window.innerWidth, vh = window.innerHeight;
+					const hint = nw.x < 60 ? "left" : (nw.y > vh - 80 ? "bottom" : null);
+					setSnapHint(hint);
 				};
 				const onUp = () => {
 					const w = winRef.current, d = dragRef.current;
 					const vw = window.innerWidth, vh = window.innerHeight;
+					setSnapHint(null);
 					if (d && !d.resize) {
 						if (w.x < 60) { dragRef.current = null; setDragState(null); onDock("left"); return; }
 						if (w.y > vh - 80) { dragRef.current = null; setDragState(null); onDock("bottom"); return; }
@@ -1159,6 +1166,9 @@ window.__ModuleLoader__.load({
 				),
 				React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto" } }, children),
 				React.createElement("div", { onMouseDown: onResizeDown, title: "拖拽缩放", style: { position: "absolute", right: 0, bottom: 0, width: 18, height: 18, cursor: "nwse-resize", background: "linear-gradient(135deg, transparent 50%, rgba(128,128,128,.55) 50%)", borderBottomRightRadius: 10 } }),
+				// 吸附预览：拖动靠近视口左/下边缘时，边缘显示品牌色高亮条
+				snapHint === "left" ? React.createElement("div", { style: { position: "fixed", left: 0, top: 0, bottom: 0, width: 4, background: ACCENT, zIndex: 10011, pointerEvents: "none", opacity: .8 } }) : null,
+				snapHint === "bottom" ? React.createElement("div", { style: { position: "fixed", left: 0, right: 0, bottom: 0, height: 4, background: ACCENT, zIndex: 10011, pointerEvents: "none", opacity: .8 } }) : null,
 			);
 			return ReactDOM.createPortal(body, document.body);
 		}
@@ -2790,21 +2800,44 @@ window.__ModuleLoader__.load({
 			const [snapPreview, setSnapPreview] = React.useState(null); // "left" | "bottom" | null
 			const [dragGhost, setDragGhost] = React.useState(null); // {id, x, y}——拖影
 			const regionRefs = { left: React.useRef(null), bottom: React.useRef(null) };
+			const panelLayoutRef = React.useRef(panelLayout);
+			panelLayoutRef.current = panelLayout;
+			// 检测落点：区域优先（含区域内插入位置 index），视口边缘兜底 → {region, index} | null
 			const detectSnap = (e) => {
-				// 区域优先（视觉指示与落点一致），视口边缘兜底
 				for (const r of ["left", "bottom"]) {
 					const el = regionRefs[r] && regionRefs[r].current;
 					if (el) {
 						const rect = el.getBoundingClientRect();
-						if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) return r;
+						if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
+							const panels = (panelLayoutRef.current[r] || { panels: [] }).panels;
+							const n = Math.max(1, panels.length);
+							const isLeft = r === "left";
+							const pos = isLeft ? e.clientY - rect.top : e.clientX - rect.left;
+							const span = isLeft ? (rect.bottom - rect.top) : (rect.right - rect.left);
+							const index = Math.max(0, Math.min(n, Math.floor(pos / (span / n))));
+							return { region: r, index };
+						}
 					}
 				}
 				const vw = (typeof window !== "undefined" ? window.innerWidth : 0);
 				const vh = (typeof window !== "undefined" ? window.innerHeight : 0);
-				if (e.clientX < 80) return "left";      // 视口左缘 → 左栏
-				if (e.clientY > vh - 90) return "bottom"; // 视口下缘 → 底部区
+				if (e.clientX < 80) return { region: "left", index: (panelLayoutRef.current.left || { panels: [] }).panels.length };   // 视口左缘 → 左栏尾部
+				if (e.clientY > vh - 90) return { region: "bottom", index: (panelLayoutRef.current.bottom || { panels: [] }).panels.length }; // 视口下缘 → 底部尾部
 				return null;
 			};
+			// 移动面板到指定区域/插入位置（从所有区域移除后插入 index）
+			const movePanelTo = (id, region, index) => {
+				setPanelLayout((l) => {
+					const n = {};
+					for (const r of ["left", "bottom"]) n[r] = { panels: (l[r] || { panels: [] }).panels.filter((p) => p !== id) };
+					const t = n[region] || { panels: [] };
+					const idx = Math.max(0, Math.min(index === undefined || index === null ? t.panels.length : index, t.panels.length));
+					t.panels.splice(idx, 0, id);
+					n[region] = t;
+					return n;
+				});
+			};
+			const movePanel = (id, region) => movePanelTo(id, region, undefined);
 			const startDragPanel = (id, e) => { e.preventDefault(); dragPanelRef.current = { id, sx: e.clientX, sy: e.clientY, moved: false }; };
 			const navCollapsedRef = React.useRef(navCollapsed);
 			navCollapsedRef.current = navCollapsed;
@@ -2825,7 +2858,7 @@ window.__ModuleLoader__.load({
 					const d = dragPanelRef.current;
 					if (d && d.moved) {
 						const snap = detectSnap(e);
-						if (snap) { movePanel(d.id, snap); }
+						if (snap) { movePanelTo(d.id, snap.region, snap.index); }
 						else {
 							// 无分区 → 浮动窗（鼠标附近）
 							const vw = window.innerWidth, vh = window.innerHeight;
@@ -2857,9 +2890,11 @@ window.__ModuleLoader__.load({
 			const renderRegion = (region) => {
 				const g = panelLayout[region] || { panels: [] };
 				const isLeft = region === "left";
-				return React.createElement("div", { ref: regionRefs[region], style: { flex: 1, minHeight: 0, display: "flex", flexDirection: isLeft ? "column" : "row", overflow: "hidden", outline: snapPreview === region ? "2px solid " + ACCENT : "none", outlineOffset: -2, position: "relative" } },
-					// 分区吸附预览：拖动中目标区域半透明填充高亮（Win11 snap 示意）
-					snapPreview === region ? React.createElement("div", { style: { position: "absolute", inset: 0, background: "rgba(100,160,255,.16)", pointerEvents: "none", zIndex: 6 } }) : null,
+				const sp = snapPreview && snapPreview.region === region ? snapPreview : null;
+				return React.createElement("div", { ref: regionRefs[region], style: { flex: 1, minHeight: 0, display: "flex", flexDirection: isLeft ? "column" : "row", overflow: "hidden", outline: sp ? "2px solid " + ACCENT : "none", outlineOffset: -2, position: "relative" } },
+					// 分区吸附预览：拖动中目标区域半透明填充高亮 + 插入位置指示线（Win11 snap 示意）
+					sp ? React.createElement("div", { style: { position: "absolute", inset: 0, background: "rgba(100,160,255,.16)", pointerEvents: "none", zIndex: 6 } }) : null,
+					sp ? React.createElement("div", { style: { position: "absolute", left: isLeft ? 0 : "calc(" + (sp.index / Math.max(1, g.panels.length)) * 100 + "% - 1.5px)", top: isLeft ? "calc(" + (sp.index / Math.max(1, g.panels.length)) * 100 + "% - 1.5px)" : 0, width: isLeft ? "100%" : 3, height: isLeft ? 3 : "100%", background: ACCENT, zIndex: 7, pointerEvents: "none" } }) : null,
 					g.panels.map((id) => {
 						const meta = PANEL_META[id] || { title: id, icon: "📦" };
 						const last = g.panels.length > 1;
