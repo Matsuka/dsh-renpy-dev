@@ -4,7 +4,7 @@
 // 沙箱：按会话解析 sandboxPolicy（query 带 session id）。
 'use strict'
 
-const { lineDiff, hasOpenToolCall } = require('./renpy-core')
+const { lineDiff, hasOpenToolCall, layoutRouteMap, computeRouteMeta } = require('./renpy-core')
 
 const name = 'renpy-dev'
 
@@ -35,6 +35,35 @@ function apply(ctx, config) {
   const renpyPy = sdkPath + '/renpy.py'
   const launcher = sdkPath + '/launcher'
   const userDir = cfg('userDir', sdkPath + '/../.renpy-user')
+
+  // 桥接脚本（注入项目 game/_debug_bridge.rpy）：轮询项目 game/_route_cmd.json，执行 warp 跳转
+  // 指令格式: { action: "warp", spec: "file:line" }
+  // cmd.json 放项目内（沙箱允许写项目，且桥接用相对游戏目录路径自包含）
+  const BRIDGE_RPY = `# dsh-renpy-dev 调试桥接（自动注入，勿删）
+init python:
+    import json, os
+    _bridge_cmd = os.path.join(renpy.config.basedir, 'game', '_route_cmd.json')
+    def _bridge_poll():
+        try:
+            if os.path.exists(_bridge_cmd):
+                with open(_bridge_cmd, 'r', encoding='utf-8') as f:
+                    cmd = json.load(f)
+                os.remove(_bridge_cmd)
+                if cmd.get('action') == 'warp' and cmd.get('spec'):
+                    renpy.warp.warp_spec = cmd['spec']
+                    renpy.exports.full_restart()
+        except Exception:
+            pass
+    config.periodic_callbacks.append(_bridge_poll)
+`
+  // 注入桥接：写 bridge 文件到项目 game/
+  const injectBridge = async (project, session) => {
+    try {
+      const bridgePath = path.join(project, 'game', '_debug_bridge.rpy')
+      await writeText(bridgePath, BRIDGE_RPY, session)
+      return true
+    } catch (e) { return false }
+  }
   const indexerPath = cfg('indexerPath', dshHome + '/.agent-presets/renpy/plugins/indexer.py')
   const skillRoot = cfg('skillRoot', dshHome + '/skills')
   const running = new Map()
@@ -553,10 +582,12 @@ function apply(ctx, config) {
   const runGame = async (project, session) => {
     const old = running.get(project)
     if (old) { try { old.proc.kill() } catch (e) { /* ignore */ } }
+    // 注入调试桥接（_debug_bridge.rpy + 清空指令），使 route-jump 可用
+    const bridgeInjected = await injectBridge(project, session)
     const cmd = '& ' + q(python) + ' ' + q(renpyPy) + ' ' + q(project) + ' run'
     const proc = ctx.shell.start(specOf(cmd, 240000, session))
     running.set(project, { proc, at: Date.now() })
-    return { started: true, project }
+    return { started: true, project, bridgeInjected }
   }
 
   const stopGame = async (project) => {
@@ -676,6 +707,114 @@ function apply(ctx, config) {
     }
   }
 
+  // ── route-map 状态机提取（轻量分析器，host 侧运行） ────────────────
+  const extractRouteMap = (project) => {
+    const { readdirSync, readFileSync, statSync } = require('fs')
+    const path = require('path')
+    const gameDir = path.join(project, 'game')
+    const states = [], transitions = [], variables = []
+    const labelToId = new Map()
+    const relFor = (p) => path.relative(project, p).replace(/\\/g, '/')
+    let curState = null
+
+    const walk = (d) => {
+      for (const e of readdirSync(d, { withFileTypes: true })) {
+        if (e.name.startsWith('.') || e.name.startsWith('_')) continue
+        const p = path.join(d, e.name)
+        if (e.isDirectory()) walk(p)
+        else if (e.name.endsWith('.rpy')) parseFile(p)
+      }
+    }
+    const addState = (name, line, file) => {
+      if (labelToId.has(name)) {
+        const id = labelToId.get(name)
+        const s = states.find((x) => x.id === id)
+        if (s && line > 0 && s.line === -1) { s.line = line; s.file = file }
+        return id
+      }
+      const id = 's_' + name.replace(/[^a-zA-Z0-9_]/g, '_')
+      states.push({ id, name, kind: 'label', file, line, role: 'scene', entryActions: [], outTransitions: [] })
+      labelToId.set(name, id)
+      return id
+    }
+    const addTrans = (from, to, type, extra = {}) => {
+      if (!from || !to) return
+      const id = 't_' + transitions.length
+      transitions.push(Object.assign({ id, from, to, type }, extra))
+      const s = states.find((x) => x.id === from)
+      if (s) s.outTransitions.push(id)
+    }
+    const trackVar = (name, kind, line, file) => {
+      let v = variables.find((x) => x.name === name)
+      if (!v) { v = { name, kind, definedAt: null, defaultValue: undefined, readIn: [], writtenIn: [], usedInGuards: [] }; variables.push(v) }
+      if (kind === 'default' || kind === 'define') { v.kind = kind; v.definedAt = { file, line } }
+      else if (kind === 'write') { if (curState && !v.writtenIn.includes(curState)) v.writtenIn.push(curState) }
+      else if (kind === 'read') { if (curState && !v.readIn.includes(curState)) v.readIn.push(curState) }
+      return v
+    }
+
+    const parseFile = (file) => {
+      const rel = relFor(file)
+      const lines = readFileSync(file, 'utf8').split('\n')
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i], ln = i + 1
+        // 插值读取
+        for (const m of line.matchAll(/\[([a-zA-Z_][a-zA-Z0-9_]*)\]/g)) trackVar(m[1], 'read', ln, rel)
+        // default/define
+        let dm = line.match(/^\s*default\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)$/)
+        if (dm) { trackVar(dm[1], 'default', ln, rel); trackVar(dm[1], 'write', ln, rel); continue }
+        dm = line.match(/^\s*define\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)$/)
+        if (dm) { trackVar(dm[1], 'define', ln, rel); continue }
+        // label
+        const lm = line.match(/^\s*label\s+([a-zA-Z_][a-zA-Z0-9_.]*)\s*:/)
+        if (lm) { curState = addState(lm[1], ln, rel); continue }
+        if (!curState) continue
+        // 赋值
+        const am = line.match(/^\s*\$?\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)$/)
+        if (am && !line.trim().startsWith('#')) { trackVar(am[1], 'write', ln, rel); continue }
+        // menu
+        if (line.match(/^\s*menu:/)) {
+          const mIndent = (line.match(/^\s*/) || [''])[0].length
+          for (let j = i + 1; j < lines.length; j++) {
+            const ml = lines[j]
+            const ind = (ml.match(/^\s*/) || [''])[0].length
+            if (ind <= mIndent) break
+            const item = ml.match(/^\s*"([^"]+)"(?:\s+if\s+(.+))?\s*:\s*$/)
+            if (item) {
+              for (let k = j + 1; k < lines.length; k++) {
+                const ol = lines[k], oInd = (ol.match(/^\s*/) || [''])[0].length
+                if (oInd <= ind) break
+                const ojm = ol.match(/^\s*jump\s+([a-zA-Z_.]+)/)
+                if (ojm) { addTrans(curState, addState(ojm[1], -1, rel), 'menu', { event: 'choice:"' + item[1] + '"', choiceText: item[1], guard: item[2] || null, label: ojm[1] }); break }
+              }
+            }
+          }
+          continue
+        }
+        // if（简化：只处理直接 jump）
+        const im = line.match(/^\s*if\s+(.+):/)
+        if (im) {
+          for (let j = i + 1; j < lines.length; j++) {
+            const ol = lines[j]
+            if (!/^\s+/.test(ol) || /^\s*$/.test(ol)) break
+            const ojm = ol.match(/^\s*jump\s+([a-zA-Z_.]+)/)
+            if (ojm) { addTrans(curState, addState(ojm[1], -1, rel), 'conditional', { guard: im[1], label: ojm[1], branch: 'true' }); break }
+          }
+          continue
+        }
+        // jump / call / return
+        const jm = line.match(/^\s*jump\s+([a-zA-Z_.]+)/)
+        if (jm) { addTrans(curState, addState(jm[1], -1, rel), 'jump', { label: jm[1] }); continue }
+        const cm = line.match(/^\s*call\s+([a-zA-Z_.]+)/)
+        if (cm) { addTrans(curState, addState(cm[1], -1, rel), 'call', { label: cm[1] }); continue }
+        if (line.match(/^\s*return\b/)) { addTrans(curState, null, 'return', {}); continue }
+      }
+    }
+
+    try { walk(gameDir) } catch (e) { return { error: String(e) } }
+    return { schema: 'route-map/1.0', project: path.basename(project), initialState: 'start', states, transitions, variables }
+  }
+
   const runIndex = async (project, session) => {
     const out = indexPathFor(project)
     const fp = await fingerprint(project)
@@ -772,6 +911,27 @@ function apply(ctx, config) {
         if (p === '/renpy-dev/index') { respond(res, 200, await runIndex(body.project, session)); return }
         if (p === '/renpy-dev/assets') { respond(res, 200, await listAssets(body.project)); return }
         if (p === '/renpy-dev/feed') { respond(res, 200, feed(sessionId)); return }
+        if (p === '/renpy-dev/route-map') {
+          const map = extractRouteMap(body.project)
+          if (map.error) { respond(res, 500, map); return }
+          const layout = layoutRouteMap(map)
+          const meta = computeRouteMeta(map)
+          respond(res, 200, { ...map, layout, meta })
+          return
+        }
+        if (p === '/renpy-dev/route-jump') {
+          // 写桥接指令到项目 game/_route_cmd.json（项目内，沙箱允许写）
+          // 游戏侧 _debug_bridge.rpy 的 periodic_callbacks 轮询该文件执行 warp
+          try {
+            const cmd = JSON.stringify({ action: 'warp', spec: body.spec || '' })
+            const cmdPath = body.project.replace(/[\\/]+$/, '') + '/game/_route_cmd.json'
+            await writeText(cmdPath, cmd, session)
+            respond(res, 200, { ok: true, state: body.state, spec: body.spec })
+          } catch (e) {
+            respond(res, 500, { ok: false, error: String(e) })
+          }
+          return
+        }
       }
       respond(res, 404, { error: 'not found: ' + p })
     } catch (e) {

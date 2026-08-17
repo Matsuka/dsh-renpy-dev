@@ -574,6 +574,159 @@ window.__ModuleLoader__.load({
 			return { added, removed };
 		};
 
+		// ── 路线图 Canvas 组件（状态机可视化 + 缩放平移 + 点击跳转） ──
+		function RouteCanvas(props) {
+			const { map, onNodeClick } = props;
+			const canvasRef = React.useRef(null);
+			const dragRef = React.useRef(null); // {sx, sy, ox, oy}
+			const suppressClickRef = React.useRef(false); // 拖拽后抑制 click
+			const [size, setSize] = React.useState({ w: 320, h: 480 });
+			// 视图变换：scale 缩放倍数, ox/oy 平移偏移
+			const [view, setView] = React.useState({ scale: 1, ox: 20, oy: 20 });
+
+			// 绘制（依赖 view/map/size 重绘）
+			React.useEffect(() => {
+				const cv = canvasRef.current;
+				if (!cv) return;
+				const parent = cv.parentElement;
+				if (!parent) return;
+				const w = parent.clientWidth || 320;
+				const h = parent.clientHeight || 480;
+				setSize((s) => (s.w === w && s.h === h ? s : { w, h }));
+				cv.width = w * 2;
+				cv.height = h * 2;
+				cv.style.width = w + "px";
+				cv.style.height = h + "px";
+				const ctx = cv.getContext("2d");
+				ctx.setTransform(2, 0, 0, 2, 0, 0);
+				ctx.clearRect(0, 0, w, h);
+				ctx.fillStyle = props.BG;
+				ctx.fillRect(0, 0, w, h);
+
+				const { scale, ox, oy } = view;
+				const layout = map.layout || { states: [], edges: [] };
+				// 世界→屏幕：sx = x*scale + ox, sy = y*scale + oy
+				const tx = (x) => x * scale + ox;
+				const ty = (y) => y * scale + oy;
+				const S = scale;
+
+				// 边
+				ctx.strokeStyle = "rgba(128,128,128,.5)";
+				ctx.lineWidth = 1;
+				for (const e of layout.edges) {
+					const x1 = tx(e.x1), y1 = ty(e.y1), x2 = tx(e.x2), y2 = ty(e.y2);
+					ctx.beginPath();
+					ctx.moveTo(x1, y1);
+					ctx.lineTo(x2, y2);
+					ctx.stroke();
+					// 箭头
+					const ang = Math.atan2(y2 - y1, x2 - x1);
+					ctx.beginPath();
+					ctx.moveTo(x2, y2);
+					ctx.lineTo(x2 - 8 * Math.cos(ang) - 5 * Math.sin(ang), y2 - 8 * Math.sin(ang) + 5 * Math.cos(ang));
+					ctx.lineTo(x2 - 8 * Math.cos(ang) + 5 * Math.sin(ang), y2 - 8 * Math.sin(ang) - 5 * Math.cos(ang));
+					ctx.closePath();
+					ctx.fillStyle = "rgba(128,128,128,.5)";
+					ctx.fill();
+				}
+				// 节点
+				const stateById = new Map((map.states || []).map((s) => [s.id, s]));
+				for (const n of layout.states) {
+					const st = stateById.get(n.id) || {};
+					const role = st.role || "scene";
+					const isEnd = role === "ending" || /end/i.test(st.name || "");
+					const isStart = (st.name || "") === (map.initialState || "");
+					const x = tx(n.x), y = ty(n.y), ww = 120 * S, hh = 48 * S;
+					ctx.fillStyle = isEnd ? "#3a4a3a" : (isStart ? "#3a4a6a" : "#2f3a4a");
+					ctx.strokeStyle = isEnd ? "#6a9a6a" : (isStart ? "#6a9adf" : "#5a6a8a");
+					ctx.lineWidth = 1.5;
+					roundRect(ctx, x, y, ww, hh, 8 * S);
+					ctx.fill();
+					ctx.stroke();
+					ctx.fillStyle = "#e8e8e8";
+					ctx.font = Math.max(8, 12 * S) + "px sans-serif";
+					ctx.textAlign = "center";
+					ctx.fillText((st.name || n.name || "").slice(0, 14), x + ww / 2, y + hh * 0.4);
+					ctx.font = Math.max(7, 10 * S) + "px sans-serif";
+					ctx.fillStyle = "rgba(200,200,200,.7)";
+					ctx.fillText(role, x + ww / 2, y + hh * 0.75);
+				}
+			}, [view, map, props.BG]);
+
+			// 滚轮缩放（以鼠标为中心）
+			const onWheel = (e) => {
+				e.preventDefault();
+				const cv = canvasRef.current;
+				if (!cv) return;
+				const rect = cv.getBoundingClientRect();
+				const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+				const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+				setView((v) => {
+					const ns = Math.min(3, Math.max(0.2, v.scale * factor));
+					// 保持鼠标下的世界点不动：ox' = mx - (mx - ox) * ns / v.scale
+					const k = ns / v.scale;
+					return { scale: ns, ox: mx - (mx - v.ox) * k, oy: my - (my - v.oy) * k };
+				});
+			};
+
+			// 拖拽平移（dragRef 记录起点；mouseup 时位移>5px 判定为拖拽，抑制 click）
+			const onMouseDown = (e) => {
+				dragRef.current = { sx: e.clientX, sy: e.clientY, ox: view.ox, oy: view.oy, moved: false };
+				e.preventDefault();
+			};
+			const onMouseMove = (e) => {
+				const d = dragRef.current;
+				if (!d) return;
+				const dx = e.clientX - d.sx, dy = e.clientY - d.sy;
+				if (Math.abs(dx) > 5 || Math.abs(dy) > 5) d.moved = true;
+				setView((v) => ({ ...v, ox: d.ox + dx, oy: d.oy + dy }));
+			};
+			const onMouseUp = () => {
+				const d = dragRef.current;
+				if (d && d.moved) suppressClickRef.current = true;
+				dragRef.current = null;
+			};
+
+			// 点击节点（应用视图变换反算；拖拽后不触发）
+			const onCanvasClick = (e) => {
+				if (suppressClickRef.current) { suppressClickRef.current = false; return; }
+				if (dragRef.current) return;
+				const cv = canvasRef.current;
+				if (!cv) return;
+				const rect = cv.getBoundingClientRect();
+				const x = (e.clientX - rect.left - view.ox) / view.scale;
+				const y = (e.clientY - rect.top - view.oy) / view.scale;
+				const layout = map.layout || { states: [] };
+				for (const n of layout.states) {
+					if (x >= n.x && x <= n.x + 120 && y >= n.y && y <= n.y + 48) {
+						onNodeClick && onNodeClick(n.id);
+						return;
+					}
+				}
+			};
+
+			return React.createElement("canvas", {
+				ref: canvasRef,
+				onClick: onCanvasClick,
+				onWheel: onWheel,
+				onMouseDown: onMouseDown,
+				onMouseMove: onMouseMove,
+				onMouseUp: onMouseUp,
+				onMouseLeave: onMouseUp,
+				style: { display: "block", cursor: dragRef.current ? "grabbing" : "grab", touchAction: "none" },
+			});
+		}
+
+		const roundRect = (ctx, x, y, w, h, r) => {
+			ctx.beginPath();
+			ctx.moveTo(x + r, y);
+			ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+			ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+			ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+			ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y);
+			ctx.closePath();
+		};
+
 		function RenpyPanel(props) {
 			const sessionId = props && props.sessionId;
 			const [sideOpen, setSideOpen] = React.useState(panelState.sideOpen !== undefined ? panelState.sideOpen : true);
@@ -618,6 +771,8 @@ window.__ModuleLoader__.load({
 			const [log, setLog] = React.useState("");
 			const [lintErrors, setLintErrors] = React.useState([]);
 			const [shot, setShot] = React.useState(null);
+			const [routeMap, setRouteMap] = React.useState(panelState.routeMap || null);
+			const [routeLoading, setRouteLoading] = React.useState(false);
 			const [labels, setLabels] = React.useState(panelState.labels);
 			const [chars, setChars] = React.useState(panelState.chars || []);
 			const [trans, setTrans] = React.useState(panelState.trans || []);
@@ -852,6 +1007,28 @@ window.__ModuleLoader__.load({
 				}
 				const r = await fetch(url);
 				return r.json();
+			};
+
+			// 加载路线图（route-map + 布局 + 元信息）
+			const loadRouteMap = async () => {
+				if (!project) return;
+				setRouteLoading(true);
+				try {
+					const r = await api("route-map", {}, { project });
+					if (r.error) { setLog("路线图加载失败: " + r.error); }
+					else { setRouteMap(r); }
+				} catch (e) { setLog("路线图请求失败: " + String(e)); }
+				setRouteLoading(false);
+			};
+
+			// 点击路线图节点 → 记录跳转意图（调试衔接）
+			const jumpToState = async (stateId) => {
+				if (!project || !stateId || !routeMap) return;
+				const st = (routeMap.states || []).find((s) => s.id === stateId);
+				if (!st) return;
+				const spec = (st.file || "").replace(/^game\//, "") + ":" + (st.line || 1);
+				const r = await api("route-jump", {}, { project, state: stateId, spec });
+				setLog("跳转 " + (st.name || stateId) + " (" + spec + "): " + (r.ok ? "已请求，游戏将 warp 到该行" : "失败"));
 			};
 
 			const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -2657,7 +2834,7 @@ window.__ModuleLoader__.load({
 					),
 					(!props.hideSidebar && sideOpen) ? React.createElement("div", { style: { width: 330, flexShrink: 0, minHeight: 0, borderLeft: "1px solid " + BORDER, background: SIDEFILL, color: TXT, display: "flex", flexDirection: "column", minWidth: 0 } },
 						React.createElement("div", { style: { display: "flex", gap: 6, padding: "7px 10px", borderBottom: "1px solid " + BORDER, alignItems: "center", background: LAYER } },
-							[["chat", "对话"], ["trail", "轨迹"]].map(([k, label]) => React.createElement("span", {
+							[["chat", "对话"], ["trail", "轨迹"], ["route", "路线"]].map(([k, label]) => React.createElement("span", {
 								key: k,
 								style: { padding: "3px 12px", fontSize: 13, cursor: "pointer", background: sideTab === k ? GHOST : "transparent", border: "1px solid " + (sideTab === k ? BORDER : "transparent"), borderRadius: 12, color: sideTab === k ? ACCENT : TXT2, fontWeight: sideTab === k ? 600 : 400 },
 								onClick: () => setSideTab(k),
@@ -2724,6 +2901,17 @@ window.__ModuleLoader__.load({
 									);
 								}) : React.createElement("div", { style: { color: TXT2, fontSize: 13, padding: "18px 6px", textAlign: "center" } }, "暂无工具调用轨迹")),
 							),
+							(sideTab === "route") ? React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } },
+								React.createElement("div", { style: { display: "flex", gap: 6, alignItems: "center", padding: "6px 10px", borderBottom: "1px solid " + BORDER } },
+									React.createElement("button", { style: { ...btn, padding: "3px 10px" }, onClick: loadRouteMap, disabled: routeLoading || !project }, routeLoading ? "加载中…" : "⟳ 加载路线图"),
+									React.createElement("span", { style: { fontSize: 11, color: TXT3 } }, routeMap ? (routeMap.states ? routeMap.states.length : 0) + " 状态 / " + (routeMap.transitions ? routeMap.transitions.length : 0) + " 转移" : "未加载"),
+								),
+								React.createElement("div", { style: { flex: 1, minHeight: 0, position: "relative" } },
+									routeMap && routeMap.layout
+										? React.createElement(RouteCanvas, { map: routeMap, onNodeClick: jumpToState, TXT, TXT2, ACCENT, BORDER, BG, GHOST })
+										: React.createElement("div", { style: { color: TXT2, fontSize: 13, padding: "18px 6px", textAlign: "center" } }, "点击「加载路线图」查看分支结构"),
+								),
+							) : null,
 							(sideTab === "chat" && props.inputActions) ? React.createElement("div", { style: { borderTop: "1px solid " + BORDER, padding: "7px 10px 9px", background: LAYER } },
 								React.createElement("div", { style: { display: "flex", gap: 6, alignItems: "flex-end", border: "1px solid " + (composerFocus ? ACCENT : BORDER), borderRadius: 10, background: INPUTBG, padding: 4, transition: "border-color .15s" } },
 									React.createElement("textarea", { ref: composerRef, value: msg, onChange: (e) => setMsg(e.target.value), onKeyDown: (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMsg(); } }, onFocus: () => setComposerFocus(true), onBlur: () => setComposerFocus(false), placeholder: "给 agent 发消息…", rows: 2, style: { flex: 1, background: "transparent", color: TXT, border: "none", outline: "none", borderRadius: 6, fontSize: 13, lineHeight: "20px", resize: "none", fontFamily: "inherit", padding: "3px 4px" } }),

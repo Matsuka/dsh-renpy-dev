@@ -84,4 +84,104 @@ const hasOpenToolCall = (session) => {
   } catch (e) { return false }
 }
 
-module.exports = { lineDiff, hasOpenToolCall }
+// ── 状态机路线图布局（纯函数，可单测） ─────────────────────────────────
+// 输入：route-map.json 结构（states/transitions/initialState）
+// 输出：节点坐标 { states: [{id,name,role,x,y}], edges: [{from,to,x1,y1,x2,y2,type}] }
+// 布局：分层 BFS（从 initialState 出发按转移层级分层，同层纵向排列）
+const layoutRouteMap = (map, opts = {}) => {
+  const gapX = opts.gapX || 220
+  const gapY = opts.gapY || 90
+  const byId = {}
+  const children = new Map()
+
+  for (const t of map.transitions || []) {
+    if (!children.has(t.from)) children.set(t.from, [])
+    children.get(t.from).push(t)
+  }
+
+  // BFS 分层
+  const startId = map.initialState ? 's_' + map.initialState : (map.states && map.states[0] ? map.states[0].id : null)
+  const layerOf = new Map()
+  const queue = startId ? [startId] : []
+  if (startId) layerOf.set(startId, 0)
+  while (queue.length) {
+    const id = queue.shift()
+    const layer = layerOf.get(id)
+    for (const t of (children.get(id) || [])) {
+      if (!layerOf.has(t.to)) {
+        layerOf.set(t.to, layer + 1)
+        queue.push(t.to)
+      }
+    }
+  }
+  // 未分层（孤儿）放最后
+  const maxLayer = layerOf.size ? Math.max(...layerOf.values()) + 1 : 0
+  for (const s of map.states || []) {
+    if (!layerOf.has(s.id)) layerOf.set(s.id, maxLayer)
+  }
+
+  // 同层纵向排列
+  const byLayer = new Map()
+  for (const s of map.states || []) {
+    const l = layerOf.get(s.id)
+    if (!byLayer.has(l)) byLayer.set(l, [])
+    byLayer.get(l).push(s)
+  }
+  for (const [l, states] of byLayer) {
+    states.forEach((s, i) => {
+      byId[s.id] = { id: s.id, name: s.name, role: s.role || 'scene', x: l * gapX + 30, y: i * gapY + 30 }
+    })
+  }
+
+  const edges = (map.transitions || []).map((t) => {
+    const a = byId[t.from], b = byId[t.to]
+    if (!a || !b) return null
+    return { from: t.from, to: t.to, type: t.type, x1: a.x + 60, y1: a.y + 24, x2: b.x, y2: b.y + 24 }
+  }).filter(Boolean)
+
+  return { states: Object.values(byId), edges }
+}
+
+// ── 路线元信息（可达性/循环/死路分析，供可视化着色） ───────────────────
+const computeRouteMeta = (map) => {
+  const children = new Map()
+  for (const t of map.transitions || []) {
+    if (!children.has(t.from)) children.set(t.from, [])
+    children.get(t.from).push(t)
+  }
+  const startId = map.initialState ? 's_' + map.initialState : (map.states && map.states[0] ? map.states[0].id : null)
+
+  // BFS 可达
+  const reachable = new Set()
+  if (startId) {
+    const q = [startId]
+    reachable.add(startId)
+    while (q.length) {
+      const id = q.shift()
+      for (const t of (children.get(id) || [])) {
+        if (!reachable.has(t.to)) { reachable.add(t.to); q.push(t.to) }
+      }
+    }
+  }
+
+  const deadStates = []
+  const loops = []
+  for (const s of map.states || []) {
+    const outs = children.get(s.id) || []
+    // 死路：可达但无出转移（且非 ending）
+    if (reachable.has(s.id) && outs.length === 0 && !/end/i.test(s.name)) deadStates.push(s.id)
+    // 循环：自环
+    for (const t of outs) {
+      if (t.to === s.id) loops.push({ from: s.id, type: 'self' })
+    }
+  }
+
+  return {
+    reachable: [...reachable],
+    unreachable: (map.states || []).filter((s) => !reachable.has(s.id)).map((s) => s.id),
+    deadStates,
+    loops,
+  }
+}
+
+module.exports = { lineDiff, hasOpenToolCall, layoutRouteMap, computeRouteMeta }
