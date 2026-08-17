@@ -885,9 +885,11 @@ window.__ModuleLoader__.load({
 					}
 				};
 				const onUp = () => { dragRef.current = null; resizeRef.current = null; setDragState(null); };
+				const onBlur = onUp; // 鼠标拖出 iframe 失焦时取消拖拽，防止 mouseup 丢失卡死
 				window.addEventListener("mousemove", onMove);
 				window.addEventListener("mouseup", onUp);
-				return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+				window.addEventListener("blur", onBlur);
+				return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); window.removeEventListener("blur", onBlur); };
 			}, [dragState, onChange]);
 
 			// Esc 关闭（焦点在输入框时不响应，避免误关弹窗）
@@ -943,9 +945,11 @@ window.__ModuleLoader__.load({
 					else onChange({ ...w, x: Math.max(0, d.ox + e.clientX - d.sx), y: Math.max(0, d.oy + e.clientY - d.sy) });
 				};
 				const onUp = () => { dragRef.current = null; setDragState(null); };
+				const onBlur = onUp; // 鼠标拖出 iframe 失焦时取消拖拽，防止 mouseup 丢失卡死
 				window.addEventListener("mousemove", onMove);
 				window.addEventListener("mouseup", onUp);
-				return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+				window.addEventListener("blur", onBlur);
+				return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); window.removeEventListener("blur", onBlur); };
 			}, [dragState, onChange]);
 			React.useEffect(() => {
 				const onKey = (e) => { const t = e.target; if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return; if (e.key === "Escape") onClose(); };
@@ -1071,9 +1075,11 @@ window.__ModuleLoader__.load({
 					else onChange({ ...w, x: Math.max(0, d.ox + e.clientX - d.sx), y: Math.max(0, d.oy + e.clientY - d.sy) });
 				};
 				const onUp = () => { dragRef.current = null; setDragState(null); };
+				const onBlur = onUp; // 鼠标拖出 iframe 失焦时取消拖拽，防止 mouseup 丢失卡死
 				window.addEventListener("mousemove", onMove);
 				window.addEventListener("mouseup", onUp);
-				return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+				window.addEventListener("blur", onBlur);
+				return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); window.removeEventListener("blur", onBlur); };
 			}, [dragState, onChange]);
 			React.useEffect(() => {
 				const onKey = (e) => { const t = e.target; if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return; if (e.key === "Escape") onClose(); };
@@ -3082,9 +3088,12 @@ window.__ModuleLoader__.load({
 					animDragRef.current = null;
 					document.removeEventListener("mousemove", move);
 					document.removeEventListener("mouseup", up);
+					window.removeEventListener("blur", onBlur);
 				};
+				const onBlur = () => up(); // 鼠标拖出 iframe 失焦时取消拖拽，防止 mouseup 丢失卡死
 				document.addEventListener("mousemove", move);
 				document.addEventListener("mouseup", up);
+				window.addEventListener("blur", onBlur);
 			};
 			// 动画预览数据：当前行解析 + 默认速度（项目配置：角色 what_slow_cps > what_style 样式 > say_dialogue > 20）
 			const [textCfg, setTextCfg] = React.useState(null); // parseTextCfg 结果
@@ -3230,9 +3239,12 @@ window.__ModuleLoader__.load({
 					dragRef.current = null;
 					document.removeEventListener("mousemove", move);
 					document.removeEventListener("mouseup", up);
+					window.removeEventListener("blur", onBlur);
 				};
+				const onBlur = () => up(); // 鼠标拖出 iframe 失焦时取消拖拽，防止 mouseup 丢失卡死
 				document.addEventListener("mousemove", move);
 				document.addEventListener("mouseup", up);
+				window.addEventListener("blur", onBlur);
 			};
 			const trackCursor = () => {
 				const ta = taRef.current;
