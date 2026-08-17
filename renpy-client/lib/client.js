@@ -2785,15 +2785,13 @@ window.__ModuleLoader__.load({
 				setFloating((f) => { const n = { ...f }; delete n[id]; return n; });
 				movePanel(id, region);
 			};
-			// ── 标题栏拖拽 + 分区吸附示意（Win11 snap：拖到分区显示高亮，松手停靠） ──
+			// ── 标题栏拖拽 + 分区吸附（Win11 snap）：ghost 拖影跟随 + 分区高亮填充；区域优先判定 ──
 			const dragPanelRef = React.useRef(null); // {id, sx, sy, moved}
 			const [snapPreview, setSnapPreview] = React.useState(null); // "left" | "bottom" | null
+			const [dragGhost, setDragGhost] = React.useState(null); // {id, x, y}——拖影
 			const regionRefs = { left: React.useRef(null), bottom: React.useRef(null) };
 			const detectSnap = (e) => {
-				const vw = (typeof window !== "undefined" ? window.innerWidth : 0);
-				const vh = (typeof window !== "undefined" ? window.innerHeight : 0);
-				if (e.clientX < 80) return "left";      // 视口左缘 → 左栏
-				if (e.clientY > vh - 90) return "bottom"; // 视口下缘 → 底部区
+				// 区域优先（视觉指示与落点一致），视口边缘兜底
 				for (const r of ["left", "bottom"]) {
 					const el = regionRefs[r] && regionRefs[r].current;
 					if (el) {
@@ -2801,15 +2799,26 @@ window.__ModuleLoader__.load({
 						if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) return r;
 					}
 				}
+				const vw = (typeof window !== "undefined" ? window.innerWidth : 0);
+				const vh = (typeof window !== "undefined" ? window.innerHeight : 0);
+				if (e.clientX < 80) return "left";      // 视口左缘 → 左栏
+				if (e.clientY > vh - 90) return "bottom"; // 视口下缘 → 底部区
 				return null;
 			};
-			const startDragPanel = (id, e) => { e.preventDefault(); dragPanelRef.current = { id, sx: e.clientX, sy: e.clientY, moved: false }; };
+			const startDragPanel = (id, e) => { e.preventDefault(); dragPanelRef.current = { id, sx: e.clientX, sy: e.clientY, moved: false }; setNavCollapsed(true); };
+			const navCollapsedRef = React.useRef(navCollapsed);
+			navCollapsedRef.current = navCollapsed;
 			React.useEffect(() => {
 				const onMove = (e) => {
 					const d = dragPanelRef.current;
-					if (!d) return;
-					if (!d.moved && Math.abs(e.clientX - d.sx) + Math.abs(e.clientY - d.sy) > 5) d.moved = true;
-					setSnapPreview(detectSnap(e));
+					if (d) {
+						if (!d.moved && Math.abs(e.clientX - d.sx) + Math.abs(e.clientY - d.sy) > 5) d.moved = true;
+						setSnapPreview(detectSnap(e));
+						setDragGhost({ id: d.id, x: e.clientX + 12, y: e.clientY + 6 });
+					} else if (e.clientX < 44 && navCollapsedRef.current) {
+						// 鼠标靠近左缘 → 控件栏自动展开（非拖拽时）
+						setNavCollapsed(false);
+					}
 				};
 				const onUp = (e) => {
 					const d = dragPanelRef.current;
@@ -2829,6 +2838,7 @@ window.__ModuleLoader__.load({
 					}
 					dragPanelRef.current = null;
 					setSnapPreview(null);
+					setDragGhost(null);
 				};
 				window.addEventListener("mousemove", onMove);
 				window.addEventListener("mouseup", onUp);
@@ -2847,6 +2857,8 @@ window.__ModuleLoader__.load({
 				const g = panelLayout[region] || { panels: [] };
 				const isLeft = region === "left";
 				return React.createElement("div", { ref: regionRefs[region], style: { flex: 1, minHeight: 0, display: "flex", flexDirection: isLeft ? "column" : "row", overflow: "hidden", outline: snapPreview === region ? "2px solid " + ACCENT : "none", outlineOffset: -2, position: "relative" } },
+					// 分区吸附预览：拖动中目标区域半透明填充高亮（Win11 snap 示意）
+					snapPreview === region ? React.createElement("div", { style: { position: "absolute", inset: 0, background: "rgba(100,160,255,.16)", pointerEvents: "none", zIndex: 6 } }) : null,
 					g.panels.map((id) => {
 						const meta = PANEL_META[id] || { title: id, icon: "📦" };
 						const last = g.panels.length > 1;
@@ -3383,12 +3395,17 @@ window.__ModuleLoader__.load({
 				shotWin.open ? React.createElement(ShotWindow, { project, api, win: shotWin, onChange: setShotWin, onClose: () => setShotWin((w) => ({ ...w, open: false })), TXT, TXT2, TXT3, BORDER, BG, LAYER, sessionId }) : null,
 				// ── 变量监控窗口（Portal 到 body，可拖可缩放） ──
 				varWin.open ? React.createElement(VarWindow, { vars: (routeStatus && routeStatus.vars) || {}, routeVars: (routeMap && routeMap.variables) || [], win: varWin, onChange: setVarWin, onClose: () => setVarWin((w) => ({ ...w, open: false })), onVarJump: jumpToVarDef, onVarFocus: setVarFocus, TXT, TXT2, TXT3, ACCENT, BORDER, BG, LAYER }) : null,
-				// ── P2 浮动面板（长按手柄拖出；拖到左/下边缘吸附回区域） ──
+				// ── P2 浮动面板（标题栏拖出；拖到分区/边缘吸附回区域） ──
 				Object.keys(floating).map((id) => {
 					const win = floating[id];
 					const meta = PANEL_META[id] || { title: id, icon: "📦" };
 					return React.createElement(FloatingPanel, { key: id, meta, win, onChange: (w) => setFloating((f) => ({ ...f, [id]: w })), onDock: (region) => dockPanel(id, region), onClose: () => dockPanel(id, "left"), TXT, TXT2, TXT3, BORDER, BG, LAYER }, renderPanel(id));
 				}),
+				// ── 拖拽 ghost 拖影（跟随鼠标；Win11 拖拽视觉指示） ──
+				dragGhost ? React.createElement("div", { style: { position: "fixed", left: dragGhost.x, top: dragGhost.y, zIndex: 9999, pointerEvents: "none", display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", background: LAYER, border: "1px solid " + ACCENT, borderRadius: 6, boxShadow: "0 6px 20px rgba(0,0,0,.3)", fontSize: 12, color: TXT, opacity: .92 } },
+					React.createElement("span", { style: { fontSize: 13 } }, (PANEL_META[dragGhost.id] || {}).icon || "📦"),
+					React.createElement("span", {}, (PANEL_META[dragGhost.id] || {}).title || dragGhost.id),
+				) : null,
 				// ── 顶栏（类 VSCode：项目输入 + 图标+文字操作 + 强调工作范围 + 对话） ──
 				React.createElement("div", { style: { ...row, gap: 6, flexWrap: "wrap" } },
 					React.createElement("span", { style: { color: TXT2, fontSize: 13, flexShrink: 0 } }, "项目"),
@@ -3424,7 +3441,7 @@ window.__ModuleLoader__.load({
 				),
 				React.createElement("div", { style: { display: "flex", flex: 1, minHeight: 0, maxWidth: "100%", minWidth: 0 } },
 					// ── 控件总栏（点击打开面板/窗口；按键已统一到顶部；可收缩只显图标） ──
-					React.createElement("div", { style: { width: navCollapsed ? 46 : 172, flexShrink: 0, borderRight: "1px solid " + BORDER, background: LAYER, display: "flex", flexDirection: "column", paddingTop: 6, overflowY: "auto", overflowX: "hidden", transition: "width .15s" } },
+					React.createElement("div", { style: { width: (navCollapsed || dragGhost) ? 46 : 172, flexShrink: 0, borderRight: "1px solid " + BORDER, background: LAYER, display: "flex", flexDirection: "column", paddingTop: 6, overflowY: "auto", overflowX: "hidden", transition: "width .15s" } },
 						// 调试控件（需运行游戏：桥接回报驱动）
 						!navCollapsed ? React.createElement("div", { style: { width: "100%", padding: "1px 10px 5px", fontSize: 10, color: TXT3, fontWeight: 600 } }, "调试 · 需运行") : null,
 						abIcon("🗺", "分支路线图", openRouteWin, { opacity: project ? 1 : .4, hideText: navCollapsed, title: "状态机图；查看不需运行，点击节点跳游戏需运行" }),
