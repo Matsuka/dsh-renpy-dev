@@ -2778,8 +2778,8 @@ window.__ModuleLoader__.load({
 			};
 			// floating: { [panelId]: {x, y, w, h} }——拖出无分区时成为浮动窗
 			const [floating, setFloating] = React.useState(panelState.floating || {});
-			// 最左控件总栏可收缩（收起只显图标）
-			const [navCollapsed, setNavCollapsed] = React.useState(panelState.navCollapsed || false);
+			// 最左控件总栏：自动隐藏（平时收起，鼠标靠近左缘展开，离开自动收起）
+			const [navCollapsed, setNavCollapsed] = React.useState(panelState.navCollapsed === undefined ? true : panelState.navCollapsed);
 			// 浮动窗吸附回区域
 			const dockPanel = (id, region) => {
 				setFloating((f) => { const n = { ...f }; delete n[id]; return n; });
@@ -2805,7 +2805,7 @@ window.__ModuleLoader__.load({
 				if (e.clientY > vh - 90) return "bottom"; // 视口下缘 → 底部区
 				return null;
 			};
-			const startDragPanel = (id, e) => { e.preventDefault(); dragPanelRef.current = { id, sx: e.clientX, sy: e.clientY, moved: false }; setNavCollapsed(true); };
+			const startDragPanel = (id, e) => { e.preventDefault(); dragPanelRef.current = { id, sx: e.clientX, sy: e.clientY, moved: false }; };
 			const navCollapsedRef = React.useRef(navCollapsed);
 			navCollapsedRef.current = navCollapsed;
 			React.useEffect(() => {
@@ -2815,9 +2815,10 @@ window.__ModuleLoader__.load({
 						if (!d.moved && Math.abs(e.clientX - d.sx) + Math.abs(e.clientY - d.sy) > 5) d.moved = true;
 						setSnapPreview(detectSnap(e));
 						setDragGhost({ id: d.id, x: e.clientX + 12, y: e.clientY + 6 });
-					} else if (e.clientX < 44 && navCollapsedRef.current) {
-						// 鼠标靠近左缘 → 控件栏自动展开（非拖拽时）
-						setNavCollapsed(false);
+					} else {
+						// 自动隐藏侧栏：鼠标靠近左缘(<44)展开，离开(>210)自动收起；导航区域内保持
+						if (e.clientX < 44) { if (navCollapsedRef.current) setNavCollapsed(false); }
+						else if (e.clientX > 210) { if (!navCollapsedRef.current) setNavCollapsed(true); }
 					}
 				};
 				const onUp = (e) => {
@@ -3441,7 +3442,7 @@ window.__ModuleLoader__.load({
 				),
 				React.createElement("div", { style: { display: "flex", flex: 1, minHeight: 0, maxWidth: "100%", minWidth: 0 } },
 					// ── 控件总栏（点击打开面板/窗口；按键已统一到顶部；可收缩只显图标） ──
-					React.createElement("div", { style: { width: (navCollapsed || dragGhost) ? 46 : 172, flexShrink: 0, borderRight: "1px solid " + BORDER, background: LAYER, display: "flex", flexDirection: "column", paddingTop: 6, overflowY: "auto", overflowX: "hidden", transition: "width .15s" } },
+					React.createElement("div", { style: { width: navCollapsed ? 46 : 172, flexShrink: 0, borderRight: "1px solid " + BORDER, background: LAYER, display: "flex", flexDirection: "column", paddingTop: 6, overflowY: "auto", overflowX: "hidden", transition: "width .15s" } },
 						// 调试控件（需运行游戏：桥接回报驱动）
 						!navCollapsed ? React.createElement("div", { style: { width: "100%", padding: "1px 10px 5px", fontSize: 10, color: TXT3, fontWeight: 600 } }, "调试 · 需运行") : null,
 						abIcon("🗺", "分支路线图", openRouteWin, { opacity: project ? 1 : .4, hideText: navCollapsed, title: "状态机图；查看不需运行，点击节点跳游戏需运行" }),
