@@ -595,13 +595,14 @@ window.__ModuleLoader__.load({
 			assets: { title: "项目素材", icon: "🖼" },
 			edits: { title: "基线更改", icon: "✎" },
 			log: { title: "操作日志", icon: "📋" },
+			chat: { title: "对话", icon: "💬" },
 			route: { title: "分支路线图", icon: "🗺" },
 			shot: { title: "实时画面", icon: "🎬" },
 			vars: { title: "运行时变量", icon: "📊" },
 			cp: { title: "修改面板", icon: "✎" },
 		};
 		// 默认布局（Win11 式：区域内多面板平铺平分；持久化到 localStorage.renpy-panel-layout）
-		const LAYOUT_DEFAULT = { left: { panels: ["files", "nav", "assets", "edits"] }, bottom: { panels: ["log"] } };
+		const LAYOUT_DEFAULT = { left: { panels: ["files", "nav", "assets", "edits"] }, bottom: { panels: ["chat", "log"] } };
 
 		// ── 控件规范库（§5：统一按钮/输入/胶囊/行/徽标；直接引用 DSH token，任何组件可用） ──
 		// 高度 24-26、圆角 6、全 token 驱动；状态：idle→hover→active→disabled(降透明度)
@@ -1225,8 +1226,6 @@ window.__ModuleLoader__.load({
 
 		function RenpyPanel(props) {
 			const sessionId = props && props.sessionId;
-			const [sideOpen, setSideOpen] = React.useState(panelState.sideOpen !== undefined ? panelState.sideOpen : true);
-			const [sideTab, setSideTab] = React.useState(panelState.sideTab || "chat");
 			const [msg, setMsg] = React.useState("");
 			const [composerFocus, setComposerFocus] = React.useState(false);
 			const [project, setProject] = React.useState(panelState.project || (typeof localStorage !== "undefined" && localStorage.getItem("renpy-project")) || "");
@@ -1483,6 +1482,8 @@ window.__ModuleLoader__.load({
 				panelState.varWin = varWin;
 				panelState.floating = floating;
 				panelState.navCollapsed = navCollapsed;
+				panelState.regionSize = regionSize;
+				panelState.maximized = maximized;
 				panelState.files = files;
 				panelState.tabs = tabs;
 				panelState.activeName = activeName;
@@ -1496,8 +1497,6 @@ window.__ModuleLoader__.load({
 				panelState.expanded = expanded;
 				panelState.previewImg = previewImg;
 				panelState.previewAudio = previewAudio;
-				panelState.sideOpen = sideOpen;
-				panelState.sideTab = sideTab;
 				panelState.cpList = cpList;
 				panelState.cpActive = cpActive;
 				panelState.cpDiff = cpDiff;
@@ -2795,7 +2794,7 @@ window.__ModuleLoader__.load({
 					if (saved) {
 						const j = JSON.parse(saved);
 						// 兼容旧格式 {tabs, active} → {panels}
-						const fix = (g) => ({ panels: (g && (g.panels || g.tabs)) || [] });
+						const fix = (g) => ({ panels: (g && (g.panels || g.tabs)) || [], sizes: (g && g.sizes) || {} });
 						if (j && j.left && j.bottom) {
 							const l = fix(j.left);
 							// 旧版布局迁移：文件面板含导航 → 拆出独立 nav 面板（跟在 files 后）
@@ -2813,13 +2812,25 @@ window.__ModuleLoader__.load({
 			const removePanel = (id) => {
 				setPanelLayout((l) => {
 					const n = {};
-					for (const r of ["left", "bottom"]) n[r] = { panels: (l[r] || { panels: [] }).panels.filter((p) => p !== id) };
+					for (const r of ["left", "bottom"]) {
+						const g = l[r] || { panels: [], sizes: {} };
+						const sizes = { ...(g.sizes || {}) };
+						delete sizes[id];
+						n[r] = { panels: g.panels.filter((p) => p !== id), sizes };
+					}
 					return n;
 				});
 				setFloating((f) => { const n = { ...f }; delete n[id]; return n; });
+				setMaximized((m) => (m === id ? null : m));
 			};
 			// floating: { [panelId]: {x, y, w, h} }——拖出无分区时成为浮动窗
 			const [floating, setFloating] = React.useState(panelState.floating || {});
+			// 最大化面板：占满整个工作区（其余区域/导航隐藏），再点还原
+			const [maximized, setMaximized] = React.useState(panelState.maximized || null); // panelId | null
+			// 区域尺寸（可拖拽调整）：left 栏宽 / bottom 区高；面板比例存 panelLayout.<region>.sizes[id]
+			const [regionSize, setRegionSize] = React.useState(panelState.regionSize || { left: 220, bottom: 170 });
+			const regionSizeRef = React.useRef(regionSize);
+			regionSizeRef.current = regionSize;
 			// 最左控件总栏：自动隐藏（平时收起，鼠标靠近左缘展开，离开自动收起）
 			const [navCollapsed, setNavCollapsed] = React.useState(panelState.navCollapsed === undefined ? true : panelState.navCollapsed);
 			// 浮动窗吸附回区域
@@ -2867,8 +2878,11 @@ window.__ModuleLoader__.load({
 			const movePanelTo = (id, region, index) => {
 				setPanelLayout((l) => {
 					const n = {};
-					for (const r of ["left", "bottom"]) n[r] = { panels: (l[r] || { panels: [] }).panels.filter((p) => p !== id) };
-					const t = n[region] || { panels: [] };
+					for (const r of ["left", "bottom"]) {
+						const g = l[r] || { panels: [], sizes: {} };
+						n[r] = { panels: g.panels.filter((p) => p !== id), sizes: { ...(g.sizes || {}) } };
+					}
+					const t = n[region] || { panels: [], sizes: {} };
 					const idx = Math.max(0, Math.min(index === undefined || index === null ? t.panels.length : index, t.panels.length));
 					t.panels.splice(idx, 0, id);
 					n[region] = t;
@@ -2876,6 +2890,22 @@ window.__ModuleLoader__.load({
 				});
 			};
 			const movePanel = (id, region) => movePanelTo(id, region, undefined);
+			// 区域尺寸拖拽：left 宽 / bottom 高（分隔条 mousedown → window mousemove）
+			const regionResizeRef = React.useRef(null); // {kind:"left"|"bottom", sx, sy, base}
+			const panelSplitRef = React.useRef(null); // {region, idx, sx, sy, a, b}——区域内面板比例拖拽
+			const startRegionResize = (kind, e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				const base = kind === "left" ? regionSizeRef.current.left : regionSizeRef.current.bottom;
+				regionResizeRef.current = { kind, sx: e.clientX, sy: e.clientY, base };
+			};
+			const startPanelSplit = (region, idx, e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				const g = panelLayoutRef.current[region] || { panels: [], sizes: {} };
+				const sizes = g.sizes || {};
+				panelSplitRef.current = { region, idx, sx: e.clientX, sy: e.clientY, a: sizes[g.panels[idx]] || 1, b: sizes[g.panels[idx + 1]] || 1 };
+			};
 			const startDragPanel = (id, e) => {
 				e.preventDefault();
 				dragPanelRef.current = { id, sx: e.clientX, sy: e.clientY, moved: false, mode: "snap" };
@@ -2899,6 +2929,30 @@ window.__ModuleLoader__.load({
 			navCollapsedRef.current = navCollapsed;
 			React.useEffect(() => {
 				const onMove = (e) => {
+					// 区域尺寸拖拽（left 宽 / bottom 高）
+					const rr = regionResizeRef.current;
+					if (rr) {
+						const delta = rr.kind === "left" ? (e.clientX - rr.sx) : (e.clientY - rr.sy);
+						if (rr.kind === "left") setRegionSize((s) => ({ ...s, left: Math.max(140, Math.min(560, rr.base + delta)) }));
+						else setRegionSize((s) => ({ ...s, bottom: Math.max(80, Math.min(600, rr.base + delta)) }));
+						return;
+					}
+					// 区域内面板比例拖拽（改相邻两面板 flex 权重）
+					const ps = panelSplitRef.current;
+					if (ps) {
+						const g = panelLayoutRef.current[ps.region] || { panels: [], sizes: {} };
+						const p0 = g.panels[ps.idx], p1 = g.panels[ps.idx + 1];
+						if (p0 && p1) {
+							const delta = ps.region === "left" ? (e.clientY - ps.sy) : (e.clientX - ps.sx);
+							const a = Math.max(0.15, ps.a + delta / 60);
+							const b = Math.max(0.15, ps.b - delta / 60);
+							setPanelLayout((l) => {
+								const ng = l[ps.region] || { panels: [], sizes: {} };
+								return { ...l, [ps.region]: { panels: ng.panels, sizes: { ...(ng.sizes || {}), [p0]: a, [p1]: b } } };
+							});
+						}
+						return;
+					}
 					const d = dragPanelRef.current;
 					if (d) {
 						if (d.mode === "float") {
@@ -2963,6 +3017,8 @@ window.__ModuleLoader__.load({
 					dragPanelRef.current = null;
 					setSnapPreview(null);
 					setDragGhost(null);
+					regionResizeRef.current = null;
+					panelSplitRef.current = null;
 				};
 				// 拖出 iframe/窗口（如拖到视口下侧外）时 mouseup 会丢失 → 强制取消拖拽，防止状态悬挂
 				const onBlur = () => {
@@ -2972,6 +3028,8 @@ window.__ModuleLoader__.load({
 						setSnapPreview(null);
 						setDragGhost(null);
 					}
+					regionResizeRef.current = null;
+					panelSplitRef.current = null;
 				};
 				window.addEventListener("mousemove", onMove);
 				window.addEventListener("mouseup", onUp);
@@ -2989,29 +3047,35 @@ window.__ModuleLoader__.load({
 				if (id === "edits") return op("↗", "打开修改面板", () => openCpPanel());
 				return null;
 			};
-			// 区域渲染：多面板平铺平分（左栏垂直堆叠 / 底部水平排布），各面板标题栏可拖拽；吸附示意高亮区域
+			// 区域渲染：多面板平铺（左栏垂直堆叠 / 底部水平排布），面板间分隔条可拖拽调比例；各面板标题栏可拖拽；吸附示意高亮区域
 			const renderRegion = (region) => {
-				const g = panelLayout[region] || { panels: [] };
+				const g = panelLayout[region] || { panels: [], sizes: {} };
 				const isLeft = region === "left";
 				const sp = snapPreview && snapPreview.region === region ? snapPreview : null;
+				const sizes = g.sizes || {};
 				return React.createElement("div", { ref: regionRefs[region], style: { flex: 1, minHeight: 0, display: "flex", flexDirection: isLeft ? "column" : "row", overflow: "hidden", outline: sp ? "2px solid " + ACCENT : "none", outlineOffset: -2, position: "relative" } },
 					// 分区吸附预览：拖动中目标区域半透明填充高亮 + 插入位置指示线（Win11 snap 示意；粗线+发光更醒目）
 					sp ? React.createElement("div", { style: { position: "absolute", inset: 0, background: "rgba(100,160,255,.16)", pointerEvents: "none", zIndex: 6 } }) : null,
 					sp ? React.createElement("div", { style: { position: "absolute", left: isLeft ? 0 : "calc(" + (sp.index / Math.max(1, g.panels.length)) * 100 + "% - 2px)", top: isLeft ? "calc(" + (sp.index / Math.max(1, g.panels.length)) * 100 + "% - 2px)" : 0, width: isLeft ? "100%" : 4, height: isLeft ? 4 : "100%", background: ACCENT, borderRadius: 2, boxShadow: "0 0 8px " + ACCENT, zIndex: 7, pointerEvents: "none" } }) : null,
-					g.panels.map((id) => {
+					g.panels.map((id, pi) => {
 						const meta = PANEL_META[id] || { title: id, icon: "📦" };
 						const last = g.panels.length > 1;
 						const dragging = dragGhost && dragGhost.id === id;
-						return React.createElement("div", { key: id, style: { flex: 1, minWidth: 0, minHeight: 0, display: "flex", flexDirection: "column", borderBottom: isLeft && last ? "1px solid " + BORDER : "none", borderRight: !isLeft && last ? "1px solid " + BORDER : "none", opacity: dragging ? 0.35 : 1, transition: "opacity .12s", filter: dragging ? "saturate(.6)" : "none" } },
-							React.createElement("div", { onMouseDown: (e) => startDragPanel(id, e), title: "拖拽：拖到左/下分区吸附，或拖出成浮动窗", style: { display: "flex", alignItems: "center", gap: 6, padding: "3px 8px", background: LAYER, borderBottom: "1px solid " + BORDER, cursor: "grab", userSelect: "none", flexShrink: 0, flexWrap: "wrap" } },
-								React.createElement("span", { style: { fontSize: 11 } }, meta.icon),
-								React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: TXT } }, meta.title),
-								React.createElement("span", { style: { flex: 1 } }),
-								renderPanelOps(id),
-								React.createElement("span", { style: { fontSize: 10, color: TXT3 } }, "⠿"),
-								React.createElement("span", { title: "移除面板（导航可重开）", style: { fontSize: 12, color: TXT3, cursor: "pointer" }, onMouseDown: (e) => e.stopPropagation(), onClick: (e) => { e.stopPropagation(); removePanel(id); } }, "✕"),
+						return React.createElement(React.Fragment, { key: id },
+							// 面板间分隔条：拖拽调整两面板比例（左栏横条改上下比，底部竖条改左右比）
+							pi > 0 ? React.createElement("div", { onMouseDown: (e) => startPanelSplit(region, pi - 1, e), title: "拖动调整面板比例", style: { flexShrink: 0, ...(isLeft ? { height: 4, cursor: "row-resize", width: "100%" } : { width: 4, cursor: "col-resize", height: "100%" }), background: "transparent", zIndex: 3, transition: "background .12s" }, onMouseEnter: (e) => { e.currentTarget.style.background = "rgba(100,160,255,.25)"; }, onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; } }) : null,
+							React.createElement("div", { style: { flex: sizes[id] || 1, minWidth: 0, minHeight: 0, display: "flex", flexDirection: "column", borderBottom: isLeft && last ? "1px solid " + BORDER : "none", borderRight: !isLeft && last ? "1px solid " + BORDER : "none", opacity: dragging ? 0.35 : 1, transition: "opacity .12s", filter: dragging ? "saturate(.6)" : "none" } },
+								React.createElement("div", { onMouseDown: (e) => startDragPanel(id, e), title: "拖拽：拖到左/下分区吸附，或拖出成浮动窗", style: { display: "flex", alignItems: "center", gap: 6, padding: "3px 8px", background: LAYER, borderBottom: "1px solid " + BORDER, cursor: "grab", userSelect: "none", flexShrink: 0, flexWrap: "wrap" } },
+									React.createElement("span", { style: { fontSize: 11 } }, meta.icon),
+									React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: TXT } }, meta.title),
+									React.createElement("span", { style: { flex: 1 } }),
+									renderPanelOps(id),
+									React.createElement("span", { title: maximized === id ? "还原（再次点击）" : "最大化：占满整个工作区", style: { fontSize: 11, color: maximized === id ? ACCENT : TXT3, cursor: "pointer", padding: "1px 4px" }, onMouseDown: (e) => e.stopPropagation(), onClick: (e) => { e.stopPropagation(); setMaximized(maximized === id ? null : id); } }, maximized === id ? "🗗" : "⛶"),
+									React.createElement("span", { style: { fontSize: 10, color: TXT3 } }, "⠿"),
+									React.createElement("span", { title: "移除面板（导航可重开）", style: { fontSize: 12, color: TXT3, cursor: "pointer" }, onMouseDown: (e) => e.stopPropagation(), onClick: (e) => { e.stopPropagation(); removePanel(id); } }, "✕"),
+								),
+								React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", display: "flex", flexDirection: "column" } }, renderPanel(id)),
 							),
-							React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", display: "flex", flexDirection: "column" } }, renderPanel(id)),
 						);
 					}),
 				);
@@ -3075,9 +3139,67 @@ window.__ModuleLoader__.load({
 					),
 				);
 			};
+			// 对话面板内容（原侧栏对话区独立成控件：消息流 + 检查点时间线 + 输入区）
+			const renderChatBody = () => {
+				const list = feed.chat.length ? feed.chat.map((c, i) => {
+					const isUser = c.t === "user";
+					const ts = c.id ? fmtClock(seenTimeRef.current[c.id]) : "";
+					const grouped = i > 0 && feed.chat[i - 1].t === c.t;
+					const msgKey = c.id || (c.t + i);
+					const meta = React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, marginBottom: 3 } },
+						React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: isUser ? ACCENT : TXT2 } }, isUser ? "我" : "助手"),
+						ts ? React.createElement("span", { style: { fontSize: 11, color: TXT2, opacity: .75 } }, ts) : null,
+						(hoverMsgId === msgKey) ? React.createElement("span", { style: { fontSize: 11, color: TXT3, cursor: "pointer", opacity: .85 }, onClick: () => copyText(c.text), title: "复制这条消息" }, "⧉ 复制") : null,
+						(isUser && hoverMsgId === msgKey) ? React.createElement("span", { style: { fontSize: 11, color: TXT3, cursor: "pointer", opacity: .85 }, onClick: () => {
+							try { if (props.inputActions) props.inputActions.setDraft(c.text); } catch (e) { /* ignore */ }
+							setMsg(c.text);
+							if (composerRef.current) composerRef.current.focus();
+							addLog("已取回输入框，修改后按 Enter 重发（原消息保留在历史中）");
+						}, title: "编辑并重发这条消息" }, "✎ 编辑") : null,
+					);
+					const bubble = isUser
+						? React.createElement("div", { style: { maxWidth: "100%", background: BUBBLE, borderRadius: "12px 4px 12px 12px", padding: "7px 11px", fontSize: 13, lineHeight: "20px", color: TXT, whiteSpace: "pre-wrap", wordBreak: "break-word" } }, c.text)
+						: React.createElement("div", { style: { maxWidth: "100%", background: LAYER2, border: "1px solid " + BORDER, borderRadius: "4px 12px 12px 12px", padding: "7px 11px", fontSize: 13, lineHeight: "20px", color: TXT, wordBreak: "break-word", overflowX: "hidden" }, dangerouslySetInnerHTML: { __html: mdToHtml(c.text) } });
+					const reasonOpen = !!expandedReason[msgKey];
+					const reasonTag = (!isUser && c.r) ? React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 4, marginBottom: 4, padding: "1px 8px", borderRadius: 9, fontSize: 11, color: TXT2, background: "rgba(128,128,128,.12)", cursor: "pointer", userSelect: "none" }, onClick: () => setExpandedReason((prev) => { const n = { ...prev }; n[msgKey] = !reasonOpen; return n; }) },
+						"🤔 思考" + (reasonOpen ? " ▾" : " ▸"),
+					) : null;
+					const reasonBlock = (!isUser && c.r && reasonOpen && c.rText) ? React.createElement("div", { style: { marginTop: 4, padding: "6px 8px", borderRadius: 6, background: "rgba(128,128,128,.08)", fontSize: 11, lineHeight: 1.6, color: TXT2, whiteSpace: "pre-wrap", wordBreak: "break-word", fontStyle: "italic", maxHeight: 160, overflow: "auto" } }, c.rText) : null;
+					return React.createElement("div", { key: msgKey, onMouseEnter: () => setHoverMsgId(msgKey), onMouseLeave: () => setHoverMsgId(null), style: { display: "flex", justifyContent: isUser ? "flex-end" : "flex-start", marginBottom: grouped ? 6 : 12 } },
+						isUser
+							? React.createElement("div", { style: { display: "flex", flexDirection: "column", alignItems: "flex-end", maxWidth: "82%" } }, meta, bubble)
+							: React.createElement("div", { style: { display: "flex", gap: 8, alignItems: "flex-start", maxWidth: "88%" } },
+								React.createElement("div", { style: { width: 26, height: 26, borderRadius: 13, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#fff", background: ACCENT, marginTop: 2, userSelect: "none" } }, "AI"),
+								React.createElement("div", { style: { display: "flex", flexDirection: "column", minWidth: 0 } }, meta, reasonTag, bubble, reasonBlock),
+							),
+					);
+				}) : React.createElement("div", { style: { color: TXT2, fontSize: 13, padding: "18px 6px", textAlign: "center" } }, "暂无对话 — 在下方输入框发消息");
+				return React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } },
+					React.createElement("div", { ref: feedScrollRef, style: { flex: 1, overflow: "auto", padding: "10px 12px" } },
+						list,
+						React.createElement("div", { key: "cp-timeline", style: { marginTop: 10, borderTop: "1px dashed " + BORDER, paddingTop: 8, cursor: "pointer" }, onClick: () => openCpPanel() },
+							React.createElement("div", { style: { fontSize: 11, color: TXT3, marginBottom: 4 } }, cpList.length ? ("📌 持久检查点（" + cpList.length + "）— 每次对话/保存自动建立") : "📌 持久检查点 — 发消息或保存文件后自动建立，点击查看"),
+							cpList.length ? cpList.slice(0, 3).map((c) => React.createElement("div", { key: c.id, style: { display: "flex", alignItems: "center", gap: 6, padding: "3px 6px", borderRadius: 5, fontSize: 11, color: TXT2 } },
+								React.createElement("span", { style: { color: ACCENT } }, "●"),
+								React.createElement("span", { style: { flex: 1 } }, fmtStamp(c.id)),
+								React.createElement("span", { style: { color: TXT3 } }, c.files + " 文件"),
+							)) : React.createElement("div", { style: { padding: "3px 6px", fontSize: 11, color: TXT2 } }, "暂无检查点 — 下一次对话结束或手动保存后自动出现"),
+							cpList.length > 3 ? React.createElement("div", { style: { padding: "3px 6px", fontSize: 11, color: TXT3 } }, "… 共 " + cpList.length + " 个，点击打开全部 →") : null,
+						),
+					),
+					props.inputActions ? React.createElement("div", { style: { borderTop: "1px solid " + BORDER, padding: "7px 10px 9px", background: LAYER, flexShrink: 0 } },
+						React.createElement("div", { style: { display: "flex", gap: 6, alignItems: "flex-end", border: "1px solid " + (composerFocus ? ACCENT : BORDER), borderRadius: 10, background: INPUTBG, padding: 4, transition: "border-color .15s" } },
+							React.createElement("textarea", { ref: composerRef, value: msg, onChange: (e) => setMsg(e.target.value), onKeyDown: (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMsg(); } }, onFocus: () => setComposerFocus(true), onBlur: () => setComposerFocus(false), placeholder: "给 agent 发消息…", rows: 2, style: { flex: 1, background: "transparent", color: TXT, border: "none", outline: "none", borderRadius: 6, fontSize: 13, lineHeight: "20px", resize: "none", fontFamily: "inherit", padding: "3px 4px" } }),
+							React.createElement("button", { onClick: sendMsg, disabled: !msg.trim(), title: "发送 (Enter)", style: { width: 30, height: 30, borderRadius: 15, flexShrink: 0, cursor: "pointer", background: msg.trim() ? ACCENT : "rgba(128,128,128,.35)", color: "#fff", border: "none", fontSize: 14, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" } }, "➤"),
+						),
+						React.createElement("div", { style: { fontSize: 11, color: TXT3, marginTop: 4 } }, "Enter 发送 · Shift+Enter 换行"),
+					) : null,
+				);
+			};
 			// 面板内容分发（区域 / 浮动窗共用；route/shot/vars 以 embedded 面板模式渲染）
 			const renderPanel = (id) => {
 				if (id === "log") return React.createElement("pre", { style: { flex: 1, minHeight: 0, overflow: "auto", fontFamily: CODE, fontSize: 12, lineHeight: 1.6, whiteSpace: "pre-wrap", margin: 0, color: TXT2 } }, log || "（操作日志）");
+				if (id === "chat") return renderChatBody();
 				if (id === "route") return React.createElement(RouteWindow, { map: routeMap, onNodeClick: jumpToState, currentId: routeCurrentId, focusNodes: varNodes, TXT, TXT2, TXT3, ACCENT, BORDER, BG, GHOST, LAYER, embedded: true });
 				if (id === "shot") return React.createElement(ShotWindow, { project, api, TXT, TXT2, TXT3, BORDER, BG, LAYER, sessionId, embedded: true });
 				if (id === "vars") return React.createElement(VarWindow, { vars: (routeStatus && routeStatus.vars) || {}, routeVars: (routeMap && routeMap.variables) || [], onVarJump: jumpToVarDef, onVarFocus: setVarFocus, TXT, TXT2, TXT3, ACCENT, BORDER, BG, LAYER, embedded: true });
@@ -3376,7 +3498,6 @@ window.__ModuleLoader__.load({
 			const editorBox = { position: "relative", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" };
 			const tabBar = { display: "flex", gap: 2, padding: "4px 8px", overflowX: "auto", borderBottom: "1px solid " + BORDER, minHeight: 30, alignItems: "center", background: LAYER };
 			const tabStyle = (act) => ({ padding: "3px 10px", cursor: "pointer", background: act ? GHOST : "transparent", border: "1px solid " + (act ? BORDER : "transparent"), borderRadius: 6, fontSize: 13, whiteSpace: "nowrap", color: act ? ACCENT : TXT, fontFamily: "inherit" });
-			const sideBtn = { padding: "3px 10px", cursor: "pointer", background: sideOpen ? GHOST : "transparent", color: sideOpen ? ACCENT : TXT, border: "1px solid " + (sideOpen ? BORDER : BORDER), borderRadius: 6, fontSize: 13, fontFamily: "inherit" };
 			const statusText = active ? active.name + (active.dirty ? " ●" : "") + "（" + String(lineCount) + " 行）" : "从左侧选择 .rpy 文件打开";
 			const itemRow = (active2) => ({ ...C.listRow(active2) });
 
@@ -3594,7 +3715,7 @@ window.__ModuleLoader__.load({
 					React.createElement("button", { style: { ...iconBtnText, opacity: active ? 1 : .4 }, onClick: openGuiPanel, disabled: !active, title: "GUI 主题定制（gui.rpy）" }, React.createElement("span", {}, "🎨"), React.createElement("span", {}, "主题")),
 					React.createElement("button", { style: { ...iconBtnText, opacity: active ? 1 : .4 }, onClick: convertCurrentLine, disabled: !active, title: "Ren'Py ↔ Python 等价对照" }, React.createElement("span", {}, "⇄"), React.createElement("span", {}, "对照")),
 					React.createElement("button", { style: { ...iconBtnText, opacity: active ? 1 : .4, background: stylePreview ? "rgba(100,160,255,.18)" : "transparent", border: stylePreview ? "1px solid rgba(100,160,255,.45)" : "1px solid transparent" }, onClick: () => { if (active) setStylePreview((v) => !v); }, disabled: !active, title: "文本样式预览（所见即所得）" }, React.createElement("span", { style: { fontFamily: CODE, fontWeight: 700 } }, "Aa"), React.createElement("span", {}, "样式")),
-					!props.hideSidebar ? React.createElement("button", { style: sideBtn, onClick: () => setSideOpen(!sideOpen) }, "💬 对话") : null,
+					React.createElement("button", { style: { ...iconBtnText, color: (panelLayout.bottom.panels || []).includes("chat") ? ACCENT : TXT2 }, onClick: () => movePanel("chat", "bottom"), title: "对话面板（停靠底部区）" }, "💬", React.createElement("span", {}, "对话")),
 					busy ? React.createElement("span", { style: { color: TXT2 } }, "…") : null,
 				),
 				React.createElement("div", { style: { display: "flex", flex: 1, minHeight: 0, maxWidth: "100%", minWidth: 0 } },
@@ -3621,9 +3742,13 @@ window.__ModuleLoader__.load({
 							React.createElement("span", { title: navCollapsed ? "展开控件栏" : "收起控件栏（只显图标）", style: { cursor: "pointer", fontSize: 12, color: TXT3, padding: "2px 10px", userSelect: "none" }, onClick: () => setNavCollapsed(!navCollapsed) }, navCollapsed ? "»" : "«"),
 						),
 					),
-					React.createElement("div", { style: { ...colL, overflow: "hidden", padding: 0, display: "flex", flexDirection: "column" } },
-						renderRegion("left"),
-					),
+					(panelLayout.left && panelLayout.left.panels.length) ? React.createElement(React.Fragment, null,
+						React.createElement("div", { style: { ...colL, width: regionSize.left, overflow: "hidden", padding: 0, display: "flex", flexDirection: "column", position: "relative" } },
+							renderRegion("left"),
+						),
+						// 左栏宽拖拽条
+						React.createElement("div", { onMouseDown: (e) => startRegionResize("left", e), title: "拖动调整左栏宽度", style: { width: 5, flexShrink: 0, cursor: "col-resize", background: "transparent", alignSelf: "stretch" }, onMouseEnter: (e) => { e.currentTarget.style.background = "rgba(100,160,255,.25)"; }, onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; } }),
+					) : null,
 					React.createElement("div", { ref: colRRef, style: colR },
 						React.createElement("div", { style: tabBar },
 							(tabs || []).map((t) => React.createElement("span", { key: t.name, style: tabStyle(t.name === activeName), onClick: () => setActiveName(t.name) },
@@ -3732,84 +3857,6 @@ window.__ModuleLoader__.load({
 						) : null,
 						shot ? React.createElement("img", { src: "data:image/png;base64," + shot, style: { maxWidth: "100%", maxHeight: 200, borderTop: "1px solid " + BORDER } }) : null,
 					),
-					(!props.hideSidebar && sideOpen) ? React.createElement("div", { style: { width: 330, flexShrink: 0, minHeight: 0, borderLeft: "1px solid " + BORDER, background: SIDEFILL, color: TXT, display: "flex", flexDirection: "column", minWidth: 0 } },
-						React.createElement("div", { style: { display: "flex", gap: 6, padding: "7px 10px", borderBottom: "1px solid " + BORDER, alignItems: "center", background: LAYER } },
-							[["chat", "对话"], ["trail", "轨迹"]].map(([k, label]) => React.createElement("span", {
-								key: k,
-								style: C.chip(sideTab === k),
-								onClick: () => setSideTab(k),
-							}, label + " " + (k === "chat" ? feed.chat.length : feed.trail.length))),
-							React.createElement("span", { style: { marginLeft: "auto", fontSize: 11, color: TXT3 } }, "3s 刷新"),
-						),
-						React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } },
-							React.createElement("div", { ref: feedScrollRef, style: { flex: 1, overflow: "auto", padding: "10px 12px" } },
-								sideTab === "chat"
-									? React.createElement("div", null, (feed.chat.length ? feed.chat.map((c, i) => {
-										const isUser = c.t === "user";
-										const ts = c.id ? fmtClock(seenTimeRef.current[c.id]) : "";
-										const grouped = i > 0 && feed.chat[i - 1].t === c.t;
-										const msgKey = c.id || (c.t + i);
-										const meta = React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, marginBottom: 3 } },
-											React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: isUser ? ACCENT : TXT2 } }, isUser ? "我" : "助手"),
-											ts ? React.createElement("span", { style: { fontSize: 11, color: TXT2, opacity: .75 } }, ts) : null,
-											(hoverMsgId === msgKey) ? React.createElement("span", { style: { fontSize: 11, color: TXT3, cursor: "pointer", opacity: .85 }, onClick: () => copyText(c.text), title: "复制这条消息" }, "⧉ 复制") : null,
-											(isUser && hoverMsgId === msgKey) ? React.createElement("span", { style: { fontSize: 11, color: TXT3, cursor: "pointer", opacity: .85 }, onClick: () => {
-												try { if (props.inputActions) props.inputActions.setDraft(c.text); } catch (e) { /* ignore */ }
-												setMsg(c.text);
-												if (composerRef.current) composerRef.current.focus();
-												addLog("已取回输入框，修改后按 Enter 重发（原消息保留在历史中）");
-											}, title: "编辑并重发这条消息" }, "✎ 编辑") : null,
-										);
-										// 助手消息渲染轻量 Markdown（受控 HTML）；用户消息保持纯文本
-										const bubble = isUser
-											? React.createElement("div", { style: { maxWidth: "100%", background: BUBBLE, borderRadius: "12px 4px 12px 12px", padding: "7px 11px", fontSize: 13, lineHeight: "20px", color: TXT, whiteSpace: "pre-wrap", wordBreak: "break-word" } }, c.text)
-											: React.createElement("div", { style: { maxWidth: "100%", background: LAYER2, border: "1px solid " + BORDER, borderRadius: "4px 12px 12px 12px", padding: "7px 11px", fontSize: 13, lineHeight: "20px", color: TXT, wordBreak: "break-word", overflowX: "hidden" }, dangerouslySetInnerHTML: { __html: mdToHtml(c.text) } });
-										// 思考标记：消息带 reasoning 时显示「🤔 思考」，点击展开
-										const reasonOpen = !!expandedReason[msgKey];
-										const reasonTag = (!isUser && c.r) ? React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 4, marginBottom: 4, padding: "1px 8px", borderRadius: 9, fontSize: 11, color: TXT2, background: "rgba(128,128,128,.12)", cursor: "pointer", userSelect: "none" }, onClick: () => setExpandedReason((prev) => { const n = { ...prev }; n[msgKey] = !reasonOpen; return n; }) },
-											"🤔 思考" + (reasonOpen ? " ▾" : " ▸"),
-										) : null;
-										const reasonBlock = (!isUser && c.r && reasonOpen && c.rText) ? React.createElement("div", { style: { marginTop: 4, padding: "6px 8px", borderRadius: 6, background: "rgba(128,128,128,.08)", fontSize: 11, lineHeight: 1.6, color: TXT2, whiteSpace: "pre-wrap", wordBreak: "break-word", fontStyle: "italic", maxHeight: 160, overflow: "auto" } }, c.rText) : null;
-										return React.createElement("div", { key: msgKey, onMouseEnter: () => setHoverMsgId(msgKey), onMouseLeave: () => setHoverMsgId(null), style: { display: "flex", justifyContent: isUser ? "flex-end" : "flex-start", marginBottom: grouped ? 6 : 12 } },
-											isUser
-												? React.createElement("div", { style: { display: "flex", flexDirection: "column", alignItems: "flex-end", maxWidth: "82%" } }, meta, bubble)
-												: React.createElement("div", { style: { display: "flex", gap: 8, alignItems: "flex-start", maxWidth: "88%" } },
-													React.createElement("div", { style: { width: 26, height: 26, borderRadius: 13, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#fff", background: ACCENT, marginTop: 2, userSelect: "none" } }, "AI"),
-													React.createElement("div", { style: { display: "flex", flexDirection: "column", minWidth: 0 } }, meta, reasonTag, bubble, reasonBlock),
-												),
-										);
-									}) : React.createElement("div", { style: { color: TXT2, fontSize: 13, padding: "18px 6px", textAlign: "center" } }, "暂无对话 — 在下方输入框发消息")),
-									// 检查点时间线：持久检查点（每次对话/保存自动建立，点击查看/恢复；无检查点时也显示入口）
-									React.createElement("div", { key: "cp-timeline", style: { marginTop: 10, borderTop: "1px dashed " + BORDER, paddingTop: 8, cursor: "pointer" }, onClick: () => openCpPanel() },
-										React.createElement("div", { style: { fontSize: 11, color: TXT3, marginBottom: 4 } }, cpList.length ? ("📌 持久检查点（" + cpList.length + "）— 每次对话/保存自动建立") : "📌 持久检查点 — 发消息或保存文件后自动建立，点击查看"),
-										cpList.length ? cpList.slice(0, 3).map((c) => React.createElement("div", { key: c.id, style: { display: "flex", alignItems: "center", gap: 6, padding: "3px 6px", borderRadius: 5, fontSize: 11, color: TXT2 } },
-											React.createElement("span", { style: { color: ACCENT } }, "●"),
-											React.createElement("span", { style: { flex: 1 } }, fmtStamp(c.id)),
-											React.createElement("span", { style: { color: TXT3 } }, c.files + " 文件"),
-										)) : React.createElement("div", { style: { padding: "3px 6px", fontSize: 11, color: TXT2 } }, "暂无检查点 — 下一次对话结束或手动保存后自动出现"),
-										cpList.length > 3 ? React.createElement("div", { style: { padding: "3px 6px", fontSize: 11, color: TXT3 } }, "… 共 " + cpList.length + " 个，点击打开全部 →") : null,
-									),
-								) : (feed.trail.length ? feed.trail.map((t, i) => {
-									const isEdit = t.kind === "edit" || t.kind === "write";
-									return React.createElement("div", { key: t.id || i, style: { marginBottom: 6, borderRadius: 8, border: "1px solid " + BORDER, background: LAYER, padding: "6px 9px", overflow: "hidden", cursor: isEdit && t.file ? "pointer" : "default" }, ...(isEdit && t.file ? { onClick: () => jumpTrailEdit(t), title: "跳转到编辑位置" } : {}) },
-										React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, minWidth: 0 } },
-											React.createElement("span", { style: { flexShrink: 0, fontSize: 11, color: t.done ? SUCCESS : BUSCOL, fontWeight: 700 } }, t.done ? "✓" : "●"),
-											isEdit ? React.createElement("span", { style: { flexShrink: 0, fontSize: 11, color: ACCENT, fontWeight: 700 } }, "✎") : null,
-											React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: isEdit && t.file ? ACCENT : TXT, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontFamily: CODE } }, isEdit && t.file ? t.file : t.name),
-											t.args ? React.createElement("span", { style: { fontSize: 11, color: TXT2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontFamily: CODE, minWidth: 0 } }, isEdit && t.file ? "" : t.args) : null,
-										),
-									);
-								}) : React.createElement("div", { style: { color: TXT2, fontSize: 13, padding: "18px 6px", textAlign: "center" } }, "暂无工具调用轨迹")),
-							),
-							(sideTab === "chat" && props.inputActions) ? React.createElement("div", { style: { borderTop: "1px solid " + BORDER, padding: "7px 10px 9px", background: LAYER } },
-								React.createElement("div", { style: { display: "flex", gap: 6, alignItems: "flex-end", border: "1px solid " + (composerFocus ? ACCENT : BORDER), borderRadius: 10, background: INPUTBG, padding: 4, transition: "border-color .15s" } },
-									React.createElement("textarea", { ref: composerRef, value: msg, onChange: (e) => setMsg(e.target.value), onKeyDown: (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMsg(); } }, onFocus: () => setComposerFocus(true), onBlur: () => setComposerFocus(false), placeholder: "给 agent 发消息…", rows: 2, style: { flex: 1, background: "transparent", color: TXT, border: "none", outline: "none", borderRadius: 6, fontSize: 13, lineHeight: "20px", resize: "none", fontFamily: "inherit", padding: "3px 4px" } }),
-									React.createElement("button", { onClick: sendMsg, disabled: !msg.trim(), title: "发送 (Enter)", style: { width: 30, height: 30, borderRadius: 15, flexShrink: 0, cursor: "pointer", background: msg.trim() ? ACCENT : "rgba(128,128,128,.35)", color: "#fff", border: "none", fontSize: 14, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" } }, "➤"),
-								),
-								React.createElement("div", { style: { fontSize: 11, color: TXT3, marginTop: 4 } }, "Enter 发送 · Shift+Enter 换行"),
-							) : null,
-						),
-					) : null,
 				),
 				// ── 保存历史弹层（版本列表 + 预览 + 一键恢复） ──
 				histOpen ? React.createElement("div", { style: { position: "absolute", inset: 0, background: "rgba(0,0,0,.4)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 } },
@@ -3988,8 +4035,10 @@ window.__ModuleLoader__.load({
 							React.createElement("button", { style: { ...btnPrimary, padding: "3px 14px" }, onClick: confirmTeach }, "确认生成"),
 						),
 					) : null,
-					// ── 底部面板区（P2：多面板水平平分，标题栏拖拽/吸附） ──
-					(panelLayout.bottom && panelLayout.bottom.panels.length) ? React.createElement("div", { style: { display: "flex", flexDirection: "column", flexShrink: 0, height: 170, minHeight: 0, borderTop: "1px solid " + BORDER, background: BG } },
+					// ── 底部面板区（P2：多面板水平平分，标题栏拖拽/吸附；顶部拖拽条调高） ──
+					(panelLayout.bottom && panelLayout.bottom.panels.length) ? React.createElement("div", { style: { display: "flex", flexDirection: "column", flexShrink: 0, height: regionSize.bottom, minHeight: 0, borderTop: "1px solid " + BORDER, background: BG, position: "relative" } },
+						// 底部区高拖拽条
+						React.createElement("div", { onMouseDown: (e) => startRegionResize("bottom", e), title: "拖动调整底部区高度", style: { position: "absolute", top: -3, left: 0, right: 0, height: 6, cursor: "row-resize", zIndex: 5 }, onMouseEnter: (e) => { e.currentTarget.style.background = "rgba(100,160,255,.25)"; }, onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; } }),
 						renderRegion("bottom"),
 					) : null,
 					// ── 状态栏（规范 §2：项目 | 运行状态 | 文件 | 行列 | 保存态） ──
@@ -4002,6 +4051,17 @@ window.__ModuleLoader__.load({
 						active ? React.createElement("span", { style: { color: active.dirty ? ERRCOL : SUCCESS } }, active.dirty ? "● 未保存" : "✓ 已保存") : null,
 						React.createElement("span", {}, ".rpy"),
 					),
+					// ── 最大化面板覆盖层（占满整个工作区；标题栏带还原） ──
+					maximized ? React.createElement("div", { style: { position: "absolute", inset: 0, zIndex: 9000, display: "flex", flexDirection: "column", background: BG } },
+						React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, padding: "3px 8px", background: LAYER, borderBottom: "1px solid " + BORDER, flexShrink: 0, flexWrap: "wrap" } },
+							React.createElement("span", { style: { fontSize: 11 } }, (PANEL_META[maximized] || {}).icon || "📦"),
+							React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: TXT } }, (PANEL_META[maximized] || {}).title || maximized),
+							React.createElement("span", { style: { flex: 1 } }),
+							renderPanelOps(maximized),
+							React.createElement("span", { title: "还原", style: { fontSize: 12, color: TXT2, cursor: "pointer", padding: "1px 6px" }, onClick: () => setMaximized(null) }, "🗗 还原"),
+						),
+						React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", display: "flex", flexDirection: "column" } }, renderPanel(maximized)),
+					) : null,
 			);
 		}
 
@@ -4019,7 +4079,6 @@ window.__ModuleLoader__.load({
 
 		function SessionLayout(props) {
 			const [sideOpen, setSideOpen] = React.useState(true);
-			const [sideView, setSideView] = React.useState("chat");
 			const rs = props && props.renderSlot;
 			const tv = (n) => "var(" + n + ")";
 			const BORDER = tv("--dsw-alias-border-l1");
@@ -4030,7 +4089,7 @@ window.__ModuleLoader__.load({
 			const LAYER = tv("--dsw-alias-bg-layer-1");
 			const SIDEFILL = tv("--dsw-specific-sidebar-fill");
 			const chip = (act) => ({ padding: "2px 10px", fontSize: 12, cursor: "pointer", background: act ? "rgba(100,160,255,.25)" : "transparent", border: "1px solid " + (act ? ACCENT : BORDER), borderRadius: 4, color: TXT, whiteSpace: "nowrap" });
-			const sideEl = rs ? (sideView === "chat" ? rs("conversation.view", { only: "chat" }) : rs("conversation.view", { only: "trajectory" })) : React.createElement("div", { style: { color: TXT2, fontSize: 12, padding: 8 } }, "renderSlot 不可用");
+			const sideEl = rs ? rs("conversation.view", { only: "chat" }) : React.createElement("div", { style: { color: TXT2, fontSize: 12, padding: 8 } }, "renderSlot 不可用");
 
 			return React.createElement("div", { style: { display: "flex", flexDirection: "column", height: "100%", minHeight: 0, background: BG, color: TXT } },
 				React.createElement("div", { style: { display: "flex", gap: 8, alignItems: "center", padding: "4px 10px", borderBottom: "1px solid " + BORDER, background: LAYER, flexWrap: "wrap" } },
@@ -4044,8 +4103,7 @@ window.__ModuleLoader__.load({
 					),
 					sideOpen ? React.createElement("div", { style: { width: 360, borderLeft: "1px solid " + BORDER, background: SIDEFILL, display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0 } },
 						React.createElement("div", { style: { display: "flex", gap: 4, padding: "4px 8px", borderBottom: "1px solid " + BORDER } },
-							React.createElement("span", { style: chip(sideView === "chat"), onClick: () => setSideView("chat") }, "对话"),
-							React.createElement("span", { style: chip(sideView === "trajectory"), onClick: () => setSideView("trajectory") }, "轨迹"),
+							React.createElement("span", { style: chip(true) }, "对话"),
 						),
 						React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } },
 							React.createElement(ErrBoundary, null, sideEl),
