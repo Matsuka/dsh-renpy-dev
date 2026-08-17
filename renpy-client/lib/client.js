@@ -602,7 +602,9 @@ window.__ModuleLoader__.load({
 			cp: { title: "修改面板", icon: "✎" },
 		};
 		// 默认布局（Win11 式：区域内多面板平铺平分；持久化到 localStorage.renpy-panel-layout）
-		const LAYOUT_DEFAULT = { left: { panels: ["files", "nav", "assets", "edits"] }, bottom: { panels: ["chat", "log"] } };
+		const LAYOUT_DEFAULT = { left: { panels: ["files", "nav", "assets", "edits"] }, right: { panels: [] }, bottom: { panels: ["chat", "log"] } };
+		// 停靠区域列表（left/right 垂直堆叠、bottom 水平排布；统一遍历）
+		const REGIONS = ["left", "right", "bottom"];
 
 		// ── 控件规范库（§5：统一按钮/输入/胶囊/行/徽标；直接引用 DSH token，任何组件可用） ──
 		// 高度 24-26、圆角 6、全 token 驱动；状态：idle→hover→active→disabled(降透明度)
@@ -1169,10 +1171,10 @@ window.__ModuleLoader__.load({
 					if (!d) return;
 					if (d.resize) { onChange({ ...w, w: Math.max(300, d.ow + e.clientX - d.sx), h: Math.max(200, d.oh + e.clientY - d.sy) }); return; }
 					onChange({ ...w, x: Math.max(0, d.ox + e.clientX - d.sx), y: Math.max(0, d.oy + e.clientY - d.sy) });
-					// 吸附预览：窗口靠近视口左/下边缘时显示高亮条
+					// 吸附预览：窗口靠近视口左/右/下边缘时显示高亮条
 					const nw = winRef.current;
 					const vw = window.innerWidth, vh = window.innerHeight;
-					const hint = nw.x < 60 ? "left" : (nw.y > vh - 80 ? "bottom" : null);
+					const hint = nw.x < 60 ? "left" : (nw.x + nw.w > vw - 60 ? "right" : (nw.y > vh - 80 ? "bottom" : null));
 					setSnapHint(hint);
 				};
 				const onUp = () => {
@@ -1181,6 +1183,7 @@ window.__ModuleLoader__.load({
 					setSnapHint(null);
 					if (d && !d.resize) {
 						if (w.x < 60) { dragRef.current = null; setDragState(null); onDock("left"); return; }
+						if (w.x + w.w > vw - 60) { dragRef.current = null; setDragState(null); onDock("right"); return; }
 						if (w.y > vh - 80) { dragRef.current = null; setDragState(null); onDock("bottom"); return; }
 					}
 					dragRef.current = null;
@@ -1207,8 +1210,9 @@ window.__ModuleLoader__.load({
 				),
 				React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", display: "flex", flexDirection: "column" } }, children),
 				React.createElement("div", { onMouseDown: onResizeDown, title: "拖拽缩放", style: { position: "absolute", right: 0, bottom: 0, width: 18, height: 18, cursor: "nwse-resize", background: "linear-gradient(135deg, transparent 50%, rgba(128,128,128,.55) 50%)", borderBottomRightRadius: 10 } }),
-				// 吸附预览：拖动靠近视口左/下边缘时，边缘显示品牌色高亮条
+				// 吸附预览：拖动靠近视口左/右/下边缘时，边缘显示品牌色高亮条
 				snapHint === "left" ? React.createElement("div", { style: { position: "fixed", left: 0, top: 0, bottom: 0, width: 4, background: ACCENT, zIndex: 10011, pointerEvents: "none", opacity: .8 } }) : null,
+				snapHint === "right" ? React.createElement("div", { style: { position: "fixed", right: 0, top: 0, bottom: 0, width: 4, background: ACCENT, zIndex: 10011, pointerEvents: "none", opacity: .8 } }) : null,
 				snapHint === "bottom" ? React.createElement("div", { style: { position: "fixed", left: 0, right: 0, bottom: 0, height: 4, background: ACCENT, zIndex: 10011, pointerEvents: "none", opacity: .8 } }) : null,
 			);
 			return ReactDOM.createPortal(body, document.body);
@@ -2799,7 +2803,7 @@ window.__ModuleLoader__.load({
 							const l = fix(j.left);
 							// 旧版布局迁移：文件面板含导航 → 拆出独立 nav 面板（跟在 files 后）
 							if (l.panels.includes("files") && !l.panels.includes("nav")) l.panels.splice(l.panels.indexOf("files") + 1, 0, "nav");
-							return { left: l, bottom: fix(j.bottom) };
+							return { left: l, right: fix(j.right) || { panels: [], sizes: {} }, bottom: fix(j.bottom) };
 						}
 					}
 				} catch (e) { /* ignore */ }
@@ -2812,7 +2816,7 @@ window.__ModuleLoader__.load({
 			const removePanel = (id) => {
 				setPanelLayout((l) => {
 					const n = {};
-					for (const r of ["left", "bottom"]) {
+					for (const r of REGIONS) {
 						const g = l[r] || { panels: [], sizes: {} };
 						const sizes = { ...(g.sizes || {}) };
 						delete sizes[id];
@@ -2828,7 +2832,7 @@ window.__ModuleLoader__.load({
 			// 最大化面板：占满整个工作区（其余区域/导航隐藏），再点还原
 			const [maximized, setMaximized] = React.useState(panelState.maximized || null); // panelId | null
 			// 区域尺寸（可拖拽调整）：left 栏宽 / bottom 区高；面板比例存 panelLayout.<region>.sizes[id]
-			const [regionSize, setRegionSize] = React.useState(panelState.regionSize || { left: 220, bottom: 170 });
+			const [regionSize, setRegionSize] = React.useState(panelState.regionSize || { left: 220, right: 220, bottom: 170 });
 			const regionSizeRef = React.useRef(regionSize);
 			regionSizeRef.current = regionSize;
 			// 最左控件总栏：自动隐藏（平时收起，鼠标靠近左缘展开，离开自动收起）
@@ -2847,21 +2851,21 @@ window.__ModuleLoader__.load({
 			const [dragGhost, setDragGhost] = React.useState(null); // {id}——拖影显隐（位置走 ghostRef DOM，避免重渲染风暴）
 			const ghostRef = React.useRef(null);
 			const floatElsRef = React.useRef({}); // 浮动窗根元素注册（长按跟手时 DOM 直改位置）
-			const regionRefs = { left: React.useRef(null), bottom: React.useRef(null) };
+			const regionRefs = { left: React.useRef(null), right: React.useRef(null), bottom: React.useRef(null) };
 			const panelLayoutRef = React.useRef(panelLayout);
 			panelLayoutRef.current = panelLayout;
 			// 检测落点：区域优先（含区域内插入位置 index），视口边缘兜底 → {region, index} | null
 			const detectSnap = (e) => {
-				for (const r of ["left", "bottom"]) {
+				for (const r of REGIONS) {
 					const el = regionRefs[r] && regionRefs[r].current;
 					if (el) {
 						const rect = el.getBoundingClientRect();
 						if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
 							const panels = (panelLayoutRef.current[r] || { panels: [] }).panels;
 							const n = Math.max(1, panels.length);
-							const isLeft = r === "left";
-							const pos = isLeft ? e.clientY - rect.top : e.clientX - rect.left;
-							const span = isLeft ? (rect.bottom - rect.top) : (rect.right - rect.left);
+							const vertical = r !== "bottom"; // left/right 垂直堆叠，bottom 水平排布
+							const pos = vertical ? e.clientY - rect.top : e.clientX - rect.left;
+							const span = vertical ? (rect.bottom - rect.top) : (rect.right - rect.left);
 							if (span <= 0) continue; // 防御：区域无实际尺寸时跳过
 							const index = Math.max(0, Math.min(n, Math.floor(pos / (span / n))));
 							return { region: r, index };
@@ -2871,6 +2875,7 @@ window.__ModuleLoader__.load({
 				const vw = (typeof window !== "undefined" ? window.innerWidth : 0);
 				const vh = (typeof window !== "undefined" ? window.innerHeight : 0);
 				if (e.clientX < 80) return { region: "left", index: (panelLayoutRef.current.left || { panels: [] }).panels.length };   // 视口左缘 → 左栏尾部
+				if (e.clientX > vw - 80) return { region: "right", index: (panelLayoutRef.current.right || { panels: [] }).panels.length }; // 视口右缘 → 右栏尾部
 				if (e.clientY > vh - 90) return { region: "bottom", index: (panelLayoutRef.current.bottom || { panels: [] }).panels.length }; // 视口下缘 → 底部尾部
 				return null;
 			};
@@ -2878,7 +2883,7 @@ window.__ModuleLoader__.load({
 			const movePanelTo = (id, region, index) => {
 				setPanelLayout((l) => {
 					const n = {};
-					for (const r of ["left", "bottom"]) {
+					for (const r of REGIONS) {
 						const g = l[r] || { panels: [], sizes: {} };
 						n[r] = { panels: g.panels.filter((p) => p !== id), sizes: { ...(g.sizes || {}) } };
 					}
@@ -2894,13 +2899,13 @@ window.__ModuleLoader__.load({
 			const regionResizeRef = React.useRef(null); // {kind:"left"|"bottom", sx, sy, base}
 			const panelSplitRef = React.useRef(null); // {region, idx, sx, sy, a, b}——区域内面板比例拖拽
 			// 限频镜像（拖拽中每帧 setState 会引发整个面板重渲染风暴 → 值没变不 set）
-			const regionSizeMirrorRef = React.useRef(panelState.regionSize || { left: 220, bottom: 170 });
+			const regionSizeMirrorRef = React.useRef(panelState.regionSize || { left: 220, right: 220, bottom: 170 });
 			const panelSizesMirrorRef = React.useRef({}); // region -> {panelId: flex}
 			const startRegionResize = (kind, e) => {
 				e.preventDefault();
 				e.stopPropagation();
 				if (dragPanelRef.current) return; // 防御：面板拖拽中忽略
-				const base = kind === "left" ? regionSizeRef.current.left : regionSizeRef.current.bottom;
+				const base = regionSizeRef.current[kind] || 170;
 				regionResizeRef.current = { kind, sx: e.clientX, sy: e.clientY, base };
 			};
 			const startPanelSplit = (region, idx, e) => {
@@ -2912,7 +2917,7 @@ window.__ModuleLoader__.load({
 				// 记录像素上下文：区域可用尺寸 + 当前总权重，拖拽时按像素位移换算权重（高度变化严格跟手）
 				const el = regionRefs[region] && regionRefs[region].current;
 				const rect = el ? el.getBoundingClientRect() : null;
-				const total = rect ? (region === "left" ? rect.height : rect.width) : 300;
+				const total = rect ? (region === "bottom" ? rect.width : rect.height) : 300;
 				const S = g.panels.reduce((s, p) => s + (sizes[p] || 1), 0) || 1;
 				panelSplitRef.current = { region, idx, sx: e.clientX, sy: e.clientY, a: sizes[g.panels[idx]] || 1, b: sizes[g.panels[idx + 1]] || 1, total, S };
 			};
@@ -2930,7 +2935,7 @@ window.__ModuleLoader__.load({
 					setFloating((f) => ({ ...f, [id]: { x: Math.max(0, Math.min(d.sx - 220, vw - 460)), y: Math.max(0, Math.min(d.sy - 20, vh - 120)), w: 440, h: 320 } }));
 					setPanelLayout((l) => {
 						const n = {};
-						for (const r of ["left", "bottom"]) n[r] = { panels: (l[r] || { panels: [] }).panels.filter((p) => p !== id) };
+						for (const r of REGIONS) n[r] = { panels: (l[r] || { panels: [] }).panels.filter((p) => p !== id) };
 						return n;
 					});
 				}, 350);
@@ -2964,18 +2969,16 @@ window.__ModuleLoader__.load({
 						if (s === null || pr === null || pr.region !== s.region || pr.index !== s.index) { snapPreviewRef.current = s; setSnapPreview(s); }
 						return;
 					}
-					// 区域尺寸拖拽：left 宽（右缘条：向右拖变大）/ bottom 高（上缘条：向上拖变大；限频：值没变不 setState）
+					// 区域尺寸拖拽：left 宽（右缘条：向右拖变大 next=base+delta）/ right 宽（左缘条：向左拖变大 next=base-delta）/ bottom 高（上缘条：向上拖变大 next=base-delta）
 					const rr = regionResizeRef.current;
 					if (rr) {
-						// bottom 拖拽条在区域上缘 → 向上拖(delta负)区域变大：next = base - delta
-						// left 拖拽条在右缘 → 向右拖(delta正)区域变大：next = base + delta
-						const delta = rr.kind === "left" ? (e.clientX - rr.sx) : (e.clientY - rr.sy);
-						const next = rr.kind === "left"
-							? Math.max(140, Math.min(560, rr.base + delta))
-							: Math.max(80, Math.min(600, rr.base - delta));
-						const cur = rr.kind === "left" ? regionSizeMirrorRef.current.left : regionSizeMirrorRef.current.bottom;
+						const delta = rr.kind === "bottom" ? (e.clientY - rr.sy) : (e.clientX - rr.sx);
+						const sign = rr.kind === "left" ? 1 : -1;
+						const clamp = rr.kind === "bottom" ? [80, 600] : [140, 560];
+						const next = Math.max(clamp[0], Math.min(clamp[1], rr.base + sign * delta));
+						const cur = regionSizeMirrorRef.current[rr.kind];
 						if (Math.abs(next - cur) >= 2) {
-							regionSizeMirrorRef.current = rr.kind === "left" ? { ...regionSizeMirrorRef.current, left: next } : { ...regionSizeMirrorRef.current, bottom: next };
+							regionSizeMirrorRef.current = { ...regionSizeMirrorRef.current, [rr.kind]: next };
 							setRegionSize(regionSizeMirrorRef.current);
 						}
 						return;
@@ -2986,7 +2989,7 @@ window.__ModuleLoader__.load({
 						const g = panelLayoutRef.current[ps.region] || { panels: [], sizes: {} };
 						const p0 = g.panels[ps.idx], p1 = g.panels[ps.idx + 1];
 						if (p0 && p1) {
-							const delta = ps.region === "left" ? (e.clientY - ps.sy) : (e.clientX - ps.sx);
+							const delta = ps.region === "bottom" ? (e.clientX - ps.sx) : (e.clientY - ps.sy);
 							// 像素位移 → 权重增量：权重变化 Δw 使面板高度变化 Δw/S*total 像素 → Δw = delta*S/total
 							const dw = delta * ps.S / Math.max(1, ps.total);
 							const a = Math.max(0.15, ps.a + dw);
@@ -3034,7 +3037,7 @@ window.__ModuleLoader__.load({
 								setFloating((f) => ({ ...f, [d.id]: { x: Math.max(0, Math.min(e.clientX - 220, vw - 460)), y: Math.max(0, Math.min(e.clientY - 20, vh - 120)), w: 440, h: 320 } }));
 								setPanelLayout((l) => {
 									const n = {};
-									for (const r of ["left", "bottom"]) n[r] = { panels: (l[r] || { panels: [] }).panels.filter((p) => p !== d.id) };
+									for (const r of REGIONS) n[r] = { panels: (l[r] || { panels: [] }).panels.filter((p) => p !== d.id) };
 									return n;
 								});
 							}
@@ -3073,25 +3076,25 @@ window.__ModuleLoader__.load({
 				if (id === "edits") return op("↗", "打开修改面板", () => openCpPanel());
 				return null;
 			};
-			// 区域渲染：多面板平铺（左栏垂直堆叠 / 底部水平排布），面板间分隔条可拖拽调比例；各面板标题栏可拖拽；吸附示意高亮区域
+			// 区域渲染：多面板平铺（左/右栏垂直堆叠 / 底部水平排布），面板间分隔条可拖拽调比例；各面板标题栏可拖拽；吸附示意高亮区域
 			const renderRegion = (region) => {
 				const g = panelLayout[region] || { panels: [], sizes: {} };
-				const isLeft = region === "left";
+				const vertical = region !== "bottom"; // left/right 垂直堆叠，bottom 水平排布
 				const sp = snapPreview && snapPreview.region === region ? snapPreview : null;
 				const sizes = g.sizes || {};
-				return React.createElement("div", { ref: regionRefs[region], style: { flex: 1, minHeight: 0, display: "flex", flexDirection: isLeft ? "column" : "row", overflow: "hidden", outline: sp ? "2px solid " + ACCENT : "none", outlineOffset: -2, position: "relative" } },
+				return React.createElement("div", { ref: regionRefs[region], style: { flex: 1, minHeight: 0, display: "flex", flexDirection: vertical ? "column" : "row", overflow: "hidden", outline: sp ? "2px solid " + ACCENT : "none", outlineOffset: -2, position: "relative" } },
 					// 分区吸附预览：拖动中目标区域半透明填充高亮 + 插入位置指示线（Win11 snap 示意；粗线+发光更醒目）
 					sp ? React.createElement("div", { style: { position: "absolute", inset: 0, background: "rgba(100,160,255,.16)", pointerEvents: "none", zIndex: 6 } }) : null,
-					sp ? React.createElement("div", { style: { position: "absolute", left: isLeft ? 0 : "calc(" + (sp.index / Math.max(1, g.panels.length)) * 100 + "% - 2px)", top: isLeft ? "calc(" + (sp.index / Math.max(1, g.panels.length)) * 100 + "% - 2px)" : 0, width: isLeft ? "100%" : 4, height: isLeft ? 4 : "100%", background: ACCENT, borderRadius: 2, boxShadow: "0 0 8px " + ACCENT, zIndex: 7, pointerEvents: "none" } }) : null,
+					sp ? React.createElement("div", { style: { position: "absolute", left: vertical ? 0 : "calc(" + (sp.index / Math.max(1, g.panels.length)) * 100 + "% - 2px)", top: vertical ? "calc(" + (sp.index / Math.max(1, g.panels.length)) * 100 + "% - 2px)" : 0, width: vertical ? "100%" : 4, height: vertical ? 4 : "100%", background: ACCENT, borderRadius: 2, boxShadow: "0 0 8px " + ACCENT, zIndex: 7, pointerEvents: "none" } }) : null,
 					g.panels.map((id, pi) => {
 						const meta = PANEL_META[id] || { title: id, icon: "📦" };
 						const last = g.panels.length > 1;
 						const dragging = dragGhost && dragGhost.id === id;
 						return React.createElement(React.Fragment, { key: id },
-							// 面板间分隔条：拖拽调整两面板比例（左栏横条改上下比，底部竖条改左右比）
-							pi > 0 ? React.createElement("div", { onMouseDown: (e) => startPanelSplit(region, pi - 1, e), title: "拖动调整面板比例", style: { flexShrink: 0, ...(isLeft ? { height: 4, cursor: "row-resize", width: "100%" } : { width: 4, cursor: "col-resize", height: "100%" }), background: "transparent", zIndex: 3, transition: "background .12s" }, onMouseEnter: (e) => { e.currentTarget.style.background = "rgba(100,160,255,.25)"; }, onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; } }) : null,
-							React.createElement("div", { style: { flex: sizes[id] || 1, minWidth: 0, minHeight: 0, display: "flex", flexDirection: "column", borderBottom: isLeft && last ? "1px solid " + BORDER : "none", borderRight: !isLeft && last ? "1px solid " + BORDER : "none", opacity: dragging ? 0.35 : 1, transition: "opacity .12s", filter: dragging ? "saturate(.6)" : "none" } },
-								React.createElement("div", { onMouseDown: (e) => startDragPanel(id, e), title: "拖拽：拖到左/下分区吸附，或拖出成浮动窗", style: { display: "flex", alignItems: "center", gap: 6, padding: "3px 8px", background: LAYER, borderBottom: "1px solid " + BORDER, cursor: "grab", userSelect: "none", flexShrink: 0, flexWrap: "wrap" } },
+							// 面板间分隔条：拖拽调整两面板比例（左/右栏横条改上下比，底部竖条改左右比）
+							pi > 0 ? React.createElement("div", { onMouseDown: (e) => startPanelSplit(region, pi - 1, e), title: "拖动调整面板比例", style: { flexShrink: 0, ...(vertical ? { height: 4, cursor: "row-resize", width: "100%" } : { width: 4, cursor: "col-resize", height: "100%" }), background: "transparent", zIndex: 3, transition: "background .12s" }, onMouseEnter: (e) => { e.currentTarget.style.background = "rgba(100,160,255,.25)"; }, onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; } }) : null,
+							React.createElement("div", { style: { flex: sizes[id] || 1, minWidth: 0, minHeight: 0, display: "flex", flexDirection: "column", borderBottom: vertical && last ? "1px solid " + BORDER : "none", borderRight: !vertical && last ? "1px solid " + BORDER : "none", opacity: dragging ? 0.35 : 1, transition: "opacity .12s", filter: dragging ? "saturate(.6)" : "none" } },
+								React.createElement("div", { onMouseDown: (e) => startDragPanel(id, e), title: "拖拽：拖到左/右/下分区吸附，或拖出成浮动窗", style: { display: "flex", alignItems: "center", gap: 6, padding: "3px 8px", background: LAYER, borderBottom: "1px solid " + BORDER, cursor: "grab", userSelect: "none", flexShrink: 0, flexWrap: "wrap" } },
 									React.createElement("span", { style: { fontSize: 11 } }, meta.icon),
 									React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: TXT } }, meta.title),
 									React.createElement("span", { style: { flex: 1 } }),
@@ -3660,7 +3663,7 @@ window.__ModuleLoader__.load({
 
 			// 轮询调试位置回报（路线图/画面/变量面板任一可见（区域或浮动）时，2s；无回报视为未在调试）
 			React.useEffect(() => {
-				const inLayout = ["route", "shot", "vars"].some((k) => (panelLayout.left.panels || []).includes(k) || (panelLayout.bottom.panels || []).includes(k));
+				const inLayout = ["route", "shot", "vars"].some((k) => ["left", "right", "bottom"].some((r) => ((panelLayout[r] || {}).panels || []).includes(k)));
 				const inFloat = ["route", "shot", "vars"].some((k) => floating && floating[k]);
 				if ((!inLayout && !inFloat) || !project) { setRouteStatus(null); return; }
 				const poll = () => {
@@ -3711,11 +3714,13 @@ window.__ModuleLoader__.load({
 					),
 					React.createElement("div", { style: { flex: 1, margin: 4, borderRadius: 4, border: "1px dashed " + ACCENT, opacity: .5 } }),
 				) : null,
-				// ── 视口边缘吸附指示：snapPreview 命中 bottom/left 但该区域尚无面板（未渲染）时，在视口边缘显示高亮条，提示松手落点 ──
+				// ── 视口边缘吸附指示：snapPreview 命中 bottom/left/right 但该区域尚无面板（未渲染）时，在视口边缘显示高亮条，提示松手落点 ──
 				(snapPreview && !(panelLayout[snapPreview.region] || { panels: [] }).panels.length)
 					? (snapPreview.region === "bottom"
 						? React.createElement("div", { style: { position: "fixed", left: 0, right: 0, bottom: 0, height: 4, background: ACCENT, boxShadow: "0 0 10px " + ACCENT, zIndex: 9998, pointerEvents: "none" } })
-						: React.createElement("div", { style: { position: "fixed", left: 0, top: 0, bottom: 0, width: 4, background: ACCENT, boxShadow: "0 0 10px " + ACCENT, zIndex: 9998, pointerEvents: "none" } }))
+						: snapPreview.region === "left"
+							? React.createElement("div", { style: { position: "fixed", left: 0, top: 0, bottom: 0, width: 4, background: ACCENT, boxShadow: "0 0 10px " + ACCENT, zIndex: 9998, pointerEvents: "none" } })
+							: React.createElement("div", { style: { position: "fixed", right: 0, top: 0, bottom: 0, width: 4, background: ACCENT, boxShadow: "0 0 10px " + ACCENT, zIndex: 9998, pointerEvents: "none" } }))
 					: null,
 				// ── 顶栏（类 VSCode：项目输入 + 图标+文字操作 + 强调工作范围 + 对话） ──
 				React.createElement("div", { style: { ...row, gap: 6, flexWrap: "wrap" } },
@@ -3754,10 +3759,10 @@ window.__ModuleLoader__.load({
 					// ── 控件总栏（点击打开面板/窗口；按键已统一到顶部；可收缩只显图标；自动隐藏基于自身位置） ──
 					React.createElement("div", { ref: navRef, style: { width: navCollapsed ? 46 : 172, flexShrink: 0, borderRight: "1px solid " + BORDER, background: LAYER, display: "flex", flexDirection: "column", paddingTop: 6, overflowY: "auto", overflowX: "hidden", transition: "width .15s" } },
 						// 调试控件（需运行游戏：桥接回报驱动；点击停靠为面板控件，可拖拽/吸附/浮动）
-						!navCollapsed ? React.createElement("div", { style: { width: "100%", padding: "1px 10px 5px", fontSize: 10, color: TXT3, fontWeight: 600 } }, "调试 · 需运行") : null,
-						abIcon("🗺", "分支路线图", () => movePanel("route", "left"), { opacity: project ? 1 : .4, hideText: navCollapsed, title: "路线图面板（状态机图；点击节点跳游戏需运行）" }),
-						abIcon("🎬", "实时画面", () => movePanel("shot", "left"), { opacity: project ? 1 : .4, hideText: navCollapsed, title: "实时画面面板（截图 + 点击/推进/回滚）" }),
-						abIcon("📊", "运行时变量", () => movePanel("vars", "left"), { opacity: project ? 1 : .4, hideText: navCollapsed, title: "变量监控面板（变化高亮）" }),
+						!navCollapsed ? React.createElement("div", { style: { width: "100%", padding: "1px 10px 5px", fontSize: 10, color: TXT3, fontWeight: 600 } }, "调试 · 需运行（停靠右侧栏）") : null,
+						abIcon("🗺", "分支路线图", () => movePanel("route", "right"), { opacity: project ? 1 : .4, hideText: navCollapsed, title: "路线图面板（右侧栏；状态机图，点击节点跳游戏需运行）" }),
+						abIcon("🎬", "实时画面", () => movePanel("shot", "right"), { opacity: project ? 1 : .4, hideText: navCollapsed, title: "实时画面面板（右侧栏；截图 + 点击/推进/回滚）" }),
+						abIcon("📊", "运行时变量", () => movePanel("vars", "right"), { opacity: project ? 1 : .4, hideText: navCollapsed, title: "变量监控面板（右侧栏；变化高亮）" }),
 						React.createElement("div", { style: { width: 148, height: 1, background: BORDER, margin: "4px 0 6px", alignSelf: "center" } }),
 						// 视图控件（停靠左栏）
 						[["files", "📄", "项目文件"], ["nav", "🧭", "导航"], ["assets", "🖼", "项目素材"], ["edits", "✎", "基线更改"]].map(([k, icon, label]) => { const inLeft = (panelLayout.left.panels || []).includes(k); return React.createElement("div", { key: k, title: label, onClick: () => movePanel(k, "left"), style: { position: "relative", width: "100%", height: 32, marginBottom: 2, display: "flex", alignItems: "center", gap: 7, padding: "0 10px", cursor: "pointer" } },
@@ -4065,6 +4070,14 @@ window.__ModuleLoader__.load({
 						React.createElement("div", { style: { display: "flex", gap: 8, justifyContent: "flex-end" } },
 							React.createElement("button", { style: { ...btn, padding: "3px 14px" }, onClick: cancelTeach }, "取消"),
 							React.createElement("button", { style: { ...btnPrimary, padding: "3px 14px" }, onClick: confirmTeach }, "确认生成"),
+						),
+					) : null,
+					// ── 右侧栏（P2：调试面板停靠区；左缘拖拽条调宽，空时不占空间） ──
+					(panelLayout.right && panelLayout.right.panels.length) ? React.createElement(React.Fragment, null,
+						// 右栏宽拖拽条（在右栏左缘：向左拖变大 → base - delta）
+						React.createElement("div", { onMouseDown: (e) => startRegionResize("right", e), title: "拖动调整右栏宽度", style: { width: 5, flexShrink: 0, cursor: "col-resize", background: "transparent", alignSelf: "stretch" }, onMouseEnter: (e) => { e.currentTarget.style.background = "rgba(100,160,255,.25)"; }, onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; } }),
+						React.createElement("div", { style: { ...colL, width: regionSize.right, overflow: "hidden", padding: 0, display: "flex", flexDirection: "column", position: "relative", borderRight: "none", borderLeft: "1px solid " + BORDER, flexShrink: 0 } },
+							renderRegion("right"),
 						),
 					) : null,
 					// ── 底部面板区（P2：多面板水平平分，标题栏拖拽/吸附；顶部拖拽条调高） ──
