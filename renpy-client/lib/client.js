@@ -588,6 +588,20 @@ window.__ModuleLoader__.load({
 		};
 		const ROLE_LABEL = { start: "起点", choice: "选择", ending: "结局", dead_end: "死路", orphan: "孤立", loop: "循环", scene: "场景" };
 
+		// ── 控件规范库（§5：统一按钮/输入/胶囊/行/徽标；直接引用 DSH token，任何组件可用） ──
+		// 高度 24-26、圆角 6、全 token 驱动；状态：idle→hover→active→disabled(降透明度)
+		const C = {
+			btn: { display: "inline-flex", alignItems: "center", gap: 5, height: 26, padding: "0 12px", cursor: "pointer", background: "transparent", color: "var(--dsw-alias-label-primary)", border: "1px solid var(--dsw-alias-border-l1)", borderRadius: 6, fontSize: 12, lineHeight: 1, whiteSpace: "nowrap", fontFamily: "inherit", boxSizing: "border-box" },
+			btnPrimary: { display: "inline-flex", alignItems: "center", gap: 5, height: 26, padding: "0 12px", cursor: "pointer", background: "var(--dsw-alias-brand-primary)", color: "#fff", border: "1px solid var(--dsw-alias-brand-primary)", borderRadius: 6, fontSize: 12, lineHeight: 1, whiteSpace: "nowrap", fontFamily: "inherit", boxSizing: "border-box" },
+			btnDanger: { display: "inline-flex", alignItems: "center", gap: 5, height: 26, padding: "0 12px", cursor: "pointer", background: "transparent", color: "var(--dsw-alias-state-error-primary)", border: "1px solid var(--dsw-alias-state-error-primary)", borderRadius: 6, fontSize: 12, lineHeight: 1, whiteSpace: "nowrap", fontFamily: "inherit", boxSizing: "border-box" },
+			iconBtn: { display: "inline-flex", alignItems: "center", justifyContent: "center", width: 26, height: 26, padding: 0, cursor: "pointer", background: "transparent", color: "var(--dsw-alias-label-secondary)", border: "1px solid transparent", borderRadius: 6, fontSize: 14, lineHeight: 1, boxSizing: "border-box" },
+			inp: { height: 26, boxSizing: "border-box", background: "var(--dsw-alias-bg-layer-2)", color: "var(--dsw-alias-label-primary)", border: "1px solid var(--dsw-alias-border-l1)", borderRadius: 6, fontSize: 12, padding: "0 8px", outline: "none" },
+			chip: (act) => ({ display: "inline-flex", alignItems: "center", height: 24, padding: "0 10px", cursor: "pointer", background: act ? "var(--dsw-alias-button-ghost-active-fill)" : "transparent", border: "1px solid " + (act ? "var(--dsw-alias-border-l1)" : "transparent"), borderRadius: 12, fontSize: 12, color: act ? "var(--dsw-alias-brand-primary)" : "var(--dsw-alias-label-secondary)", whiteSpace: "nowrap" }),
+			listRow: (act) => ({ display: "flex", alignItems: "center", gap: 5, padding: "2px 8px", minHeight: 22, fontSize: 12, cursor: "pointer", borderRadius: 5, background: act ? "var(--dsw-alias-button-ghost-active-fill)" : "transparent", color: act ? "var(--dsw-alias-brand-primary)" : "var(--dsw-alias-label-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }),
+		};
+		// 徽标（§5：16px 胶囊；tone: success/error/brand/neutral）
+		const Badge = (text, tone) => React.createElement("span", { style: { display: "inline-flex", alignItems: "center", height: 16, padding: "0 6px", borderRadius: 8, fontSize: 10, fontWeight: 600, background: tone === "success" ? "rgba(76,175,80,.15)" : tone === "error" ? "rgba(224,92,92,.15)" : tone === "brand" ? "rgba(100,160,255,.15)" : "rgba(128,128,128,.15)", color: tone === "success" ? "var(--dsw-alias-state-success-primary)" : tone === "error" ? "var(--dsw-alias-state-error-primary)" : tone === "brand" ? "var(--dsw-alias-brand-primary)" : "var(--dsw-alias-label-tertiary)" } }, text);
+
 		// ── 路线图 Canvas 组件（状态机可视化 + 缩放平移 + 点击跳转） ──
 		function RouteCanvas(props) {
 			const { map, onNodeClick, currentId, focusNodes } = props;
@@ -3110,7 +3124,7 @@ window.__ModuleLoader__.load({
 				// ── 顶栏（类 VSCode：项目输入 + 图标+文字操作 + 强调工作范围 + 对话） ──
 				React.createElement("div", { style: { ...row, gap: 6, flexWrap: "wrap" } },
 					React.createElement("span", { style: { color: TXT2, fontSize: 13, flexShrink: 0 } }, "项目"),
-					React.createElement("input", { style: { flex: 1, minWidth: 120, maxWidth: 340, fontFamily: CODE, fontSize: 12, background: INPUTBG, color: TXT, border: "1px solid " + BORDER, borderRadius: 5, padding: "2px 7px", outline: "none" }, value: project, onChange: (e) => setProject(e.target.value), onBlur: commitProject, onKeyDown: (e) => { if (e.key === "Enter") { e.target.blur(); commitProject(); } }, placeholder: "项目目录绝对路径" }),
+					React.createElement("input", { style: { flex: 1, minWidth: 120, maxWidth: 340, fontFamily: CODE, ...C.inp }, value: project, onChange: (e) => setProject(e.target.value), onBlur: commitProject, onKeyDown: (e) => { if (e.key === "Enter") { e.target.blur(); commitProject(); } }, placeholder: "项目目录绝对路径" }),
 					React.createElement("button", { title: "切到 host 配置的默认工程（renpy.config.json defaultProject）", style: { ...iconBtnText, fontSize: 12 }, onClick: () => { api("info").then((r) => { const d = r && r.defaultProject; if (!d) { addLog("host 未配置默认工程"); return; } setProject(d); try { if (typeof localStorage !== "undefined") localStorage.setItem("renpy-project", d); } catch (e) { /* ignore */ } commitProject(d); addLog("已切换到默认工程: " + d); }).catch((e) => addLog("读取默认工程失败: " + String(e))); } }, "⟳ 默认工程"),
 					React.createElement("div", { style: { flex: 1 } }),
 					// ── 工作范围（强调：单独放大） ──
@@ -3175,7 +3189,7 @@ window.__ModuleLoader__.load({
 								React.createElement("div", { style: { display: "flex", gap: 2, padding: "0 8px 4px", flexWrap: "wrap" } },
 									[["labels", "标签"], ["chars", "人物"], ["trans", "转场"], ["vars", "变量"], ["fonts", "字体"]].map(([k, label]) => React.createElement("span", {
 										key: k,
-										style: { padding: "2px 8px", fontSize: 12, cursor: "pointer", background: navKind === k ? GHOST : "transparent", border: "1px solid " + (navKind === k ? BORDER : "transparent"), borderRadius: 6, color: navKind === k ? ACCENT : TXT2 },
+										style: C.chip(navKind === k),
 										onClick: () => setNavKind(k),
 									}, label)),
 								),
@@ -3240,11 +3254,11 @@ window.__ModuleLoader__.load({
 						React.createElement("div", { style: { padding: "4px 10px", fontSize: 12, color: TXT3 } }, statusText),
 						// ── 查找/替换栏（Ctrl+F） ──
 						findOpen ? React.createElement("div", { style: { display: "flex", gap: 6, alignItems: "center", padding: "5px 8px", borderBottom: "1px solid " + BORDER, background: LAYER, flexWrap: "wrap" } },
-							React.createElement("input", { ref: findInputRef, value: findText, onChange: (e) => { setFindText(e.target.value); setFindIdx(0); }, onKeyDown: (e) => { if (e.key === "Enter") { e.shiftKey ? findPrev() : findNext(); } if (e.key === "Escape") setFindOpen(false); }, placeholder: "查找…", style: { width: 170, background: INPUTBG, color: TXT, border: "1px solid " + BORDER, borderRadius: 6, fontSize: 12, padding: "2px 8px", outline: "none" } }),
+							React.createElement("input", { ref: findInputRef, value: findText, onChange: (e) => { setFindText(e.target.value); setFindIdx(0); }, onKeyDown: (e) => { if (e.key === "Enter") { e.shiftKey ? findPrev() : findNext(); } if (e.key === "Escape") setFindOpen(false); }, placeholder: "查找…", style: { width: 170, ...C.inp } }),
 							React.createElement("span", { style: { fontSize: 11, color: TXT3, minWidth: 30 } }, findMatches.length ? ((Math.min(findIdx, findMatches.length - 1) + 1) + "/" + findMatches.length) : "0/0"),
 							React.createElement("button", { style: { ...btn, padding: "1px 8px", fontSize: 12 }, onClick: findPrev, disabled: !findMatches.length, title: "上一个 (Shift+Enter)" }, "↑"),
 							React.createElement("button", { style: { ...btn, padding: "1px 8px", fontSize: 12 }, onClick: findNext, disabled: !findMatches.length, title: "下一个 (Enter)" }, "↓"),
-							React.createElement("input", { value: findReplace, onChange: (e) => setFindReplace(e.target.value), placeholder: "替换为…", style: { width: 150, background: INPUTBG, color: TXT, border: "1px solid " + BORDER, borderRadius: 6, fontSize: 12, padding: "2px 8px", outline: "none" } }),
+							React.createElement("input", { value: findReplace, onChange: (e) => setFindReplace(e.target.value), placeholder: "替换为…", style: { width: 150, ...C.inp } }),
 							React.createElement("button", { style: { ...btn, padding: "1px 8px", fontSize: 12 }, onClick: doReplace, disabled: !findMatches.length }, "替换"),
 							React.createElement("button", { style: { ...btn, padding: "1px 8px", fontSize: 12 }, onClick: doReplaceAll, disabled: !findText }, "全部替换"),
 							React.createElement("button", { style: { ...btn, padding: "1px 8px", fontSize: 12 }, onClick: () => setFindOpen(false), title: "关闭 (Esc)" }, "✕"),
@@ -3343,7 +3357,7 @@ window.__ModuleLoader__.load({
 						React.createElement("div", { style: { display: "flex", gap: 6, padding: "7px 10px", borderBottom: "1px solid " + BORDER, alignItems: "center", background: LAYER } },
 							[["chat", "对话"], ["trail", "轨迹"]].map(([k, label]) => React.createElement("span", {
 								key: k,
-								style: { padding: "3px 12px", fontSize: 13, cursor: "pointer", background: sideTab === k ? GHOST : "transparent", border: "1px solid " + (sideTab === k ? BORDER : "transparent"), borderRadius: 12, color: sideTab === k ? ACCENT : TXT2, fontWeight: sideTab === k ? 600 : 400 },
+								style: C.chip(sideTab === k),
 								onClick: () => setSideTab(k),
 							}, label + " " + (k === "chat" ? feed.chat.length : feed.trail.length))),
 							React.createElement("span", { style: { marginLeft: "auto", fontSize: 11, color: TXT3 } }, "3s 刷新"),
@@ -3598,7 +3612,7 @@ window.__ModuleLoader__.load({
 					// ── 状态栏（规范 §2：项目 | 运行状态 | 文件 | 行列 | 保存态） ──
 					React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 14, padding: "2px 10px", borderTop: "1px solid " + BORDER, background: LAYER, fontSize: 11, color: TXT3, flexShrink: 0, minHeight: 22, whiteSpace: "nowrap" } },
 						React.createElement("span", { style: { maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", color: TXT2 } }, project ? String(project).split(/[\\/]/).pop() : "未选项目"),
-						React.createElement("span", { style: { color: routeStatus && routeStatus.running ? SUCCESS : TXT3 } }, (routeStatus && routeStatus.running) ? "🟢 运行中" + (routeStatus.label ? " · " + routeStatus.label : "") : "⚪ 未运行"),
+						React.createElement("span", { style: { color: routeStatus && routeStatus.running ? SUCCESS : TXT3 } }, (routeStatus && routeStatus.running) ? Badge("运行中" + (routeStatus.label ? " · " + routeStatus.label : ""), "success") : Badge("未运行", "neutral")),
 						React.createElement("span", { style: { maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis" } }, active ? active.name : "未打开文件"),
 						React.createElement("span", {}, "行 " + cursorPos.line + "，列 " + cursorPos.col),
 						React.createElement("span", { style: { flex: 1 } }),
