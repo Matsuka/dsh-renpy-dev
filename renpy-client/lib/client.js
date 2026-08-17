@@ -2712,14 +2712,46 @@ window.__ModuleLoader__.load({
 					return n;
 				});
 			};
-			// 区域标签头：可拖拽面板标签（拖到其他区域停靠）+ 激活切换
+			// ── P2 面板停靠：自研拖拽（HTML5 drag 在 iframe 下 dataTransfer 丢失，改用 mousedown 跟踪 + 区域命中检测） ──
+			const dragPanelRef = React.useRef(null); // {id, sx, sy, moved}
+			const [dragOverRegion, setDragOverRegion] = React.useState(null); // 当前高亮的停靠区域
+			const dragOverRegionRef = React.useRef(null); // 最新值镜像（闭包用）
+			const regionRefs = { left: React.useRef(null), bottom: React.useRef(null) };
+			React.useEffect(() => {
+				const onMove = (e) => {
+					const d = dragPanelRef.current;
+					if (!d) return;
+					if (!d.moved && Math.abs(e.clientX - d.sx) + Math.abs(e.clientY - d.sy) > 4) d.moved = true;
+					let over = null;
+					for (const r of ["left", "bottom"]) {
+						const el = regionRefs[r] && regionRefs[r].current;
+						if (el) {
+							const rect = el.getBoundingClientRect();
+							if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) { over = r; break; }
+						}
+					}
+					dragOverRegionRef.current = over;
+					setDragOverRegion(over);
+				};
+				const onUp = () => {
+					const d = dragPanelRef.current;
+					if (d && d.moved && dragOverRegionRef.current) movePanel(d.id, dragOverRegionRef.current);
+					dragPanelRef.current = null;
+					dragOverRegionRef.current = null;
+					setDragOverRegion(null);
+				};
+				window.addEventListener("mousemove", onMove);
+				window.addEventListener("mouseup", onUp);
+				return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+			}, []);
+			// 区域标签头：按住面板标签拖到其他区域停靠（落点高亮）+ 激活切换
 			const renderRegionTabs = (region) => {
 				const g = panelLayout[region] || { tabs: [], active: null };
-				return React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 2, padding: "3px 6px", borderBottom: "1px solid " + BORDER, background: LAYER, flexShrink: 0, overflowX: "auto", minHeight: 30 }, onDragOver: (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }, onDrop: (e) => { e.preventDefault(); const id = e.dataTransfer.getData("text/plain"); if (id && PANEL_META[id]) movePanel(id, region); } },
+				return React.createElement("div", { ref: regionRefs[region], style: { display: "flex", alignItems: "center", gap: 2, padding: "3px 6px", borderBottom: "1px solid " + BORDER, background: LAYER, flexShrink: 0, overflowX: "auto", minHeight: 30, outline: dragOverRegion === region ? "2px solid " + ACCENT : "none", outlineOffset: -1 } },
 					g.tabs.map((id) => {
 						const meta = PANEL_META[id] || { title: id, icon: "📦" };
 						const act = g.active === id;
-						return React.createElement("span", { key: id, draggable: true, onDragStart: (e) => { e.dataTransfer.setData("text/plain", id); e.dataTransfer.effectAllowed = "move"; }, onClick: () => setPanelLayout((l) => { const n = JSON.parse(JSON.stringify(l)); if (n[region]) n[region].active = id; return n; }), title: meta.title + "（可拖到其他区域停靠）", style: { display: "inline-flex", alignItems: "center", gap: 4, height: 24, padding: "0 8px", borderRadius: 5, cursor: "grab", fontSize: 12, whiteSpace: "nowrap", background: act ? GHOST : "transparent", color: act ? ACCENT : TXT2, border: "1px solid " + (act ? BORDER : "transparent") } },
+						return React.createElement("span", { key: id, onMouseDown: (e) => { e.preventDefault(); dragPanelRef.current = { id, sx: e.clientX, sy: e.clientY, moved: false }; }, onClick: () => setPanelLayout((l) => { const n = JSON.parse(JSON.stringify(l)); if (n[region]) n[region].active = id; return n; }), title: meta.title + "（按住拖到其他区域停靠）", style: { display: "inline-flex", alignItems: "center", gap: 4, height: 24, padding: "0 8px", borderRadius: 5, cursor: "grab", fontSize: 12, whiteSpace: "nowrap", userSelect: "none", background: act ? GHOST : "transparent", color: act ? ACCENT : TXT2, border: "1px solid " + (act ? BORDER : "transparent") } },
 							React.createElement("span", { style: { fontSize: 11 } }, meta.icon),
 							React.createElement("span", {}, meta.title),
 						);
