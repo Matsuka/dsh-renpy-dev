@@ -591,6 +591,7 @@ window.__ModuleLoader__.load({
 		// ── 面板注册表（P2 停靠系统：面板元数据；内容渲染在组件内按 id 分发） ──
 		const PANEL_META = {
 			files: { title: "项目文件", icon: "📄" },
+			nav: { title: "导航", icon: "🧭" },
 			assets: { title: "项目素材", icon: "🖼" },
 			edits: { title: "基线更改", icon: "✎" },
 			log: { title: "操作日志", icon: "📋" },
@@ -600,21 +601,22 @@ window.__ModuleLoader__.load({
 			cp: { title: "修改面板", icon: "✎" },
 		};
 		// 默认布局（Win11 式：区域内多面板平铺平分；持久化到 localStorage.renpy-panel-layout）
-		const LAYOUT_DEFAULT = { left: { panels: ["files", "assets", "edits"] }, bottom: { panels: ["log"] } };
+		const LAYOUT_DEFAULT = { left: { panels: ["files", "nav", "assets", "edits"] }, bottom: { panels: ["log"] } };
 
 		// ── 控件规范库（§5：统一按钮/输入/胶囊/行/徽标；直接引用 DSH token，任何组件可用） ──
 		// 高度 24-26、圆角 6、全 token 驱动；状态：idle→hover→active→disabled(降透明度)
+		// 美术（§5.1）：统一 1px 描边（border-l2）+ 投影——idle 轻投影、主按钮彩色投影、输入框内阴影
 		const C = {
-			btn: { display: "inline-flex", alignItems: "center", gap: 5, height: 26, padding: "0 12px", cursor: "pointer", background: "transparent", color: "var(--dsw-alias-label-primary)", border: "1px solid var(--dsw-alias-border-l1)", borderRadius: 6, fontSize: 12, lineHeight: 1, whiteSpace: "nowrap", fontFamily: "inherit", boxSizing: "border-box" },
-			btnPrimary: { display: "inline-flex", alignItems: "center", gap: 5, height: 26, padding: "0 12px", cursor: "pointer", background: "var(--dsw-alias-brand-primary)", color: "#fff", border: "1px solid var(--dsw-alias-brand-primary)", borderRadius: 6, fontSize: 12, lineHeight: 1, whiteSpace: "nowrap", fontFamily: "inherit", boxSizing: "border-box" },
-			btnDanger: { display: "inline-flex", alignItems: "center", gap: 5, height: 26, padding: "0 12px", cursor: "pointer", background: "transparent", color: "var(--dsw-alias-state-error-primary)", border: "1px solid var(--dsw-alias-state-error-primary)", borderRadius: 6, fontSize: 12, lineHeight: 1, whiteSpace: "nowrap", fontFamily: "inherit", boxSizing: "border-box" },
-			iconBtn: { display: "inline-flex", alignItems: "center", justifyContent: "center", width: 26, height: 26, padding: 0, cursor: "pointer", background: "transparent", color: "var(--dsw-alias-label-secondary)", border: "1px solid transparent", borderRadius: 6, fontSize: 14, lineHeight: 1, boxSizing: "border-box" },
-			inp: { height: 26, boxSizing: "border-box", background: "var(--dsw-alias-bg-layer-2)", color: "var(--dsw-alias-label-primary)", border: "1px solid var(--dsw-alias-border-l1)", borderRadius: 6, fontSize: 12, padding: "0 8px", outline: "none" },
-			chip: (act) => ({ display: "inline-flex", alignItems: "center", height: 24, padding: "0 10px", cursor: "pointer", background: act ? "var(--dsw-alias-button-ghost-active-fill)" : "transparent", border: "1px solid " + (act ? "var(--dsw-alias-border-l1)" : "transparent"), borderRadius: 12, fontSize: 12, color: act ? "var(--dsw-alias-brand-primary)" : "var(--dsw-alias-label-secondary)", whiteSpace: "nowrap" }),
+			btn: { display: "inline-flex", alignItems: "center", gap: 5, height: 26, padding: "0 12px", cursor: "pointer", background: "var(--dsw-alias-bg-layer-2)", color: "var(--dsw-alias-label-primary)", border: "1px solid var(--dsw-alias-border-l2)", borderRadius: 6, fontSize: 12, lineHeight: 1, whiteSpace: "nowrap", fontFamily: "inherit", boxSizing: "border-box", boxShadow: "0 1px 2px rgba(0,0,0,.22)" },
+			btnPrimary: { display: "inline-flex", alignItems: "center", gap: 5, height: 26, padding: "0 12px", cursor: "pointer", background: "var(--dsw-alias-brand-primary)", color: "#fff", border: "1px solid var(--dsw-alias-brand-primary)", borderRadius: 6, fontSize: 12, lineHeight: 1, whiteSpace: "nowrap", fontFamily: "inherit", boxSizing: "border-box", boxShadow: "0 1px 3px rgba(0,0,0,.35)" },
+			btnDanger: { display: "inline-flex", alignItems: "center", gap: 5, height: 26, padding: "0 12px", cursor: "pointer", background: "transparent", color: "var(--dsw-alias-state-error-primary)", border: "1px solid var(--dsw-alias-state-error-primary)", borderRadius: 6, fontSize: 12, lineHeight: 1, whiteSpace: "nowrap", fontFamily: "inherit", boxSizing: "border-box", boxShadow: "0 1px 2px rgba(0,0,0,.18)" },
+			iconBtn: { display: "inline-flex", alignItems: "center", justifyContent: "center", width: 26, height: 26, padding: 0, cursor: "pointer", background: "transparent", color: "var(--dsw-alias-label-secondary)", border: "1px solid transparent", borderRadius: 6, fontSize: 14, lineHeight: 1, boxSizing: "border-box", boxShadow: "0 1px 2px rgba(0,0,0,.12)" },
+			inp: { height: 26, boxSizing: "border-box", background: "var(--dsw-alias-bg-layer-2)", color: "var(--dsw-alias-label-primary)", border: "1px solid var(--dsw-alias-border-l2)", borderRadius: 6, fontSize: 12, padding: "0 8px", outline: "none", boxShadow: "inset 0 1px 2px rgba(0,0,0,.18)" },
+			chip: (act) => ({ display: "inline-flex", alignItems: "center", height: 24, padding: "0 10px", cursor: "pointer", background: act ? "var(--dsw-alias-button-ghost-active-fill)" : "transparent", border: "1px solid " + (act ? "var(--dsw-alias-border-l2)" : "transparent"), borderRadius: 12, fontSize: 12, color: act ? "var(--dsw-alias-brand-primary)" : "var(--dsw-alias-label-secondary)", whiteSpace: "nowrap", boxShadow: act ? "0 1px 2px rgba(0,0,0,.18)" : "none" }),
 			listRow: (act) => ({ display: "flex", alignItems: "center", gap: 5, padding: "2px 8px", minHeight: 22, fontSize: 12, cursor: "pointer", borderRadius: 5, background: act ? "var(--dsw-alias-button-ghost-active-fill)" : "transparent", color: act ? "var(--dsw-alias-brand-primary)" : "var(--dsw-alias-label-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }),
 		};
 		// 徽标（§5：16px 胶囊；tone: success/error/brand/neutral）
-		const Badge = (text, tone) => React.createElement("span", { style: { display: "inline-flex", alignItems: "center", height: 16, padding: "0 6px", borderRadius: 8, fontSize: 10, fontWeight: 600, background: tone === "success" ? "rgba(76,175,80,.15)" : tone === "error" ? "rgba(224,92,92,.15)" : tone === "brand" ? "rgba(100,160,255,.15)" : "rgba(128,128,128,.15)", color: tone === "success" ? "var(--dsw-alias-state-success-primary)" : tone === "error" ? "var(--dsw-alias-state-error-primary)" : tone === "brand" ? "var(--dsw-alias-brand-primary)" : "var(--dsw-alias-label-tertiary)" } }, text);
+		const Badge = (text, tone) => React.createElement("span", { style: { display: "inline-flex", alignItems: "center", height: 16, padding: "0 6px", borderRadius: 8, fontSize: 10, fontWeight: 600, boxShadow: "0 1px 1px rgba(0,0,0,.15)", background: tone === "success" ? "rgba(76,175,80,.15)" : tone === "error" ? "rgba(224,92,92,.15)" : tone === "brand" ? "rgba(100,160,255,.15)" : "rgba(128,128,128,.15)", color: tone === "success" ? "var(--dsw-alias-state-success-primary)" : tone === "error" ? "var(--dsw-alias-state-error-primary)" : tone === "brand" ? "var(--dsw-alias-brand-primary)" : "var(--dsw-alias-label-tertiary)" } }, text);
 
 		// ── 路线图 Canvas 组件（状态机可视化 + 缩放平移 + 点击跳转） ──
 		function RouteCanvas(props) {
@@ -850,14 +852,18 @@ window.__ModuleLoader__.load({
 			});
 		}
 
-		// ── 路线图弹出窗口（Portal 到 body：可拖可缩放，不受面板布局裁剪/祖先 transform 影响） ──
+		// ── 路线图内容（embedded 面板模式 / Portal 弹窗模式共用；embedded 时无壳：面板标题栏/拖拽由停靠系统提供） ──
 		function RouteWindow(props) {
-			const { map, onNodeClick, currentId, focusNodes, win, onChange, onClose, TXT, TXT2, TXT3, ACCENT, BORDER, BG, GHOST, LAYER } = props;
+			const { map, onNodeClick, currentId, focusNodes, win, onChange, onClose, TXT, TXT2, TXT3, ACCENT, BORDER, BG, GHOST, LAYER, embedded } = props;
 			const dragRef = React.useRef(null);   // {sx, sy, ox, oy} 拖动
 			const resizeRef = React.useRef(null); // {sx, sy, ow, oh} 缩放
 			const [dragState, setDragState] = React.useState(null); // "move" | "resize" | null
 			const winRef = React.useRef(win);
 			winRef.current = win;
+
+			const content = map && map.layout
+				? React.createElement(RouteCanvas, { map, onNodeClick, currentId, focusNodes, TXT, TXT2, ACCENT, BORDER, BG, GHOST })
+				: React.createElement("div", { style: { color: TXT2, fontSize: 13, padding: "18px 6px", textAlign: "center" } }, "未加载 — 点面板标题栏 ⟳ 加载分支结构");
 
 			const onBarDown = (e) => {
 				e.preventDefault();
@@ -894,6 +900,7 @@ window.__ModuleLoader__.load({
 
 			// Esc 关闭（焦点在输入框时不响应，避免误关弹窗）
 			React.useEffect(() => {
+				if (embedded || !onClose) return;
 				const onKey = (e) => {
 					const t = e.target;
 					if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
@@ -901,8 +908,9 @@ window.__ModuleLoader__.load({
 				};
 				window.addEventListener("keydown", onKey);
 				return () => window.removeEventListener("keydown", onKey);
-			}, [onClose]);
+			}, [onClose, embedded]);
 
+			if (embedded) return React.createElement("div", { style: { flex: 1, minHeight: 0, position: "relative" } }, content);
 			if (typeof document === "undefined" || !document.body) return null;
 			const body = React.createElement("div", { style: { position: "fixed", left: win.x, top: win.y, width: win.w, height: win.h, zIndex: 10000, display: "flex", flexDirection: "column", background: BG, border: "1px solid " + BORDER, borderRadius: 10, boxShadow: "0 10px 40px rgba(0,0,0,.4)", overflow: "hidden", minWidth: 360, minHeight: 240 } },
 				React.createElement("div", { onMouseDown: onBarDown, style: { display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", background: LAYER, borderBottom: "1px solid " + BORDER, cursor: dragState === "move" ? "grabbing" : "grab", userSelect: "none", flexShrink: 0 } },
@@ -911,19 +919,15 @@ window.__ModuleLoader__.load({
 					React.createElement("span", { style: { fontSize: 11, color: TXT3, marginLeft: "auto", whiteSpace: "nowrap" } }, "拖动移动 · 右下角缩放 · Esc 关闭"),
 					React.createElement("button", { onClick: onClose, title: "关闭 (Esc)", style: { ...C.iconBtn, flexShrink: 0 } }, "✕"),
 				),
-				React.createElement("div", { style: { flex: 1, minHeight: 0, position: "relative" } },
-					map && map.layout
-						? React.createElement(RouteCanvas, { map, onNodeClick, currentId, focusNodes, TXT, TXT2, ACCENT, BORDER, BG, GHOST })
-						: React.createElement("div", { style: { color: TXT2, fontSize: 13, padding: "18px 6px", textAlign: "center" } }, "点击顶栏「🗺 路线图」按钮加载后在此显示分支结构"),
-				),
+				React.createElement("div", { style: { flex: 1, minHeight: 0, position: "relative" } }, content),
 				React.createElement("div", { onMouseDown: onResizeDown, title: "拖拽缩放", style: { position: "absolute", right: 0, bottom: 0, width: 18, height: 18, cursor: "nwse-resize", background: "linear-gradient(135deg, transparent 50%, rgba(128,128,128,.55) 50%)", borderBottomRightRadius: 10 } }),
 			);
 			return ReactDOM.createPortal(body, document.body);
 		}
 
-		// ── 游戏画面窗口（Portal 到 body：游戏内截图显示，可拖可缩放，3s 自动刷新） ──
+		// ── 游戏画面内容（embedded 面板模式 / Portal 弹窗模式共用） ──
 		function ShotWindow(props) {
-			const { project, api, win, onChange, onClose, TXT, TXT2, TXT3, BORDER, BG, LAYER, sessionId } = props;
+			const { project, api, win, onChange, onClose, TXT, TXT2, TXT3, BORDER, BG, LAYER, sessionId, embedded } = props;
 			const [imgUrl, setImgUrl] = React.useState(null);
 			const [loading, setLoading] = React.useState(false);
 			const [lastAt, setLastAt] = React.useState(null);
@@ -952,10 +956,11 @@ window.__ModuleLoader__.load({
 				return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); window.removeEventListener("blur", onBlur); };
 			}, [dragState, onChange]);
 			React.useEffect(() => {
+				if (embedded || !onClose) return;
 				const onKey = (e) => { const t = e.target; if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return; if (e.key === "Escape") onClose(); };
 				window.addEventListener("keydown", onKey);
 				return () => window.removeEventListener("keydown", onKey);
-			}, [onClose]);
+			}, [onClose, embedded]);
 
 			// 刷新：触发游戏截图 → 轮询拉取图片（给游戏截图+写盘留时间，最多 8 次 × 600ms）
 			const refresh = () => {
@@ -1012,18 +1017,13 @@ window.__ModuleLoader__.load({
 			};
 
 			if (typeof document === "undefined" || !document.body) return null;
-			const body = React.createElement("div", { style: { position: "fixed", left: win.x, top: win.y, width: win.w, height: win.h, zIndex: 10001, display: "flex", flexDirection: "column", background: BG, border: "1px solid " + BORDER, borderRadius: 10, boxShadow: "0 10px 40px rgba(0,0,0,.4)", overflow: "hidden", minWidth: 320, minHeight: 240 } },
-				React.createElement("div", { onMouseDown: onBarDown, style: { display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", background: LAYER, borderBottom: "1px solid " + BORDER, cursor: dragState === "move" ? "grabbing" : "grab", userSelect: "none", flexShrink: 0 } },
-					React.createElement("span", { style: { fontSize: 13, fontWeight: 600, color: TXT } }, "🎬 游戏画面"),
-					React.createElement("span", { style: { fontSize: 11, color: TXT3, marginLeft: "auto", whiteSpace: "nowrap" } }, lastAt ? "更新于 " + new Date(lastAt).toLocaleTimeString() : "未获取"),
-					React.createElement("button", { onClick: refresh, title: "立即刷新截图（触发游戏截图并拉取）", style: C.btn }, loading ? "…" : "⟳ 刷新"),
-					React.createElement("button", { onClick: onClose, title: "关闭 (Esc)", style: { ...C.iconBtn, flexShrink: 0 } }, "✕"),
-				),
+			// 内容体（embedded 与弹窗共用）：画面 + 底部操作条
+			const content = React.createElement(React.Fragment, null,
 				React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#000", position: "relative" } },
 					imgUrl ? React.createElement("img", { src: imgUrl, onClick: onClickImg, title: "点击画面 = 点击游戏（选项/按钮）", style: { maxWidth: "100%", maxHeight: "100%", objectFit: "contain", cursor: "crosshair" } })
 						: React.createElement("span", { style: { color: TXT3, fontSize: 12 } }, "游戏运行后自动显示画面（无画面请点刷新）"),
 				),
-				React.createElement("div", { style: { flexShrink: 0, display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", borderTop: "1px solid " + BORDER, background: LAYER } },
+				React.createElement("div", { style: { flexShrink: 0, display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", borderTop: "1px solid " + BORDER, background: LAYER, flexWrap: "wrap" } },
 					React.createElement("button", { onClick: () => sendAct("rollback", "⟲ 回滚"), title: "回滚上一句", style: C.btn }, "⟲ 回滚"),
 					React.createElement("button", { onClick: () => sendAct("dismiss", "⏩ 推进"), title: "推进对话/交互", style: C.btn }, "⏩ 推进"),
 					React.createElement("span", { style: { width: 1, height: 16, background: BORDER, flexShrink: 0 } }),
@@ -1033,14 +1033,24 @@ window.__ModuleLoader__.load({
 					React.createElement("span", { style: { flex: 1 } }),
 					React.createElement("span", { style: { fontSize: 10, color: TXT3 } }, lastAct ? "最近: " + lastAct : "点击画面可操作游戏"),
 				),
+			);
+			if (embedded) return React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column", background: "#000" } }, content);
+			const body = React.createElement("div", { style: { position: "fixed", left: win.x, top: win.y, width: win.w, height: win.h, zIndex: 10001, display: "flex", flexDirection: "column", background: BG, border: "1px solid " + BORDER, borderRadius: 10, boxShadow: "0 10px 40px rgba(0,0,0,.4)", overflow: "hidden", minWidth: 320, minHeight: 240 } },
+				React.createElement("div", { onMouseDown: onBarDown, style: { display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", background: LAYER, borderBottom: "1px solid " + BORDER, cursor: dragState === "move" ? "grabbing" : "grab", userSelect: "none", flexShrink: 0 } },
+					React.createElement("span", { style: { fontSize: 13, fontWeight: 600, color: TXT } }, "🎬 游戏画面"),
+					React.createElement("span", { style: { fontSize: 11, color: TXT3, marginLeft: "auto", whiteSpace: "nowrap" } }, lastAt ? "更新于 " + new Date(lastAt).toLocaleTimeString() : "未获取"),
+					React.createElement("button", { onClick: refresh, title: "立即刷新截图（触发游戏截图并拉取）", style: C.btn }, loading ? "…" : "⟳ 刷新"),
+					React.createElement("button", { onClick: onClose, title: "关闭 (Esc)", style: { ...C.iconBtn, flexShrink: 0 } }, "✕"),
+				),
+				content,
 				React.createElement("div", { onMouseDown: onResizeDown, title: "拖拽缩放", style: { position: "absolute", right: 0, bottom: 0, width: 18, height: 18, cursor: "nwse-resize", background: "linear-gradient(135deg, transparent 50%, rgba(128,128,128,.55) 50%)", borderBottomRightRadius: 10 } }),
 			);
 			return ReactDOM.createPortal(body, document.body);
 		}
 
-		// ── 变量监控窗口（Portal 到 body：运行时变量表 + 变化高亮 + 编辑器/路线图联动） ──
+		// ── 变量监控内容（embedded 面板模式 / Portal 弹窗模式共用） ──
 		function VarWindow(props) {
-			const { vars, routeVars, win, onChange, onClose, onVarJump, onVarFocus, TXT, TXT2, TXT3, ACCENT, BORDER, BG, LAYER } = props;
+			const { vars, routeVars, win, onChange, onClose, onVarJump, onVarFocus, TXT, TXT2, TXT3, ACCENT, BORDER, BG, LAYER, embedded } = props;
 			const [query, setQuery] = React.useState("");
 			const dragRef = React.useRef(null);
 			const [dragState, setDragState] = React.useState(null);
@@ -1082,10 +1092,11 @@ window.__ModuleLoader__.load({
 				return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); window.removeEventListener("blur", onBlur); };
 			}, [dragState, onChange]);
 			React.useEffect(() => {
+				if (embedded || !onClose) return;
 				const onKey = (e) => { const t = e.target; if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return; if (e.key === "Escape") onClose(); };
 				window.addEventListener("keydown", onKey);
 				return () => window.removeEventListener("keydown", onKey);
-			}, [onClose]);
+			}, [onClose, embedded]);
 
 			const routeVarNames = React.useMemo(() => new Set((routeVars || []).map((v) => v.name)), [routeVars]);
 			const names = Object.keys(vars || {}).sort();
@@ -1096,6 +1107,26 @@ window.__ModuleLoader__.load({
 			const typeOf = (v) => v === null ? "null" : Array.isArray(v) ? "arr" : typeof v === "object" ? "obj" : typeof v;
 			const stateColor = (n) => changes[n] === "add" ? "#4caf50" : changes[n] === "mod" ? "#569cd6" : changes[n] === "del" ? "#e05c5c" : TXT3;
 
+			// 内容体（embedded 与弹窗共用）：过滤框 + 变量表 + 底部说明
+			const content = React.createElement(React.Fragment, null,
+				React.createElement("div", { style: { flexShrink: 0, display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", background: LAYER, borderBottom: "1px solid " + BORDER, flexWrap: "wrap" } },
+					React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: TXT, flexShrink: 0 } }, "📊 变量监控"),
+					React.createElement("input", { value: query, onChange: (e) => setQuery(e.target.value), placeholder: "过滤变量名…", style: { flex: 1, minWidth: 60, ...C.inp } }),
+					React.createElement("span", { style: { fontSize: 11, color: TXT3, whiteSpace: "nowrap" } }, names.length + " 个"),
+				),
+				React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", padding: "4px 6px" } },
+					names.length === 0
+						? React.createElement("div", { style: { color: TXT3, fontSize: 12, padding: "16px 8px", textAlign: "center" } }, "游戏运行后自动显示变量（无变量请确认游戏在跑且有桥接）")
+						: filtered.map((n) => React.createElement("div", { key: n, title: "点击：编辑器跳转定义处 + 路线图高亮关联节点", onClick: () => { onVarJump && onVarJump(n); onVarFocus && onVarFocus(n); }, style: { ...C.listRow(false), gap: 8 }, onMouseEnter: (e) => { e.currentTarget.style.background = "var(--dsw-alias-interactive-bg-hover)"; }, onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; } },
+							React.createElement("span", { style: { flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "monospace", fontSize: 12, color: routeVarNames.has(n) ? ACCENT : TXT } }, n),
+							React.createElement("span", { style: { width: 26, flexShrink: 0, fontSize: 10, color: TXT3, textAlign: "center" } }, typeOf(vars[n])),
+							React.createElement("span", { style: { flex: 1.4, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "monospace", fontSize: 12, color: TXT2 } }, valStr(vars[n])),
+							React.createElement("span", { style: { width: 30, flexShrink: 0, fontSize: 10, textAlign: "center", color: stateColor(n) } }, changes[n] === "add" ? "新增" : changes[n] === "mod" ? "变化" : changes[n] === "del" ? "删除" : ""),
+						)),
+				),
+				React.createElement("div", { style: { flexShrink: 0, padding: "3px 10px", fontSize: 10, color: TXT3, borderTop: "1px solid " + BORDER } }, "点击变量行 → 编辑器跳定义 + 路线图高亮写入/读取该变量的节点；蓝=修改 绿=新增 红=删除"),
+			);
+			if (embedded) return React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } }, content);
 			if (typeof document === "undefined" || !document.body) return null;
 			const body = React.createElement("div", { style: { position: "fixed", left: win.x, top: win.y, width: win.w, height: win.h, zIndex: 10002, display: "flex", flexDirection: "column", background: BG, border: "1px solid " + BORDER, borderRadius: 10, boxShadow: "0 10px 40px rgba(0,0,0,.4)", overflow: "hidden", minWidth: 360, minHeight: 280 } },
 				React.createElement("div", { onMouseDown: onBarDown, style: { display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", background: LAYER, borderBottom: "1px solid " + BORDER, cursor: dragState === "move" ? "grabbing" : "grab", userSelect: "none", flexShrink: 0 } },
@@ -1173,7 +1204,7 @@ window.__ModuleLoader__.load({
 					React.createElement("span", { style: { fontSize: 10, color: TXT3, marginLeft: "auto", whiteSpace: "nowrap" } }, "拖到左/下边缘吸附"),
 					React.createElement("button", { onClick: onClose, title: "吸附回区域 (Esc)", style: { ...C.iconBtn, flexShrink: 0 } }, "✕"),
 				),
-				React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto" } }, children),
+				React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", display: "flex", flexDirection: "column" } }, children),
 				React.createElement("div", { onMouseDown: onResizeDown, title: "拖拽缩放", style: { position: "absolute", right: 0, bottom: 0, width: 18, height: 18, cursor: "nwse-resize", background: "linear-gradient(135deg, transparent 50%, rgba(128,128,128,.55) 50%)", borderBottomRightRadius: 10 } }),
 				// 吸附预览：拖动靠近视口左/下边缘时，边缘显示品牌色高亮条
 				snapHint === "left" ? React.createElement("div", { style: { position: "fixed", left: 0, top: 0, bottom: 0, width: 4, background: ACCENT, zIndex: 10011, pointerEvents: "none", opacity: .8 } }) : null,
@@ -2765,7 +2796,12 @@ window.__ModuleLoader__.load({
 						const j = JSON.parse(saved);
 						// 兼容旧格式 {tabs, active} → {panels}
 						const fix = (g) => ({ panels: (g && (g.panels || g.tabs)) || [] });
-						if (j && j.left && j.bottom) return { left: fix(j.left), bottom: fix(j.bottom) };
+						if (j && j.left && j.bottom) {
+							const l = fix(j.left);
+							// 旧版布局迁移：文件面板含导航 → 拆出独立 nav 面板（跟在 files 后）
+							if (l.panels.includes("files") && !l.panels.includes("nav")) l.panels.splice(l.panels.indexOf("files") + 1, 0, "nav");
+							return { left: l, bottom: fix(j.bottom) };
+						}
 					}
 				} catch (e) { /* ignore */ }
 				return JSON.parse(JSON.stringify(LAYOUT_DEFAULT));
@@ -2946,7 +2982,10 @@ window.__ModuleLoader__.load({
 			const renderPanelOps = (id) => {
 				const op = (icon, title, fn) => React.createElement("span", { title, style: { fontSize: 12, color: TXT3, cursor: "pointer", padding: "1px 4px" }, onMouseDown: (e) => e.stopPropagation(), onClick: (e) => { e.stopPropagation(); fn(); } }, icon);
 				if (id === "files") return React.createElement(React.Fragment, null, op("⟳", "刷新文件列表", () => loadFiles(project)), op("▾", "折叠全部", () => setExpandedFiles({})));
+				if (id === "nav") return op("⟳", "刷新导航索引（标签/人物/转场/变量/字体）", () => { loadFiles(project); loadAssets(project); });
 				if (id === "assets") return op("⟳", "刷新资源", () => loadAssets(project));
+				if (id === "route") return op("⟳", "重新加载路线图", () => loadRouteMap());
+				if (id === "shot") return op("⟳", "立即刷新截图", () => api("route-shot", {}, { project }).catch(() => {}));
 				if (id === "edits") return op("↗", "打开修改面板", () => openCpPanel());
 				return null;
 			};
@@ -2956,13 +2995,14 @@ window.__ModuleLoader__.load({
 				const isLeft = region === "left";
 				const sp = snapPreview && snapPreview.region === region ? snapPreview : null;
 				return React.createElement("div", { ref: regionRefs[region], style: { flex: 1, minHeight: 0, display: "flex", flexDirection: isLeft ? "column" : "row", overflow: "hidden", outline: sp ? "2px solid " + ACCENT : "none", outlineOffset: -2, position: "relative" } },
-					// 分区吸附预览：拖动中目标区域半透明填充高亮 + 插入位置指示线（Win11 snap 示意）
+					// 分区吸附预览：拖动中目标区域半透明填充高亮 + 插入位置指示线（Win11 snap 示意；粗线+发光更醒目）
 					sp ? React.createElement("div", { style: { position: "absolute", inset: 0, background: "rgba(100,160,255,.16)", pointerEvents: "none", zIndex: 6 } }) : null,
-					sp ? React.createElement("div", { style: { position: "absolute", left: isLeft ? 0 : "calc(" + (sp.index / Math.max(1, g.panels.length)) * 100 + "% - 1.5px)", top: isLeft ? "calc(" + (sp.index / Math.max(1, g.panels.length)) * 100 + "% - 1.5px)" : 0, width: isLeft ? "100%" : 3, height: isLeft ? 3 : "100%", background: ACCENT, zIndex: 7, pointerEvents: "none" } }) : null,
+					sp ? React.createElement("div", { style: { position: "absolute", left: isLeft ? 0 : "calc(" + (sp.index / Math.max(1, g.panels.length)) * 100 + "% - 2px)", top: isLeft ? "calc(" + (sp.index / Math.max(1, g.panels.length)) * 100 + "% - 2px)" : 0, width: isLeft ? "100%" : 4, height: isLeft ? 4 : "100%", background: ACCENT, borderRadius: 2, boxShadow: "0 0 8px " + ACCENT, zIndex: 7, pointerEvents: "none" } }) : null,
 					g.panels.map((id) => {
 						const meta = PANEL_META[id] || { title: id, icon: "📦" };
 						const last = g.panels.length > 1;
-						return React.createElement("div", { key: id, style: { flex: 1, minWidth: 0, minHeight: 0, display: "flex", flexDirection: "column", borderBottom: isLeft && last ? "1px solid " + BORDER : "none", borderRight: !isLeft && last ? "1px solid " + BORDER : "none" } },
+						const dragging = dragGhost && dragGhost.id === id;
+						return React.createElement("div", { key: id, style: { flex: 1, minWidth: 0, minHeight: 0, display: "flex", flexDirection: "column", borderBottom: isLeft && last ? "1px solid " + BORDER : "none", borderRight: !isLeft && last ? "1px solid " + BORDER : "none", opacity: dragging ? 0.35 : 1, transition: "opacity .12s", filter: dragging ? "saturate(.6)" : "none" } },
 							React.createElement("div", { onMouseDown: (e) => startDragPanel(id, e), title: "拖拽：拖到左/下分区吸附，或拖出成浮动窗", style: { display: "flex", alignItems: "center", gap: 6, padding: "3px 8px", background: LAYER, borderBottom: "1px solid " + BORDER, cursor: "grab", userSelect: "none", flexShrink: 0, flexWrap: "wrap" } },
 								React.createElement("span", { style: { fontSize: 11 } }, meta.icon),
 								React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: TXT } }, meta.title),
@@ -2971,17 +3011,20 @@ window.__ModuleLoader__.load({
 								React.createElement("span", { style: { fontSize: 10, color: TXT3 } }, "⠿"),
 								React.createElement("span", { title: "移除面板（导航可重开）", style: { fontSize: 12, color: TXT3, cursor: "pointer" }, onMouseDown: (e) => e.stopPropagation(), onClick: (e) => { e.stopPropagation(); removePanel(id); } }, "✕"),
 							),
-							React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto" } }, renderPanel(id)),
+							React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", display: "flex", flexDirection: "column" } }, renderPanel(id)),
 						);
 					}),
 				);
 			};
-			// 侧栏面板内容（files/assets/edits；区域与浮动窗共用）
+			// 侧栏面板内容（files/nav/assets/edits；区域与浮动窗共用）
 			const renderSidePanel = (id) => {
 				if (id === "files") return React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } },
 					React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", padding: "4px 4px 10px" } },
 						renderFileTree(buildFileTree(files || []), 0, ""),
-						React.createElement("div", { style: { fontWeight: 600, padding: "10px 8px 3px", fontSize: 12, color: TXT3 } }, "导航"),
+					),
+				);
+				if (id === "nav") return React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } },
+					React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", padding: "4px 4px 10px" } },
 						React.createElement("div", { style: { display: "flex", gap: 2, padding: "0 8px 4px", flexWrap: "wrap" } },
 							[["labels", "标签"], ["chars", "人物"], ["trans", "转场"], ["vars", "变量"], ["fonts", "字体"]].map(([k, label]) => React.createElement("span", {
 								key: k,
@@ -3032,9 +3075,12 @@ window.__ModuleLoader__.load({
 					),
 				);
 			};
-			// 面板内容分发（区域 / 浮动窗共用）
+			// 面板内容分发（区域 / 浮动窗共用；route/shot/vars 以 embedded 面板模式渲染）
 			const renderPanel = (id) => {
-				if (id === "log") return React.createElement("pre", { style: { fontFamily: CODE, fontSize: 12, lineHeight: 1.6, whiteSpace: "pre-wrap", margin: 0, color: TXT2 } }, log || "（操作日志）");
+				if (id === "log") return React.createElement("pre", { style: { flex: 1, minHeight: 0, overflow: "auto", fontFamily: CODE, fontSize: 12, lineHeight: 1.6, whiteSpace: "pre-wrap", margin: 0, color: TXT2 } }, log || "（操作日志）");
+				if (id === "route") return React.createElement(RouteWindow, { map: routeMap, onNodeClick: jumpToState, currentId: routeCurrentId, focusNodes: varNodes, TXT, TXT2, TXT3, ACCENT, BORDER, BG, GHOST, LAYER, embedded: true });
+				if (id === "shot") return React.createElement(ShotWindow, { project, api, TXT, TXT2, TXT3, BORDER, BG, LAYER, sessionId, embedded: true });
+				if (id === "vars") return React.createElement(VarWindow, { vars: (routeStatus && routeStatus.vars) || {}, routeVars: (routeMap && routeMap.variables) || [], onVarJump: jumpToVarDef, onVarFocus: setVarFocus, TXT, TXT2, TXT3, ACCENT, BORDER, BG, LAYER, embedded: true });
 				return renderSidePanel(id);
 			};
 			// ── 类 VSCode 布局：活动视图切换 + 光标位置（状态栏） ──
@@ -3465,9 +3511,11 @@ window.__ModuleLoader__.load({
 				setLog("📂 变量 " + name + " 定义 → " + fileShort + ":" + line);
 			};
 
-			// 轮询调试位置回报（路线图或变量窗口打开时，2s；无回报视为未在调试）
+			// 轮询调试位置回报（路线图/画面/变量面板任一可见（区域或浮动）时，2s；无回报视为未在调试）
 			React.useEffect(() => {
-				if ((!routeWin.open && !varWin.open) || !project) { setRouteStatus(null); return; }
+				const inLayout = ["route", "shot", "vars"].some((k) => (panelLayout.left.panels || []).includes(k) || (panelLayout.bottom.panels || []).includes(k));
+				const inFloat = ["route", "shot", "vars"].some((k) => floating && floating[k]);
+				if ((!inLayout && !inFloat) || !project) { setRouteStatus(null); return; }
 				const poll = () => {
 					api("route-status", {}, { project }).then((r) => {
 						setRouteStatus(r && r.running ? r : null);
@@ -3476,7 +3524,7 @@ window.__ModuleLoader__.load({
 				poll();
 				const t = setInterval(poll, 2000);
 				return () => clearInterval(t);
-			}, [routeWin.open, varWin.open, project]);
+			}, [panelLayout, floating, project]);
 
 			// 隐藏 DSH 原生对话输入框（data-composer-seat；本面板自带输入区，避免双输入框；卸载时恢复）
 			React.useEffect(() => {
@@ -3507,10 +3555,14 @@ window.__ModuleLoader__.load({
 					const meta = PANEL_META[id] || { title: id, icon: "📦" };
 					return React.createElement(FloatingPanel, { key: id, meta, win, rootRef: (el) => { floatElsRef.current[id] = el; }, onChange: (w) => setFloating((f) => ({ ...f, [id]: w })), onDock: (region) => dockPanel(id, region), onClose: () => dockPanel(id, "left"), TXT, TXT2, TXT3, BORDER, BG, LAYER }, renderPanel(id));
 				}),
-				// ── 拖拽 ghost 拖影（跟随鼠标；位置由 ghostRef DOM 控制，避免重渲染风暴） ──
-				dragGhost ? React.createElement("div", { ref: ghostRef, style: { position: "fixed", left: 0, top: 0, zIndex: 9999, pointerEvents: "none", display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", background: LAYER, border: "1px solid " + ACCENT, borderRadius: 6, boxShadow: "0 6px 20px rgba(0,0,0,.3)", fontSize: 12, color: TXT, opacity: .92 } },
-					React.createElement("span", { style: { fontSize: 13 } }, (PANEL_META[dragGhost.id] || {}).icon || "📦"),
-					React.createElement("span", {}, (PANEL_META[dragGhost.id] || {}).title || dragGhost.id),
+				// ── 拖拽 ghost 拖影（面板轮廓预览：跟随鼠标，示意拖动的面板形状；位置由 ghostRef DOM 控制，避免重渲染风暴） ──
+				dragGhost ? React.createElement("div", { ref: ghostRef, style: { position: "fixed", left: 0, top: 0, zIndex: 9999, pointerEvents: "none", width: 220, height: 96, background: "rgba(100,160,255,.10)", border: "1px solid " + ACCENT, borderRadius: 8, boxShadow: "0 10px 28px rgba(0,0,0,.4)", display: "flex", flexDirection: "column", overflow: "hidden" } },
+					React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", background: LAYER, borderBottom: "1px solid " + ACCENT, fontSize: 12, color: TXT } },
+						React.createElement("span", { style: { fontSize: 13 } }, (PANEL_META[dragGhost.id] || {}).icon || "📦"),
+						React.createElement("span", { style: { fontWeight: 600 } }, (PANEL_META[dragGhost.id] || {}).title || dragGhost.id),
+						React.createElement("span", { style: { marginLeft: "auto", fontSize: 10, color: TXT3 } }, "松开吸附"),
+					),
+					React.createElement("div", { style: { flex: 1, margin: 4, borderRadius: 4, border: "1px dashed " + ACCENT, opacity: .5 } }),
 				) : null,
 				// ── 顶栏（类 VSCode：项目输入 + 图标+文字操作 + 强调工作范围 + 对话） ──
 				React.createElement("div", { style: { ...row, gap: 6, flexWrap: "wrap" } },
@@ -3548,14 +3600,14 @@ window.__ModuleLoader__.load({
 				React.createElement("div", { style: { display: "flex", flex: 1, minHeight: 0, maxWidth: "100%", minWidth: 0 } },
 					// ── 控件总栏（点击打开面板/窗口；按键已统一到顶部；可收缩只显图标；自动隐藏基于自身位置） ──
 					React.createElement("div", { ref: navRef, style: { width: navCollapsed ? 46 : 172, flexShrink: 0, borderRight: "1px solid " + BORDER, background: LAYER, display: "flex", flexDirection: "column", paddingTop: 6, overflowY: "auto", overflowX: "hidden", transition: "width .15s" } },
-						// 调试控件（需运行游戏：桥接回报驱动）
+						// 调试控件（需运行游戏：桥接回报驱动；点击停靠为面板控件，可拖拽/吸附/浮动）
 						!navCollapsed ? React.createElement("div", { style: { width: "100%", padding: "1px 10px 5px", fontSize: 10, color: TXT3, fontWeight: 600 } }, "调试 · 需运行") : null,
-						abIcon("🗺", "分支路线图", openRouteWin, { opacity: project ? 1 : .4, hideText: navCollapsed, title: "状态机图；查看不需运行，点击节点跳游戏需运行" }),
-						abIcon("🎬", "实时画面", () => setShotWin((w) => ({ ...w, open: true })), { opacity: project ? 1 : .4, hideText: navCollapsed, title: "游戏实时画面（截图 + 点击/推进/回滚）" }),
-						abIcon("📊", "运行时变量", () => setVarWin((w) => ({ ...w, open: true })), { opacity: project ? 1 : .4, hideText: navCollapsed, title: "变量监控（变化高亮）" }),
+						abIcon("🗺", "分支路线图", () => movePanel("route", "left"), { opacity: project ? 1 : .4, hideText: navCollapsed, title: "路线图面板（状态机图；点击节点跳游戏需运行）" }),
+						abIcon("🎬", "实时画面", () => movePanel("shot", "left"), { opacity: project ? 1 : .4, hideText: navCollapsed, title: "实时画面面板（截图 + 点击/推进/回滚）" }),
+						abIcon("📊", "运行时变量", () => movePanel("vars", "left"), { opacity: project ? 1 : .4, hideText: navCollapsed, title: "变量监控面板（变化高亮）" }),
 						React.createElement("div", { style: { width: 148, height: 1, background: BORDER, margin: "4px 0 6px", alignSelf: "center" } }),
 						// 视图控件（停靠左栏）
-						[["files", "📄", "项目文件"], ["assets", "🖼", "项目素材"], ["edits", "✎", "基线更改"]].map(([k, icon, label]) => { const inLeft = (panelLayout.left.panels || []).includes(k); return React.createElement("div", { key: k, title: label, onClick: () => movePanel(k, "left"), style: { position: "relative", width: "100%", height: 32, marginBottom: 2, display: "flex", alignItems: "center", gap: 7, padding: "0 10px", cursor: "pointer" } },
+						[["files", "📄", "项目文件"], ["nav", "🧭", "导航"], ["assets", "🖼", "项目素材"], ["edits", "✎", "基线更改"]].map(([k, icon, label]) => { const inLeft = (panelLayout.left.panels || []).includes(k); return React.createElement("div", { key: k, title: label, onClick: () => movePanel(k, "left"), style: { position: "relative", width: "100%", height: 32, marginBottom: 2, display: "flex", alignItems: "center", gap: 7, padding: "0 10px", cursor: "pointer" } },
 							React.createElement("span", { style: { fontSize: 14, flexShrink: 0 } }, icon),
 							React.createElement("span", { style: { flex: 1, minWidth: 0, fontSize: 12, color: inLeft ? ACCENT : TXT2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontWeight: inLeft ? 600 : 400, display: navCollapsed ? "none" : undefined } }, label),
 							React.createElement("span", { style: { position: "absolute", left: 0, top: 5, bottom: 5, width: 2, borderRadius: 1, background: inLeft ? ACCENT : "transparent" } }),
