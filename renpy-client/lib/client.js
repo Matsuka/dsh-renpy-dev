@@ -2831,6 +2831,14 @@ window.__ModuleLoader__.load({
 				window.addEventListener("mouseup", onUp);
 				return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
 			}, []);
+			// 面板标题栏操作（并入标题栏，避免内容区重复标题；mousedown 阻止拖拽）
+			const renderPanelOps = (id) => {
+				const op = (icon, title, fn) => React.createElement("span", { title, style: { fontSize: 12, color: TXT3, cursor: "pointer", padding: "1px 4px" }, onMouseDown: (e) => e.stopPropagation(), onClick: (e) => { e.stopPropagation(); fn(); } }, icon);
+				if (id === "files") return React.createElement(React.Fragment, null, op("⟳", "刷新文件列表", () => loadFiles(project)), op("▾", "折叠全部", () => setExpandedFiles({})));
+				if (id === "assets") return op("⟳", "刷新资源", () => loadAssets(project));
+				if (id === "edits") return op("↗", "打开修改面板", () => openCpPanel());
+				return null;
+			};
 			// 区域渲染：多面板平铺平分（左栏垂直堆叠 / 底部水平排布），各面板标题栏可拖拽；吸附示意高亮区域
 			const renderRegion = (region) => {
 				const g = panelLayout[region] || { panels: [] };
@@ -2844,8 +2852,9 @@ window.__ModuleLoader__.load({
 								React.createElement("span", { style: { fontSize: 11 } }, meta.icon),
 								React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: TXT } }, meta.title),
 								React.createElement("span", { style: { flex: 1 } }),
+								renderPanelOps(id),
 								React.createElement("span", { style: { fontSize: 10, color: TXT3 } }, "⠿"),
-								React.createElement("span", { title: "移除面板（导航可重开）", style: { fontSize: 12, color: TXT3, cursor: "pointer" }, onClick: (e) => { e.stopPropagation(); removePanel(id); } }, "✕"),
+								React.createElement("span", { title: "移除面板（导航可重开）", style: { fontSize: 12, color: TXT3, cursor: "pointer" }, onMouseDown: (e) => e.stopPropagation(), onClick: (e) => { e.stopPropagation(); removePanel(id); } }, "✕"),
 							),
 							React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto" } }, renderPanel(id)),
 						);
@@ -2855,12 +2864,6 @@ window.__ModuleLoader__.load({
 			// 侧栏面板内容（files/assets/edits；区域与浮动窗共用）
 			const renderSidePanel = (id) => {
 				if (id === "files") return React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } },
-					React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 4, padding: "5px 8px", borderBottom: "1px solid " + BORDER, background: LAYER, flexShrink: 0 } },
-						React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: TXT } }, "📄 文件 (" + (files || []).length + ")"),
-						React.createElement("span", { style: { flex: 1 } }),
-						React.createElement("span", { style: { fontSize: 12, color: TXT2, cursor: "pointer", padding: "1px 5px", borderRadius: 4 }, onClick: () => loadFiles(project), title: "刷新文件列表" }, "⟳"),
-						React.createElement("span", { style: { fontSize: 12, color: TXT2, cursor: "pointer", padding: "1px 5px", borderRadius: 4 }, onClick: () => setExpandedFiles({}), title: "折叠全部" }, "▾"),
-					),
 					React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", padding: "4px 4px 10px" } },
 						renderFileTree(buildFileTree(files || []), 0, ""),
 						React.createElement("div", { style: { fontWeight: 600, padding: "10px 8px 3px", fontSize: 12, color: TXT3 } }, "导航"),
@@ -2886,11 +2889,6 @@ window.__ModuleLoader__.load({
 					),
 				);
 				if (id === "assets") return React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } },
-					React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 4, padding: "5px 8px", borderBottom: "1px solid " + BORDER, background: LAYER, flexShrink: 0 } },
-						React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: TXT } }, "🖼 资源 (" + assetCats.reduce((n, [c]) => n + (assets[c] || []).length, 0) + ")"),
-						React.createElement("span", { style: { flex: 1 } }),
-						React.createElement("span", { style: { fontSize: 12, color: TXT2, cursor: "pointer", padding: "1px 5px", borderRadius: 4 }, onClick: () => loadAssets(project), title: "刷新资源" }, "⟳"),
-					),
 					React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", padding: "4px 4px 10px" } },
 						assetCats.map(([cat, label]) => {
 							const open = isOpen(cat);
@@ -2909,11 +2907,6 @@ window.__ModuleLoader__.load({
 					),
 				);
 				return React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } },
-					React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 4, padding: "5px 8px", borderBottom: "1px solid " + BORDER, background: LAYER, flexShrink: 0 } },
-						React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: TXT } }, "✎ 修改 (" + (cpDiff && cpDiff.files ? cpDiff.files.length : 0) + ")"),
-						React.createElement("span", { style: { flex: 1 } }),
-						React.createElement("span", { style: { fontSize: 12, color: TXT2, cursor: "pointer", padding: "1px 5px", borderRadius: 4 }, onClick: () => openCpPanel(), title: "打开修改面板" }, "↗"),
-					),
 					React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", padding: "4px 4px 10px" } },
 						(cpDiff && cpDiff.files.length) ? cpDiff.files.map((f) => React.createElement("div", { key: f.rel, style: { ...itemRow(false), display: "flex", alignItems: "center", gap: 5 }, onClick: () => openCpPanel() },
 							React.createElement("span", { style: { fontSize: 11, flexShrink: 0 } }, "✎"),
