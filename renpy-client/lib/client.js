@@ -1173,7 +1173,7 @@ const ICONS = { "warning": { "d": "M278 -76.0L173 -268.0Q169 -274 163 -277.5Q1
 				React.createElement("div", { onMouseDown: onBarDown, style: { display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", background: LAYER, borderBottom: "1px solid " + BORDER, cursor: dragState === "move" ? "grabbing" : "grab", userSelect: "none", flexShrink: 0 } },
 					React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 600, color: TXT } }, React.createElement(Ico, { name: "device-camera-video", size: 13 }), "游戏画面"),
 					React.createElement("span", { style: { fontSize: 11, color: TXT3, marginLeft: "auto", whiteSpace: "nowrap" } }, lastAt ? "更新于 " + new Date(lastAt).toLocaleTimeString() : "未获取"),
-					React.createElement("button", { onClick: refresh, title: "立即刷新截图（触发游戏截图并拉取）", style: C.btn }, loading ? "…" : "⟳ 刷新"),
+					React.createElement("button", { onClick: refresh, title: "立即刷新截图（触发游戏截图并拉取）", style: C.btn }, loading ? "…" : [React.createElement(Ico, { name: "refresh", size: 12 }), " 刷新"]),
 					React.createElement("button", { onClick: onClose, title: "关闭 (Esc)", style: { ...C.iconBtn, flexShrink: 0 } }, React.createElement(Ico, { name: "close", size: 11 })),
 				),
 				content,
