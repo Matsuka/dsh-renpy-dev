@@ -51,7 +51,8 @@ const src = fs.readFileSync(require('./paths').CLIENT_SRC, 'utf8')
     ok(ids.filter((x) => x.group === "编辑行为").length === 3, '编辑行为组 3 项', ids.filter((x) => x.group === "编辑行为").length)
     ok(ids.filter((x) => x.group === "颜色").length === 12, '颜色组 12 项（对齐 VSCode editor.* token）', ids.filter((x) => x.group === "颜色").length)
     ok(ids.filter((x) => x.group === "界面").length === 8, '界面组 8 项（workbench.*）', ids.filter((x) => x.group === "界面").length)
-    ok(ids.filter((x) => x.type === "color").length === 20, 'color 类型 20 项（编辑器 12 + 界面 8）', ids.filter((x) => x.type === "color").length)
+    ok(ids.filter((x) => x.group === "交互").length === 4, '交互组 4 项（button/list/input）', ids.filter((x) => x.group === "交互").length)
+    ok(ids.filter((x) => x.type === "color").length === 24, 'color 类型 24 项（编辑器 12 + 界面 8 + 交互 4）', ids.filter((x) => x.type === "color").length)
     const mwz = ids.find((x) => x.id === "editor.mouseWheelZoom")
     ok(mwz.def === "false", 'mouseWheelZoom 默认 false（不影响页面缩放，冲突可关）', mwz && mwz.def)
     // 关键默认值（与 VSCode 语义一致）
@@ -114,6 +115,10 @@ const src = fs.readFileSync(require('./paths').CLIENT_SRC, 'utf8')
     for (const n of names) ok(hasWb(n), n + ' 含 workbench.background')
     const d26w = /"2026 Dark": \{([^}]*)\}/.exec(seg)
     ok(d26w && /"workbench.sideBar.background": "#191A1B"/.test(d26w[1]), '2026 Dark 侧栏 #191A1B（本机实测）', d26w && d26w[1].slice(0, 220))
+    // 交互 token（按钮强调色等）
+    ok(/button.background": "#297AA0"/.test(seg), '2026 Dark 按钮强调色 #297AA0（本机实测）')
+    ok(/button.background": "#0069CC"/.test(seg), '2026 Light 按钮强调色 #0069CC')
+    ok(/input.border": "#333536FF"/.test(seg), '2026 Dark 输入框边框 #333536FF')
   }
 }
 

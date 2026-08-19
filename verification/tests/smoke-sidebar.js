@@ -401,6 +401,7 @@ console.log('设置补全组: 分组名', htmlSettings.indexOf('补全') >= 0, '
 console.log('设置新组: 编辑行为', htmlSettings.indexOf('编辑行为') >= 0 && htmlSettings.indexOf('editor.mouseWheelZoom') >= 0 && htmlSettings.indexOf('editor.smoothScrolling') >= 0, '| 颜色组', htmlSettings.indexOf('颜色') >= 0 && htmlSettings.indexOf('editor.background') >= 0, '| color 控件', htmlSettings.indexOf('type="color"') >= 0, '| padding 项', htmlSettings.indexOf('editor.padding.top') >= 0);
 console.log('配色方案: 下拉', htmlSettings.indexOf('🎨 应用预制配色') >= 0 || htmlSettings.indexOf('🎨 预制配色') >= 0, '| 2026 Dark 选项', htmlSettings.indexOf('2026 Dark') >= 0, '| 2026 Light 选项', htmlSettings.indexOf('2026 Light') >= 0, '| Dark+ 选项', htmlSettings.indexOf('Dark+') >= 0, '| 行号色项', htmlSettings.indexOf('editorLineNumber.foreground') >= 0, '| 光标色项', htmlSettings.indexOf('editorCursor.foreground') >= 0);
 console.log('界面组: 分组名', htmlSettings.indexOf('界面') >= 0, '| workbench.background', htmlSettings.indexOf('workbench.background') >= 0, '| 侧栏背景项', htmlSettings.indexOf('workbench.sideBar.background') >= 0, '| 状态栏项', htmlSettings.indexOf('workbench.statusBar.background') >= 0, '| 标签栏项', htmlSettings.indexOf('workbench.editorGroupHeader.tabsBackground') >= 0);
+console.log('交互组: 分组名', htmlSettings.indexOf('交互') >= 0, '| 按钮强调色', htmlSettings.indexOf('button.background') >= 0, '| hover 底色', htmlSettings.indexOf('list.hoverBackground') >= 0, '| 输入框底', htmlSettings.indexOf('input.background') >= 0, '| 输入框边框', htmlSettings.indexOf('input.border') >= 0);
 
 // 显示开关关闭分支：缩进线 + 括号着色关闭 → 不渲染
 const srcShowOff = srcWithData
