@@ -71,6 +71,14 @@ window.__ModuleLoader__.load({
 			{ id: "editorBracketMatch.background", group: "颜色", type: "color", default: "", desc: "括号匹配高亮颜色（留空=默认）" },
 			{ id: "editorFindMatchBackground", group: "颜色", type: "color", default: "", desc: "查找匹配高亮颜色（留空=默认）" },
 			{ id: "editorError.foreground", group: "颜色", type: "color", default: "", desc: "lint 错误下划线颜色（留空=默认）" },
+			{ id: "workbench.background", group: "界面", type: "color", default: "", desc: "工作台背景色（留空=跟随 DSH 主题）" },
+			{ id: "workbench.sideBar.background", group: "界面", type: "color", default: "", desc: "侧栏背景色（文件/导航/素材区）" },
+			{ id: "workbench.activityBar.background", group: "界面", type: "color", default: "", desc: "活动栏背景色（最左图标栏）" },
+			{ id: "workbench.panel.background", group: "界面", type: "color", default: "", desc: "面板背景色（对话/调试/设置等停靠面板）" },
+			{ id: "workbench.editorGroupHeader.tabsBackground", group: "界面", type: "color", default: "", desc: "标签栏背景色（编辑器标签页）" },
+			{ id: "workbench.statusBar.background", group: "界面", type: "color", default: "", desc: "状态栏背景色（底部）" },
+			{ id: "workbench.foreground", group: "界面", type: "color", default: "", desc: "工作台界面前景色（文本）" },
+			{ id: "workbench.border", group: "界面", type: "color", default: "", desc: "工作台分隔边框色" },
 		];
 		const SETTINGS_DEFAULTS = (() => {
 			const d = {};
@@ -103,16 +111,19 @@ window.__ModuleLoader__.load({
 
 		// 预制配色方案（对齐 VSCode colorCustomizations 语义；色值来源：本机 VSCode 1.133.0
 		// extensions/theme-defaults/themes/*.json 实测提取（含 include 链合并）+ web 文档补全。
-		// 缺失 token 省略 = 跟随默认；应用方案时未列的 token 清空回默认）
+		// 每套含 editor.*（编辑器）+ workbench.*（界面）token；缺失 token 省略 = 跟随默认；
+		// 应用方案时未列的 token 清空回默认）
+		// workbench 默认（无显式值的主题）：Dark+ sideBar #252526/activityBar #333333/statusBar #007acc；
+		// Light+ sideBar #f3f3f3/activityBar #2c2c2c/statusBar #007acc；HC 同基底色
 		const COLOR_PRESETS = {
-			"2026 Dark": { "editor.background": "#121314", "editor.foreground": "#BBBEBF", "editor.selectionBackground": "#276782DD", "editor.lineHighlightBackground": "#242526", "editorLineNumber.foreground": "#858889", "editorCursor.foreground": "#BBBEBF", "editorIndentGuide.background1": "#404040", "editorWhitespace.foreground": "#8C8C8C4D", "editorBracketMatch.background": "#3994BC55", "editorGutter.background": "#121314" },
-			"2026 Light": { "editor.background": "#FFFFFF", "editor.foreground": "#202020", "editor.selectionBackground": "#0069CC40", "editor.lineHighlightBackground": "#EAEAEA40", "editorLineNumber.foreground": "#606060", "editorCursor.foreground": "#202020", "editorIndentGuide.background1": "#D3D3D3", "editorWhitespace.foreground": "#60606040", "editorBracketMatch.background": "#0069CC40", "editorGutter.background": "#FFFFFF" },
-			"Dark Modern": { "editor.background": "#1F1F1F", "editor.foreground": "#CCCCCC", "editor.selectionBackground": "#264F78", "editor.lineHighlightBackground": "#2A2D2E", "editorLineNumber.foreground": "#6E7681", "editorCursor.foreground": "#AEAFAD", "editorIndentGuide.background1": "#404040", "editorWhitespace.foreground": "#E3E4E229", "editorBracketMatch.background": "#0064001A", "editorFindMatchBackground": "#9E6A03", "editorError.foreground": "#F14C4C", "editorGutter.background": "#1F1F1F" },
-			"Dark+": { "editor.background": "#1E1E1E", "editor.foreground": "#D4D4D4", "editor.selectionBackground": "#264F78", "editor.lineHighlightBackground": "#2B2B2B", "editorLineNumber.foreground": "#858585", "editorCursor.foreground": "#AEAFAD", "editorIndentGuide.background1": "#404040", "editorWhitespace.foreground": "#3B3B3B", "editorBracketMatch.background": "#0064001A", "editorFindMatchBackground": "#515C6A", "editorError.foreground": "#F48771", "editorGutter.background": "#1E1E1E" },
-			"Light Modern": { "editor.background": "#FFFFFF", "editor.foreground": "#3B3B3B", "editor.selectionBackground": "#ADD6FF", "editor.lineHighlightBackground": "#E8F0FE", "editorLineNumber.foreground": "#6E7681", "editorCursor.foreground": "#000000", "editorIndentGuide.background1": "#D3D3D3", "editorWhitespace.foreground": "#33333333", "editorBracketMatch.background": "#0064001A", "editorFindMatchBackground": "#A8AC94", "editorError.foreground": "#E51400", "editorGutter.background": "#FFFFFF" },
-			"Light+": { "editor.background": "#FFFFFF", "editor.foreground": "#000000", "editor.selectionBackground": "#ADD6FF", "editor.lineHighlightBackground": "#E8F0FE", "editorLineNumber.foreground": "#237893", "editorCursor.foreground": "#000000", "editorIndentGuide.background1": "#D3D3D3", "editorWhitespace.foreground": "#333333", "editorBracketMatch.background": "#D9E9FF", "editorFindMatchBackground": "#A8AC94", "editorError.foreground": "#CD3131", "editorGutter.background": "#F7F7F7" },
-			"Dark High Contrast": { "editor.background": "#000000", "editor.foreground": "#FFFFFF", "editor.selectionBackground": "#FFFFFF", "editor.lineHighlightBackground": "#000000", "editorLineNumber.foreground": "#FFFFFF", "editorCursor.foreground": "#FFFFFF", "editorIndentGuide.background1": "#FFFFFF", "editorWhitespace.foreground": "#7C7C7C", "editorBracketMatch.background": "#0064001A", "editorError.foreground": "#F48771", "editorGutter.background": "#000000" },
-			"Light High Contrast": { "editor.background": "#FFFFFF", "editor.foreground": "#292929", "editor.selectionBackground": "#0F4A85", "editor.lineHighlightBackground": "#FFFFFF", "editorLineNumber.foreground": "#292929", "editorCursor.foreground": "#0F4A85", "editorIndentGuide.background1": "#CCCCCC", "editorWhitespace.foreground": "#CCCCCC", "editorBracketMatch.background": "#0000", "editorError.foreground": "#B5200D", "editorGutter.background": "#FFFFFF" },
+			"2026 Dark": { "editor.background": "#121314", "editor.foreground": "#BBBEBF", "editor.selectionBackground": "#276782DD", "editor.lineHighlightBackground": "#242526", "editorLineNumber.foreground": "#858889", "editorCursor.foreground": "#BBBEBF", "editorIndentGuide.background1": "#404040", "editorWhitespace.foreground": "#8C8C8C4D", "editorBracketMatch.background": "#3994BC55", "editorGutter.background": "#121314", "workbench.background": "#121314", "workbench.sideBar.background": "#191A1B", "workbench.activityBar.background": "#191A1B", "workbench.panel.background": "#191A1B", "workbench.editorGroupHeader.tabsBackground": "#191A1B", "workbench.statusBar.background": "#191A1B", "workbench.foreground": "#BFBFBF", "workbench.border": "#2B2C2E" },
+			"2026 Light": { "editor.background": "#FFFFFF", "editor.foreground": "#202020", "editor.selectionBackground": "#0069CC40", "editor.lineHighlightBackground": "#EAEAEA40", "editorLineNumber.foreground": "#606060", "editorCursor.foreground": "#202020", "editorIndentGuide.background1": "#D3D3D3", "editorWhitespace.foreground": "#60606040", "editorBracketMatch.background": "#0069CC40", "editorGutter.background": "#FFFFFF", "workbench.background": "#FFFFFF", "workbench.sideBar.background": "#FAFAFD", "workbench.activityBar.background": "#FAFAFD", "workbench.panel.background": "#FAFAFD", "workbench.editorGroupHeader.tabsBackground": "#FAFAFD", "workbench.statusBar.background": "#FAFAFD", "workbench.foreground": "#202020", "workbench.border": "#D8D9DB" },
+			"Dark Modern": { "editor.background": "#1F1F1F", "editor.foreground": "#CCCCCC", "editor.selectionBackground": "#264F78", "editor.lineHighlightBackground": "#2A2D2E", "editorLineNumber.foreground": "#6E7681", "editorCursor.foreground": "#AEAFAD", "editorIndentGuide.background1": "#404040", "editorWhitespace.foreground": "#E3E4E229", "editorBracketMatch.background": "#0064001A", "editorFindMatchBackground": "#9E6A03", "editorError.foreground": "#F14C4C", "editorGutter.background": "#1F1F1F", "workbench.background": "#1F1F1F", "workbench.sideBar.background": "#181818", "workbench.activityBar.background": "#181818", "workbench.panel.background": "#181818", "workbench.editorGroupHeader.tabsBackground": "#181818", "workbench.statusBar.background": "#181818", "workbench.foreground": "#CCCCCC", "workbench.border": "#454545" },
+			"Dark+": { "editor.background": "#1E1E1E", "editor.foreground": "#D4D4D4", "editor.selectionBackground": "#264F78", "editor.lineHighlightBackground": "#2B2B2B", "editorLineNumber.foreground": "#858585", "editorCursor.foreground": "#AEAFAD", "editorIndentGuide.background1": "#404040", "editorWhitespace.foreground": "#3B3B3B", "editorBracketMatch.background": "#0064001A", "editorFindMatchBackground": "#515C6A", "editorError.foreground": "#F48771", "editorGutter.background": "#1E1E1E", "workbench.background": "#1E1E1E", "workbench.sideBar.background": "#252526", "workbench.activityBar.background": "#333333", "workbench.panel.background": "#1E1E1E", "workbench.editorGroupHeader.tabsBackground": "#252526", "workbench.statusBar.background": "#007ACC", "workbench.foreground": "#CCCCCC", "workbench.border": "#3C3C3C" },
+			"Light Modern": { "editor.background": "#FFFFFF", "editor.foreground": "#3B3B3B", "editor.selectionBackground": "#ADD6FF", "editor.lineHighlightBackground": "#E8F0FE", "editorLineNumber.foreground": "#6E7681", "editorCursor.foreground": "#000000", "editorIndentGuide.background1": "#D3D3D3", "editorWhitespace.foreground": "#33333333", "editorBracketMatch.background": "#0064001A", "editorFindMatchBackground": "#A8AC94", "editorError.foreground": "#E51400", "editorGutter.background": "#FFFFFF", "workbench.background": "#FFFFFF", "workbench.sideBar.background": "#F8F8F8", "workbench.activityBar.background": "#F8F8F8", "workbench.panel.background": "#F8F8F8", "workbench.editorGroupHeader.tabsBackground": "#F8F8F8", "workbench.statusBar.background": "#F8F8F8", "workbench.foreground": "#3B3B3B", "workbench.border": "#D4D4D4" },
+			"Light+": { "editor.background": "#FFFFFF", "editor.foreground": "#000000", "editor.selectionBackground": "#ADD6FF", "editor.lineHighlightBackground": "#E8F0FE", "editorLineNumber.foreground": "#237893", "editorCursor.foreground": "#000000", "editorIndentGuide.background1": "#D3D3D3", "editorWhitespace.foreground": "#333333", "editorBracketMatch.background": "#D9E9FF", "editorFindMatchBackground": "#A8AC94", "editorError.foreground": "#CD3131", "editorGutter.background": "#F7F7F7", "workbench.background": "#FFFFFF", "workbench.sideBar.background": "#F3F3F3", "workbench.activityBar.background": "#2C2C2C", "workbench.panel.background": "#F3F3F3", "workbench.editorGroupHeader.tabsBackground": "#ECECEC", "workbench.statusBar.background": "#007ACC", "workbench.foreground": "#333333", "workbench.border": "#D4D4D4" },
+			"Dark High Contrast": { "editor.background": "#000000", "editor.foreground": "#FFFFFF", "editor.selectionBackground": "#FFFFFF", "editor.lineHighlightBackground": "#000000", "editorLineNumber.foreground": "#FFFFFF", "editorCursor.foreground": "#FFFFFF", "editorIndentGuide.background1": "#FFFFFF", "editorWhitespace.foreground": "#7C7C7C", "editorBracketMatch.background": "#0064001A", "editorError.foreground": "#F48771", "editorGutter.background": "#000000", "workbench.background": "#000000", "workbench.sideBar.background": "#000000", "workbench.activityBar.background": "#000000", "workbench.panel.background": "#000000", "workbench.editorGroupHeader.tabsBackground": "#000000", "workbench.statusBar.background": "#000000", "workbench.foreground": "#FFFFFF", "workbench.border": "#6FC3DF" },
+			"Light High Contrast": { "editor.background": "#FFFFFF", "editor.foreground": "#292929", "editor.selectionBackground": "#0F4A85", "editor.lineHighlightBackground": "#FFFFFF", "editorLineNumber.foreground": "#292929", "editorCursor.foreground": "#0F4A85", "editorIndentGuide.background1": "#CCCCCC", "editorWhitespace.foreground": "#CCCCCC", "editorBracketMatch.background": "#0000", "editorError.foreground": "#B5200D", "editorGutter.background": "#FFFFFF", "workbench.background": "#FFFFFF", "workbench.sideBar.background": "#FFFFFF", "workbench.activityBar.background": "#FFFFFF", "workbench.panel.background": "#FFFFFF", "workbench.editorGroupHeader.tabsBackground": "#FFFFFF", "workbench.statusBar.background": "#FFFFFF", "workbench.foreground": "#292929", "workbench.border": "#0F4A85" },
 		};
 		const COLOR_PRESET_NAMES = Object.keys(COLOR_PRESETS);
 
@@ -1389,11 +1400,11 @@ window.__ModuleLoader__.load({
 			};
 			const setVal = (id, val) => { const next = { ...local, [id]: val }; setLocal(next); localRef.current = next; persistLocal(); onChange(scope, next); };
 			const resetVal = (id) => { const s = SETTINGS_SCHEMA.find((x) => x.id === id); const next = { ...local, [id]: s ? s.default : undefined }; setLocal(next); localRef.current = next; persistLocal(); onChange(scope, next); };
-			// 配色方案：选择 COLOR_PRESETS 一键应用——方案 token 写入当前层，未列的清空回默认
+			// 配色方案：选择 COLOR_PRESETS 一键应用——方案 token（编辑器+界面两组）写入当前层，未列的清空回默认
 			const applyPreset = (name) => {
 				const preset = COLOR_PRESETS[name];
 				if (!preset) return;
-				const colorIds = SETTINGS_SCHEMA.filter((s) => s.group === "颜色").map((s) => s.id);
+				const colorIds = SETTINGS_SCHEMA.filter((s) => s.group === "颜色" || s.group === "界面").map((s) => s.id);
 				const next = { ...local };
 				for (const cid of colorIds) next[cid] = preset[cid] || "";
 				setLocal(next); localRef.current = next; persistLocal();
@@ -3499,7 +3510,7 @@ window.__ModuleLoader__.load({
 				const vertical = region !== "bottom"; // left/right 垂直堆叠，bottom 水平排布
 				const sp = snapPreview && snapPreview.region === region ? snapPreview : null;
 				const sizes = g.sizes || {};
-				return React.createElement("div", { ref: regionRefs[region], style: { flex: 1, minHeight: 0, display: "flex", flexDirection: vertical ? "column" : "row", overflow: "hidden", outline: sp ? "2px solid " + ACCENT : "none", outlineOffset: -2, position: "relative" } },
+				return React.createElement("div", { ref: regionRefs[region], style: { flex: 1, minHeight: 0, display: "flex", flexDirection: vertical ? "column" : "row", overflow: "hidden", outline: sp ? "2px solid " + ACCENT : "none", outlineOffset: -2, position: "relative", background: vertical ? SIDEFILL : BG } },
 					// 分区吸附预览：拖动中目标区域半透明填充高亮 + 插入位置指示线（Win11 snap 示意；粗线+发光更醒目）
 					sp ? React.createElement("div", { style: { position: "absolute", inset: 0, background: "rgba(100,160,255,.16)", pointerEvents: "none", zIndex: 6 } }) : null,
 					sp ? React.createElement("div", { style: { position: "absolute", left: vertical ? 0 : "calc(" + (sp.index / Math.max(1, g.panels.length)) * 100 + "% - 2px)", top: vertical ? "calc(" + (sp.index / Math.max(1, g.panels.length)) * 100 + "% - 2px)" : 0, width: vertical ? "100%" : 4, height: vertical ? 4 : "100%", background: ACCENT, borderRadius: 2, boxShadow: "0 0 8px " + ACCENT, zIndex: 7, pointerEvents: "none" } }) : null,
@@ -3704,6 +3715,21 @@ window.__ModuleLoader__.load({
 			const cfgRef = React.useRef(cfg); cfgRef.current = cfg;
 			const settingsRef = React.useRef(settings); settingsRef.current = settings;
 			const onSettingsChangeRef = React.useRef(onSettingsChange); onSettingsChangeRef.current = onSettingsChange;
+			// 界面颜色覆写（workbench.* → --dsw-* CSS 变量，注入面板根；对齐 VSCode colorCustomizations 语义）
+			// 侧栏区域容器已用 SIDEFILL（--dsw-specific-sidebar-fill），故 sideBar 映射可生效；
+			// panel 映射 bg-base（面板内容组件用 BG token），后写覆盖根背景
+			const UI_WB_MAP = [
+				["workbench.background", "--dsw-alias-bg-base"],
+				["workbench.sideBar.background", "--dsw-specific-sidebar-fill"],
+				["workbench.activityBar.background", "--dsw-alias-bg-layer-1"],
+				["workbench.panel.background", "--dsw-alias-bg-base"],
+				["workbench.editorGroupHeader.tabsBackground", "--dsw-alias-bg-layer-1"],
+				["workbench.statusBar.background", "--dsw-alias-bg-layer-1"],
+				["workbench.foreground", "--dsw-alias-label-primary"],
+				["workbench.border", "--dsw-alias-border-l1"],
+			];
+			const uiOverrides = {};
+			for (const [wb, cssv] of UI_WB_MAP) { const v = cfg[wb]; if (v && v.trim()) uiOverrides[cssv] = v.trim(); }
 			// 字号/字体变化 → 强制重挂载编辑器（重测 CHAR_W 字符宽，避免 overlay 错位）
 			const editorRemountKey = String(cfg["editor.fontSize"]) + "|" + (cfg["editor.fontFamily"] || "") + "|" + cfg["editor.lineHeight"];
 			// 字体相关（空 fontFamily 回退 DSH 主题代码字体）
@@ -4213,7 +4239,7 @@ window.__ModuleLoader__.load({
 				React.createElement("span", { style: { position: "absolute", left: 0, top: 5, bottom: 5, width: 2, borderRadius: 1, background: (opts && opts.active) ? ACCENT : "transparent" } }),
 			);
 
-			return React.createElement("div", { ref: rootRef, style: { position: "relative", display: "flex", flexDirection: "column", flex: "1 1 0", minWidth: 0, minHeight: 0, maxWidth: "100%", overflow: "hidden", background: BG, color: TXT, fontFamily: UI, fontSize: 13 } },
+			return React.createElement("div", { ref: rootRef, style: { position: "relative", display: "flex", flexDirection: "column", flex: "1 1 0", minWidth: 0, minHeight: 0, maxWidth: "100%", overflow: "hidden", background: BG, color: TXT, fontFamily: UI, fontSize: 13, ...uiOverrides } },
 				// ── 路线图弹出窗口（Portal 到 body，可拖可缩放） ──
 				routeWin.open ? React.createElement(RouteWindow, { map: routeMap, onNodeClick: jumpToState, currentId: routeCurrentId, focusNodes: varNodes, win: routeWin, onChange: setRouteWin, onClose: () => setRouteWin((w) => ({ ...w, open: false })), TXT, TXT2, TXT3, ACCENT, BORDER, BG, GHOST, LAYER }) : null,
 				// ── 游戏画面窗口（Portal 到 body，可拖可缩放） ──

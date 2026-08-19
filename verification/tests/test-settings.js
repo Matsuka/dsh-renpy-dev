@@ -50,7 +50,8 @@ const src = fs.readFileSync(require('./paths').CLIENT_SRC, 'utf8')
     ok(ids.filter((x) => x.group === "补全").length === 4, '补全组 4 项')
     ok(ids.filter((x) => x.group === "编辑行为").length === 3, '编辑行为组 3 项', ids.filter((x) => x.group === "编辑行为").length)
     ok(ids.filter((x) => x.group === "颜色").length === 12, '颜色组 12 项（对齐 VSCode editor.* token）', ids.filter((x) => x.group === "颜色").length)
-    ok(ids.filter((x) => x.type === "color").length === 12, 'color 类型 12 项', ids.filter((x) => x.type === "color").length)
+    ok(ids.filter((x) => x.group === "界面").length === 8, '界面组 8 项（workbench.*）', ids.filter((x) => x.group === "界面").length)
+    ok(ids.filter((x) => x.type === "color").length === 20, 'color 类型 20 项（编辑器 12 + 界面 8）', ids.filter((x) => x.type === "color").length)
     const mwz = ids.find((x) => x.id === "editor.mouseWheelZoom")
     ok(mwz.def === "false", 'mouseWheelZoom 默认 false（不影响页面缩放，冲突可关）', mwz && mwz.def)
     // 关键默认值（与 VSCode 语义一致）
@@ -108,6 +109,11 @@ const src = fs.readFileSync(require('./paths').CLIENT_SRC, 'utf8')
     const d26 = /"2026 Dark": \{([^}]*)\}/.exec(seg)
     ok(d26 && /"editor.background": "#121314"/.test(d26[1]), '2026 Dark 背景 #121314（本机实测）', d26 && d26[1].slice(0, 100))
     ok(d26 && /"editor.foreground": "#BBBEBF"/.test(d26[1]), '2026 Dark 前景 #BBBEBF')
+    // 每套含 workbench token（界面覆写）
+    const hasWb = (n) => new RegExp('"' + esc(n) + '": \\{[\\s\\S]*?"workbench.background"').test(seg)
+    for (const n of names) ok(hasWb(n), n + ' 含 workbench.background')
+    const d26w = /"2026 Dark": \{([^}]*)\}/.exec(seg)
+    ok(d26w && /"workbench.sideBar.background": "#191A1B"/.test(d26w[1]), '2026 Dark 侧栏 #191A1B（本机实测）', d26w && d26w[1].slice(0, 220))
   }
 }
 
