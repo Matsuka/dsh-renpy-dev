@@ -3731,8 +3731,13 @@ window.__ModuleLoader__.load({
 			const settingsRef = React.useRef(settings); settingsRef.current = settings;
 			const onSettingsChangeRef = React.useRef(onSettingsChange); onSettingsChangeRef.current = onSettingsChange;
 			// ── 亮暗模式（theme.mode）：改 body[data-ds-dark-theme] 驱动整个 DSH 界面亮暗 ──
+			// 关键：system 模式首次挂载不干预宿主（避免打开工作台就把 DSH 亮暗"纠正"成系统偏好）；
+			// 仅从强制模式切回 system 时应用一次当前系统偏好，此后跟随系统变化
+			const prevThemeModeRef = React.useRef(null);
 			React.useEffect(() => {
 				const mode = cfg["theme.mode"] || "system";
+				const first = prevThemeModeRef.current === null;
+				prevThemeModeRef.current = mode;
 				const apply = (dark) => {
 					try {
 						const b = document.body;
@@ -3747,11 +3752,11 @@ window.__ModuleLoader__.load({
 				try { mq = window.matchMedia("(prefers-color-scheme: dark)"); } catch (e) { mq = null; }
 				if (mq && mq.addEventListener) {
 					const on = (e) => apply(e.matches);
-					apply(mq.matches);
+					if (!first) apply(mq.matches); // 切回 system：应用当前系统偏好；首次挂载不干预
 					mq.addEventListener("change", on);
 					return () => mq.removeEventListener("change", on);
 				}
-				apply(false);
+				if (!first) apply(false);
 				// eslint-disable-next-line react-hooks/exhaustive-deps
 			}, [cfg["theme.mode"]]);
 			// 界面颜色覆写（workbench.* → --dsw-* CSS 变量，注入面板根；对齐 VSCode colorCustomizations 语义）
