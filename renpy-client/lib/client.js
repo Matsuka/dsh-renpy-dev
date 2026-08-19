@@ -1315,7 +1315,7 @@ window.__ModuleLoader__.load({
 		// ── 个性化设置面板（⚙：搜索 + 分组 + 控件 + 默认值标注 + 重置；全局/项目两层切换。
 		//    由 SETTINGS_SCHEMA 注册表驱动——新增配置项无需改面板代码） ──
 		function SettingsWindow(props) {
-			const { project, api, sessionId, settings, onChange, TXT, TXT2, TXT3, ACCENT, BORDER, LAYER } = props;
+			const { project, api, sessionId, settings, onChange, TXT, TXT2, TXT3, ACCENT, BORDER, LAYER, full } = props;
 			const [query, setQuery] = React.useState("");
 			const [scope, setScope] = React.useState("global");
 			const editing = (scope === "global" ? (settings && settings.global) : (settings && settings.project)) || {};
@@ -1324,32 +1324,34 @@ window.__ModuleLoader__.load({
 			const groups = {};
 			for (const s of SETTINGS_SCHEMA) (groups[s.group] = groups[s.group] || []).push(s);
 			const shown = query.trim() ? SETTINGS_SCHEMA.filter((s) => s.id.indexOf(query) >= 0 || s.desc.indexOf(query) >= 0) : null;
+			// 控件宽度：最大化视图更宽松
+			const wStr = full ? 260 : 160, wNum = full ? 90 : 70, wEnum = full ? 180 : 110, wArr = full ? 180 : 120, hCtl = full ? 28 : 24;
 			// 值控件（按 type 分发）
 			const control = (s) => {
 				const val = editing[s.id] !== undefined ? editing[s.id] : s.default;
-				const base = { boxSizing: "border-box", height: 24, background: "var(--dsw-alias-bg-layer-2)", color: TXT, border: "1px solid " + BORDER, borderRadius: 6, fontSize: 12, padding: "0 6px", outline: "none", fontFamily: "inherit" };
+				const base = { boxSizing: "border-box", height: hCtl, background: "var(--dsw-alias-bg-layer-2)", color: TXT, border: "1px solid " + BORDER, borderRadius: 6, fontSize: full ? 13 : 12, padding: "0 6px", outline: "none", fontFamily: "inherit" };
 				if (s.type === "boolean") {
-					return React.createElement("input", { type: "checkbox", checked: !!val, onChange: (e) => setVal(s.id, e.target.checked), style: { width: 16, height: 16, cursor: "pointer", accentColor: ACCENT } });
+					return React.createElement("input", { type: "checkbox", checked: !!val, onChange: (e) => setVal(s.id, e.target.checked), style: { width: full ? 18 : 16, height: full ? 18 : 16, cursor: "pointer", accentColor: ACCENT } });
 				}
 				if (s.type === "enum") {
-					return React.createElement("select", { value: val, onChange: (e) => setVal(s.id, e.target.value), style: { ...base, minWidth: 110, cursor: "pointer" } },
+					return React.createElement("select", { value: val, onChange: (e) => setVal(s.id, e.target.value), style: { ...base, minWidth: wEnum, cursor: "pointer" } },
 						(s.enum || []).map((e) => React.createElement("option", { key: e, value: e }, e)));
 				}
 				if (s.type === "number[]") {
-					return React.createElement("input", { value: Array.isArray(val) ? val.join(", ") : "", placeholder: "如 80, 120", onChange: (e) => setVal(s.id, e.target.value.split(",").map((x) => parseInt(x.trim(), 10)).filter((x) => !isNaN(x))), style: { ...base, width: 120 } });
+					return React.createElement("input", { value: Array.isArray(val) ? val.join(", ") : "", placeholder: "如 80, 120", onChange: (e) => setVal(s.id, e.target.value.split(",").map((x) => parseInt(x.trim(), 10)).filter((x) => !isNaN(x))), style: { ...base, width: wArr } });
 				}
 				if (s.type === "number") {
-					return React.createElement("input", { type: "number", value: val, min: s.min, max: s.max, step: s.step || 1, onChange: (e) => setVal(s.id, e.target.value === "" ? s.default : Number(e.target.value)), style: { ...base, width: 70 } });
+					return React.createElement("input", { type: "number", value: val, min: s.min, max: s.max, step: s.step || 1, onChange: (e) => setVal(s.id, e.target.value === "" ? s.default : Number(e.target.value)), style: { ...base, width: wNum } });
 				}
 				// string
-				return React.createElement("input", { value: val || "", placeholder: "留空=默认", onChange: (e) => setVal(s.id, e.target.value), style: { ...base, width: 160 } });
+				return React.createElement("input", { value: val || "", placeholder: "留空=默认", onChange: (e) => setVal(s.id, e.target.value), style: { ...base, width: wStr } });
 			};
 			const row = (s) => {
 				const modified = editing[s.id] !== undefined && editing[s.id] !== s.default;
-				return React.createElement("div", { key: s.id, style: { display: "flex", alignItems: "center", gap: 8, padding: "4px 8px", minHeight: 28, borderBottom: "1px solid " + BORDER } },
+				return React.createElement("div", { key: s.id, style: { display: "flex", alignItems: "center", gap: 8, padding: full ? "6px 10px" : "4px 8px", minHeight: full ? 34 : 28, borderBottom: "1px solid " + BORDER } },
 					React.createElement("div", { style: { flex: 1, minWidth: 0 } },
-						React.createElement("div", { style: { fontSize: 12, color: TXT, fontFamily: "monospace", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, s.id),
-						React.createElement("div", { style: { fontSize: 11, color: TXT3, lineHeight: 1.4 } }, s.desc),
+						React.createElement("div", { style: { fontSize: full ? 13 : 12, color: TXT, fontFamily: "monospace", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, s.id),
+						React.createElement("div", { style: { fontSize: full ? 11.5 : 11, color: TXT3, lineHeight: 1.4 } }, s.desc),
 					),
 					React.createElement("span", { style: { fontSize: 10, color: modified ? "#e5c07b" : TXT3, flexShrink: 0, width: 34, textAlign: "right" } }, modified ? "已修改" : "默认"),
 					control(s),
@@ -1358,25 +1360,32 @@ window.__ModuleLoader__.load({
 			};
 			const list = (shown || SETTINGS_SCHEMA).map(row);
 			const groupNames = Object.keys(groups);
-			return React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } },
-				React.createElement("div", { style: { flexShrink: 0, display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", background: LAYER, borderBottom: "1px solid " + BORDER, flexWrap: "wrap" } },
-					React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: TXT } }, "⚙ 个性化设置"),
-					React.createElement("input", { value: query, onChange: (e) => setQuery(e.target.value), placeholder: "搜索设置…", style: { ...C.inp, flex: 1, minWidth: 80 } }),
-					React.createElement("span", { style: { fontSize: 11, color: TXT3 } }, scope === "global" ? "全局" : "项目"),
-				),
-				React.createElement("div", { style: { flexShrink: 0, display: "flex", gap: 6, padding: "4px 10px", borderBottom: "1px solid " + BORDER } },
-					React.createElement("button", { onClick: () => setScope("global"), style: { ...C.chip(scope === "global") } }, "全局（所有项目）"),
-					project ? React.createElement("button", { onClick: () => setScope("project"), style: { ...C.chip(scope === "project") } }, "项目（当前）") : React.createElement("span", { style: { fontSize: 11, color: TXT3 } }, "未选择项目"),
-				),
-				React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", padding: "4px 0" } },
-					query.trim()
-						? (list.length ? list : React.createElement("div", { style: { color: TXT3, fontSize: 12, padding: "16px 8px", textAlign: "center" } }, "无匹配的设置"))
-						: groupNames.map((g) => React.createElement("div", { key: g },
-							React.createElement("div", { style: { padding: "4px 10px", fontSize: 11, fontWeight: 600, color: TXT2, background: "rgba(128,128,128,.07)", borderBottom: "1px solid " + BORDER } }, g),
+			// 分组列表：全屏时三组横排（每组一列），小面板时纵向堆叠
+			const body = query.trim()
+				? (list.length ? list : React.createElement("div", { style: { color: TXT3, fontSize: 12, padding: "16px 8px", textAlign: "center" } }, "无匹配的设置"))
+				: (full
+					? React.createElement("div", { style: { display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap", padding: "8px 4px" } },
+						groupNames.map((g) => React.createElement("div", { key: g, style: { flex: "1 1 280px", minWidth: 280, border: "1px solid " + BORDER, borderRadius: 8, overflow: "hidden", background: "var(--dsw-alias-bg-base)" } },
+							React.createElement("div", { style: { padding: "6px 12px", fontSize: 12, fontWeight: 600, color: TXT2, background: LAYER, borderBottom: "1px solid " + BORDER } }, g),
 							groups[g].map(row),
 						)),
+					)
+					: groupNames.map((g) => React.createElement("div", { key: g },
+						React.createElement("div", { style: { padding: "4px 10px", fontSize: 11, fontWeight: 600, color: TXT2, background: "rgba(128,128,128,.07)", borderBottom: "1px solid " + BORDER } }, g),
+						groups[g].map(row),
+					)));
+			return React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } },
+				React.createElement("div", { style: { flexShrink: 0, display: "flex", alignItems: "center", gap: 6, padding: full ? "8px 18px" : "4px 10px", background: LAYER, borderBottom: "1px solid " + BORDER, flexWrap: "wrap" } },
+					React.createElement("span", { style: { fontSize: full ? 14 : 12, fontWeight: 600, color: TXT } }, "⚙ 个性化设置"),
+					React.createElement("input", { value: query, onChange: (e) => setQuery(e.target.value), placeholder: "搜索设置…", style: { ...C.inp, flex: 1, minWidth: 80, height: full ? 28 : 26 } }),
+					React.createElement("span", { style: { fontSize: 11, color: TXT3, whiteSpace: "nowrap" } }, scope === "global" ? "全局" : "项目"),
+					React.createElement("div", { style: { display: "flex", gap: 6 } },
+						React.createElement("button", { onClick: () => setScope("global"), style: { ...C.chip(scope === "global") } }, "全局（所有项目）"),
+						project ? React.createElement("button", { onClick: () => setScope("project"), style: { ...C.chip(scope === "project") } }, "项目（当前）") : React.createElement("span", { style: { fontSize: 11, color: TXT3 } }, "未选择项目"),
+					),
 				),
-				React.createElement("div", { style: { flexShrink: 0, padding: "3px 10px", fontSize: 10, color: TXT3, borderTop: "1px solid " + BORDER } },
+				React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", padding: full ? "8px 18px" : "4px 0", display: "flex", flexDirection: "column" } }, body),
+				React.createElement("div", { style: { flexShrink: 0, padding: full ? "5px 18px" : "3px 10px", fontSize: 10, color: TXT3, borderTop: "1px solid " + BORDER } },
 					"配置键名与语义对齐 VSCode（editor.*，MIT 借鉴）；保存于工作区 .renpy-user（不写入项目目录）。更改即时生效，字号/字体改动会重载编辑器。"),
 			);
 		}
@@ -3478,7 +3487,7 @@ window.__ModuleLoader__.load({
 				if (id === "vars") return React.createElement(VarWindow, { vars: (routeStatus && routeStatus.vars) || {}, routeVars: (routeMap && routeMap.variables) || [], onVarJump: jumpToVarDef, onVarFocus: setVarFocus, TXT, TXT2, TXT3, ACCENT, BORDER, BG, LAYER, embedded: true });
 				if (id === "err") return React.createElement(ErrWindow, { project, api, sessionId, TXT, TXT2, TXT3, ACCENT, BORDER, LAYER, onJump: (rel, line) => { openFile(rel, () => flashJumpToLine(line)); } });
 				if (id === "diag") return React.createElement(DiagWindow, { project, api, sessionId, TXT, TXT2, TXT3, ACCENT, BORDER, LAYER, onJump: (rel, line) => { openFile(rel, () => flashJumpToLine(line)); } });
-				if (id === "settings") return React.createElement(SettingsWindow, { project, api, sessionId, settings, onChange: onSettingsChange, TXT, TXT2, TXT3, ACCENT, BORDER, LAYER });
+				if (id === "settings") return React.createElement(SettingsWindow, { project, api, sessionId, settings, onChange: onSettingsChange, TXT, TXT2, TXT3, ACCENT, BORDER, LAYER, full: maximized === "settings" });
 				return renderSidePanel(id);
 			};
 			// ── 类 VSCode 布局：活动视图切换 + 光标位置（状态栏） ──
@@ -4066,7 +4075,7 @@ window.__ModuleLoader__.load({
 						abIcon("📊", "运行时变量", () => movePanel("vars", "right"), { opacity: project ? 1 : .4, hideText: navCollapsed, title: "变量监控面板（右侧栏；变化高亮）" }),
 						abIcon("🐞", "报错诊断", () => movePanel("err", "right"), { opacity: project ? 1 : .4, hideText: navCollapsed, title: "报错诊断面板（右侧栏；traceback/log/errors 结构化 + 跳转）" }),
 						abIcon("🔍", "静态诊断", () => movePanel("diag", "right"), { opacity: project ? 1 : .4, hideText: navCollapsed, title: "静态诊断面板（右侧栏；无效跳转/未定义 screen/角色/缺失资源/不可达 label）" }),
-						abIcon("⚙", "个性化设置", () => movePanel("settings", "right"), { hideText: navCollapsed, title: "个性化设置面板（右侧栏；字体/缩进/显示，全局或按项目）" }),
+						abIcon("⚙", "个性化设置", () => { movePanel("settings", "right"); setMaximized("settings"); }, { hideText: navCollapsed, title: "个性化设置（最大化视图：字体/缩进/显示，全局或按项目；🗗 还原为侧栏面板）" }),
 						React.createElement("div", { style: { width: 148, height: 1, background: BORDER, margin: "4px 0 6px", alignSelf: "center" } }),
 						// 视图控件（停靠左栏）
 						[["files", "📄", "项目文件"], ["nav", "🧭", "导航"], ["assets", "🖼", "项目素材"], ["edits", "✎", "基线更改"]].map(([k, icon, label]) => { const inLeft = (panelLayout.left.panels || []).includes(k); return React.createElement("div", { key: k, title: label, onClick: () => movePanel(k, "left"), style: { position: "relative", width: "100%", height: 32, marginBottom: 2, display: "flex", alignItems: "center", gap: 7, padding: "0 10px", cursor: "pointer" } },

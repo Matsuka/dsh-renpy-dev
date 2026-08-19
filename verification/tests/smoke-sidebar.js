@@ -382,7 +382,9 @@ const srcSettings = srcWithData
   .replace('const [tabs, setTabs] = React.useState(panelState.tabs);',
     'const [tabs, setTabs] = React.useState([{ name: "script.rpy", content: "label start:\\n    e \\"hi\\"\\n", dirty: false }]);')
   .replace('const [activeName, setActiveName] = React.useState(panelState.activeName);',
-    'const [activeName, setActiveName] = React.useState("script.rpy");');
+    'const [activeName, setActiveName] = React.useState("script.rpy");')
+  .replace('const [maximized, setMaximized] = React.useState(panelState.maximized || null); // panelId | null',
+    'const [maximized, setMaximized] = React.useState("settings"); // panelId | null');
 let capturedS = null;
 global.window.__ModuleLoader__.load = (m) => { capturedS = m.factory; };
 require('vm').runInThisContext(srcSettings, { filename: 'client-settings.js' });
@@ -393,7 +395,8 @@ modSettings.apply({ get: (n) => (n === 'slots' ? slotsS : undefined) });
 const htmlSettings = renderToString(regS().comp({ sessionId: 's20', inputActions: undefined }));
 console.log('设置面板: 标题', htmlSettings.indexOf('个性化设置') >= 0, '| 搜索', htmlSettings.indexOf('搜索设置') >= 0, '| 分组', htmlSettings.indexOf('字体') >= 0 && htmlSettings.indexOf('缩进') >= 0 && htmlSettings.indexOf('显示') >= 0, '| 全局/项目切换', htmlSettings.indexOf('全局（所有项目）') >= 0, '| 重置按钮', htmlSettings.indexOf('↺') >= 0);
 console.log('设置面板: 字号控件值 16', htmlSettings.indexOf('value="16"') >= 0, '| 已修改标注', htmlSettings.indexOf('已修改') >= 0, '| 默认标注', htmlSettings.indexOf('默认') >= 0, '| 底部 VSCode 说明', htmlSettings.indexOf('VSCode') >= 0);
-console.log('设置应用: gutter 字号 16px', htmlSettings.indexOf('font-size:16px') >= 0, '| 活动栏入口', htmlSettings.indexOf('个性化设置面板') >= 0);
+console.log('设置应用: gutter 字号 16px', htmlSettings.indexOf('font-size:16px') >= 0, '| 活动栏入口', htmlSettings.indexOf('个性化设置（最大化视图') >= 0);
+console.log('设置最大化: 全屏覆盖层', htmlSettings.indexOf('🗗 还原') >= 0, '| 三列分组卡片', htmlSettings.indexOf('min-width:280px') >= 0, '| 宽松控件高 28', htmlSettings.indexOf('height:28px') >= 0);
 
 // 渲染 hideSidebar 变体
 const el2 = comp({ sessionId: 's2', inputActions: undefined, hideSidebar: true });
