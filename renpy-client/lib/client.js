@@ -4294,7 +4294,13 @@ window.__ModuleLoader__.load({
 			React.useEffect(() => {
 				if (typeof document === "undefined") return;
 				const style = document.createElement("style");
-				style.textContent = "[data-composer-seat]{display:none!important}";
+				// 隐藏 DSH 原生对话输入框（本面板自带输入区，避免双输入框）
+				// + 固定 DSH 侧栏 logo（鱼形/品牌字标）为 Ren'Py 品牌色 #00b8c3，不随主题配色变化：
+				//   DSH 的 FishLogo/BrandWordmark 是 fill:currentColor（继承按钮 color），
+				//   而按钮 color 走 --dsw-alias-label-primary 主题 token，调配色会跟着变。
+				//   选择器用 CSS Module 后缀（logoRow/railFish/panelIcon 语义名稳定，hash 前缀可变）。
+				style.textContent = "[data-composer-seat]{display:none!important}"
+					+ "[class$=\"logoRow\"] button svg:not([class$=\"panelIcon\"]){color:#00b8c3!important}";
 				document.head.appendChild(style);
 				return () => { try { document.head.removeChild(style); } catch (e) { /* ignore */ } };
 			}, []);
