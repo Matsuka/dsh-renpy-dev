@@ -4290,14 +4290,6 @@ window.__ModuleLoader__.load({
 
 			// 活动栏项（收缩外观 46px 图标栏；hover：高亮底色 + 右侧弹出文字说明 tooltip）
 			const [navHover, setNavHover] = React.useState(null); // { label, tip, top } | null
-			// 运行下拉菜单（▾：停止/检查/测试）；点击外部关闭
-			const [runMenuOpen, setRunMenuOpen] = React.useState(false);
-			React.useEffect(() => {
-				if (!runMenuOpen) return;
-				const onDown = (e) => { if (!e.target.closest || !e.target.closest("[data-run-menu]")) setRunMenuOpen(false); };
-				document.addEventListener("mousedown", onDown);
-				return () => document.removeEventListener("mousedown", onDown);
-			}, [runMenuOpen]);
 			const abIcon = (icon, label, onClick, opts) => {
 				const onEnter = (e) => {
 					// 视觉指示：高亮底色
@@ -4367,31 +4359,26 @@ window.__ModuleLoader__.load({
 						React.createElement("span", {}, "清除"),
 					) : null,
 					React.createElement("div", { style: { width: 1, height: 22, background: BORDER, flexShrink: 0 } }),
-					// 运行下拉（▶ 直接运行；▾ 展开：停止/检查/测试）
-					React.createElement("div", { "data-run-menu": "", style: { position: "relative", display: "flex", flexShrink: 0 } },
-						React.createElement("button", { style: { ...iconBtnText, background: ACCENT, color: "var(--dsw-alias-label-primary-foreground)", borderRadius: "6px 0 0 6px", padding: "4px 10px" }, onClick: doRun, title: "运行游戏（调试桥接自动注入）" }, React.createElement("span", { style: { fontSize: 13 } }, "▶"), React.createElement("span", {}, "运行")),
-						React.createElement("button", { style: { ...iconBtnText, background: ACCENT, color: "var(--dsw-alias-label-primary-foreground)", borderRadius: "0 6px 6px 0", padding: "4px 6px", borderLeft: "1px solid rgba(255,255,255,.25)" }, onClick: () => setRunMenuOpen((v) => !v), title: "更多运行操作（停止/检查/测试）" }, "▾"),
-						runMenuOpen ? React.createElement("div", { style: { position: "absolute", top: "100%", right: 0, zIndex: 60, background: "var(--dsw-alias-bg-layer-3)", border: "1px solid " + BORDER, borderRadius: 8, boxShadow: "0 8px 28px rgba(0,0,0,.35)", minWidth: 170, padding: 4, marginTop: 4 } },
-							React.createElement("div", { title: "停止运行中的游戏", style: { ...C.listRow(false), padding: "5px 10px" }, onClick: () => { doStop(); setRunMenuOpen(false); }, onMouseEnter: (e) => { e.currentTarget.style.background = "var(--dsw-alias-interactive-bg-hover)"; }, onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; } }, "■ 停止游戏"),
-							React.createElement("div", { title: "Ren'Py 语法检查（lint）", style: { ...C.listRow(false), padding: "5px 10px" }, onClick: () => { doLint(); setRunMenuOpen(false); }, onMouseEnter: (e) => { e.currentTarget.style.background = "var(--dsw-alias-interactive-bg-hover)"; }, onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; } }, "⚠ 检查（lint）"),
-							React.createElement("div", { title: "自动化测试（rpytest）", style: { ...C.listRow(false), padding: "5px 10px" }, onClick: () => { doTest(); setRunMenuOpen(false); }, onMouseEnter: (e) => { e.currentTarget.style.background = "var(--dsw-alias-interactive-bg-hover)"; }, onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; } }, "🧪 自动化测试"),
-						) : null,
-					),
-					React.createElement("button", { style: iconBtnText, onClick: doShot, title: "整屏截图（游戏窗口反馈）" }, React.createElement("span", {}, "📷"), React.createElement("span", {}, "截图")),
-					React.createElement("button", { style: { ...iconBtnText, opacity: active ? 1 : .4 }, onClick: saveFile, disabled: !active, title: "保存当前文件 (Ctrl+S)" }, React.createElement("span", {}, "💾"), React.createElement("span", {}, "保存")),
+					// 全局主操作（常驻可见）：运行 / 停止
+					React.createElement("button", { style: { ...iconBtnText, background: ACCENT, color: "var(--dsw-alias-label-primary-foreground)", borderRadius: 6, padding: "4px 12px" }, onClick: doRun, title: "运行游戏（调试桥接自动注入）" }, React.createElement("span", { style: { fontSize: 13 } }, "▶"), React.createElement("span", {}, "运行游戏")),
+					React.createElement("button", { style: iconBtnText, onClick: doStop, title: "停止游戏" }, React.createElement("span", { style: { fontSize: 13 } }, "■"), React.createElement("span", {}, "停止游戏")),
+					React.createElement("div", { style: { width: 1, height: 22, background: BORDER, flexShrink: 0 } }),
+					// ── 按键（点击立即起效；统一顶部，控件在左导航） ──
+					React.createElement("button", { style: iconBtnText, onClick: doLint, title: "Ren'Py 语法检查（lint）" }, React.createElement("span", {}, "⚠"), React.createElement("span", {}, "检查")),
+					React.createElement("button", { style: iconBtnText, onClick: doTest, title: "自动化测试（rpytest）" }, React.createElement("span", {}, "🧪"), React.createElement("span", {}, "测试")),
 					React.createElement("button", { style: iconBtnText, onClick: () => loadFiles(project), title: "加载/刷新项目文件列表" }, React.createElement("span", {}, "⟳"), React.createElement("span", {}, "刷新")),
+					React.createElement("button", { style: { ...iconBtnText, opacity: active ? 1 : .4 }, onClick: saveFile, disabled: !active, title: "保存当前文件 (Ctrl+S)" }, React.createElement("span", {}, "💾"), React.createElement("span", {}, "保存")),
+					React.createElement("button", { style: iconBtnText, onClick: doShot, title: "整屏截图（游戏窗口反馈）" }, React.createElement("span", {}, "📷"), React.createElement("span", {}, "截图")),
+					React.createElement("button", { style: { ...iconBtnText, opacity: active && !learnBusy ? 1 : .4, color: learnResult ? SUCCESS : undefined }, onClick: startTeach, disabled: !active || learnBusy, title: "AI 学习注释（逐行讲解）" }, React.createElement("span", {}, "📖"), React.createElement("span", {}, "学习")),
+					React.createElement("button", { style: { ...iconBtnText, opacity: active ? 1 : .4 }, onClick: openGuiPanel, disabled: !active, title: "GUI 主题定制（gui.rpy）" }, React.createElement("span", {}, "🎨"), React.createElement("span", {}, "主题")),
+					React.createElement("button", { style: { ...iconBtnText, opacity: active ? 1 : .4 }, onClick: convertCurrentLine, disabled: !active, title: "Ren'Py ↔ Python 等价对照" }, React.createElement("span", {}, "⇄"), React.createElement("span", {}, "对照")),
+					React.createElement("button", { style: { ...iconBtnText, opacity: active ? 1 : .4, background: stylePreview ? "rgba(100,160,255,.18)" : "transparent", border: stylePreview ? "1px solid rgba(100,160,255,.45)" : "1px solid transparent" }, onClick: () => { if (active) setStylePreview((v) => !v); }, disabled: !active, title: "文本样式预览（所见即所得）" }, React.createElement("span", { style: { fontFamily: CODE, fontWeight: 700 } }, "Aa"), React.createElement("span", {}, "样式")),
 					React.createElement("button", { style: { ...iconBtnText, color: (panelLayout.right.panels || []).includes("chat") ? ACCENT : TXT2 }, onClick: () => movePanel("chat", "right"), title: "对话面板（停靠右侧栏）" }, "💬", React.createElement("span", {}, "对话")),
 					busy ? React.createElement("span", { style: { color: TXT2 } }, "…") : null,
 				),
 				React.createElement("div", { style: { display: "flex", flex: 1, minHeight: 0, maxWidth: "100%", minWidth: 0 } },
 					// ── 控件总栏（固定收缩外观 46px 图标栏；hover 高亮；右侧 tooltip 在面板根 fixed 渲染） ──
 					React.createElement("div", { ref: navRef, style: { position: "relative", width: navCollapsed ? 46 : 172, flexShrink: 0, borderRight: "1px solid " + BORDER, background: LAYER, display: "flex", flexDirection: "column", paddingTop: 6, overflowY: "auto", overflowX: "hidden", transition: "width .15s" } },
-						// 编辑工具（作用于编辑器：样式预览/对照/学习/主题）
-						!navCollapsed ? React.createElement("div", { style: { width: "100%", padding: "1px 10px 5px", fontSize: 10, color: TXT3, fontWeight: 600 } }, "编辑工具") : null,
-						abIcon("Aa", "样式预览", () => { if (active) setStylePreview((v) => !v); }, { opacity: active ? 1 : .4, hideText: navCollapsed, active: stylePreview, color: stylePreview ? ACCENT : undefined, title: "文本样式预览（所见即所得）；激活中" }),
-						abIcon("⇄", "Python 对照", () => { if (active) convertCurrentLine(); }, { opacity: active ? 1 : .4, hideText: navCollapsed, title: "Ren'Py ↔ Python 等价对照（光标所在行）" }),
-						abIcon("📖", "学习注释", () => { if (active && !learnBusy) startTeach(); }, { opacity: active && !learnBusy ? 1 : .4, hideText: navCollapsed, color: learnResult ? SUCCESS : undefined, title: "AI 学习注释（逐行讲解）" }),
-						abIcon("🎨", "GUI 主题", () => { if (active) openGuiPanel(); }, { opacity: active ? 1 : .4, hideText: navCollapsed, title: "GUI 主题定制（gui.rpy）" }),
 						// 调试控件（需运行游戏：桥接回报驱动；点击停靠为面板控件，可拖拽/吸附/浮动）
 						!navCollapsed ? React.createElement("div", { style: { width: "100%", padding: "1px 10px 5px", fontSize: 10, color: TXT3, fontWeight: 600 } }, "调试 · 需运行（停靠右侧栏）") : null,
 						abIcon("🗺", "分支路线图", () => movePanel("route", "right"), { opacity: project ? 1 : .4, hideText: navCollapsed, title: "路线图面板（右侧栏；状态机图，点击节点跳游戏需运行）" }),
