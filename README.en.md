@@ -2,7 +2,7 @@
 
 > A validation of DSH's core idea: a self-bootstrapped Ren'Py development workbench with deep integration of agent preset + skills + web plugin.
 
-DeepSeek Harness (DSH) is extended into a full **Ren'Py game development workbench**: an in-browser editor (syntax highlighting, autocomplete, find & replace), lint / run / screenshot / automated testing, save history with checkpoint rollback, workspace locking, AI learning annotations, 14 Ren'Py knowledge bases (skills), and 9 development tools directly callable by the AI.
+DeepSeek Harness (DSH) is extended into a full **Ren'Py game development workbench**: an in-browser editor (syntax highlighting including **Python blocks**, autocomplete, find & replace, codicon icon system), lint / run / screenshot / automated testing, save history with checkpoint rollback, workspace locking, write guard, static diagnostics and error diagnostics panels, AI learning annotations, personalization settings (25 color tokens + 8 preset themes), 14 Ren'Py knowledge bases (skills), and 9 development tools directly callable by the AI.
 
 This repository is the **open-source edition** (for developers/contributors), including the full verification assets. End users should use the **release zip** from the **Releases** page (no verification assets, more lightweight).
 
@@ -10,6 +10,7 @@ This repository is the **open-source edition** (for developers/contributors), in
 > - **中文版** → **`README.md`**
 > - **Deployment guide** (full: both modes / parameters / troubleshooting / upgrade & uninstall) → **`DEPLOY.md`**
 > - **User guide** (features / operations / expected results / regression table + **how to feed your experience back to developers**) → **`GUIDE.md`**
+> - **Tester guide** (a feature-by-feature operations manual for testers: where → how → expected → what to test + full regression checklist) → **`docs/TESTER-GUIDE.md`**
 > - **Knowledge pipeline** (how the 14 skills are produced: extraction → verification → engine validation) → **`docs/knowledge-pipeline.md`**
 > - **Contribution guide** (three-tier experience isolation + submission conventions) → **`CONTRIBUTING.md`**
 > - **Terminology** (EN↔ZH glossary for Ren'Py terms) → **`docs/glossary.md`**
@@ -76,7 +77,7 @@ cd D:\dsh-renpy-dev
 4. Quick smoke test:
    - File tree appears on the left → open a `.rpy` → the editor opens
    - Modify a line → `Ctrl+S` → click **⚠ Check** in the toolbar → lint passes
-   - Click **▶ Run** in the toolbar → the game window pops up → **📷 Screenshot** → **■ Stop**
+   - Click **▶ Run** in the toolbar → the game window pops up → **📷 Screenshot** → click the same button again (it has turned into **■ Stop**) to stop
 
 See `GUIDE.md` for the detailed test checklist.
 
@@ -101,22 +102,24 @@ dsh-renpy-dev/
 │           ├── renpy-host.mjs        # 9 agent tools (lint/index/scaffold/run/...)
 │           └── indexer.py            # Project indexer (engine dump)
 ├── skills/
-│   └── renpy-*.md                    # 14 Ren'Py knowledge bases (loaded on demand)
+│   ├── renpy-*.md                    # 14 Ren'Py knowledge bases (loaded on demand)
+│   └── workbench-ui.md               # Workbench UI style design spec (incl. icon system)
 ├── docs/
+│   ├── TESTER-GUIDE.md               # Tester guide (feature-by-feature operations + regression checklist)
 │   ├── knowledge-pipeline.md         # Knowledge production methodology (extract → verify → engine-validate)
 │   └── glossary.md                   # EN↔ZH terminology glossary
 ├── verification/                     # Verification assets (open-source edition only)
 │   ├── scripts/                      # Extraction/verification scripts (extract-*.js, verify-text.py)
 │   ├── extracts/                     # Structured extraction outputs (*-extract.json)
 │   ├── projects/                     # 17 engine-verified projects + eq-test
-│   └── tests/                        # 15 unit tests (274 assertions)
+│   └── tests/                        # 21 unit tests (node --check + full regression)
 └── renpy-client/                     # Web plugin bundle (editor UI + /renpy-dev services)
     ├── package.json
     ├── cordis.patch.yml
     └── lib/
-        ├── host.js                   # 30 /renpy-dev/* endpoints (requires dsh restart)
+        ├── host.js                   # 30+ /renpy-dev/* endpoints (requires dsh restart)
         ├── renpy-core.js             # Shared pure-function module (lineDiff/hasOpenToolCall)
-        └── client.js                 # Ren'Py panel UI (refresh to apply)
+        └── client.js                 # Ren'Py panel UI (refresh to apply; includes the codicon icon system)
 ```
 
 > The `dsh-renpy-dev/` in the tree above is this repository's root (the directory name you get after extracting the release; `cd` into it to deploy).

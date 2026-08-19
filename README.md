@@ -2,7 +2,7 @@
 
 > 一次对 DSH 核心思想的验证：agent preset + skills + web 插件三形态深度融合，自举构建的 Ren'Py 开发工作台。
 
-在 DeepSeek Harness（DSH）内提供完整的 **Ren'Py 游戏开发工作台**：浏览器内编辑器（语法高亮/补全/查找替换）、lint/运行/截图/自动化测试、保存历史与检查点回滚、工作区域锁定、AI 学习注释、14 个 Ren'Py 知识库（skill），以及可供 AI 直接调用的 9 个开发工具。
+在 DeepSeek Harness（DSH）内提供完整的 **Ren'Py 游戏开发工作台**：浏览器内编辑器（语法高亮含 **Python 块**、补全、查找替换、codicon 图标系统）、lint/运行/截图/自动化测试、保存历史与检查点回滚、工作区域锁定、写守卫、静态诊断与报错诊断面板、AI 学习注释、个性化设置（25 个颜色 token + 8 套预制配色）、14 个 Ren'Py 知识库（skill），以及可供 AI 直接调用的 9 个开发工具。
 
 本仓库是**开源仓库版**（面向开发者/贡献者），含完整验证资产。普通使用者请用 **Releases** 里的发行版 zip（不含验证资产，更轻量）。
 
@@ -10,6 +10,7 @@
 > - **English version** → **`README.en.md`**
 > - **部署流程**（完整版，含两种模式/参数/故障排查/升级卸载）→ 见 **`DEPLOY.md`**
 > - **用户指南**（功能/操作/预期/回归表 + **个人经验回传给开发者的方法**）→ 见 **`GUIDE.md`**
+> - **测试用户功能手册**（面向测试人员的逐功能操作手册：在哪里→怎么操作→预期→测什么 + 完整回归清单）→ 见 **`docs/TESTER-GUIDE.md`**
 > - **知识流水线**（14 个 skill 怎么生产出来的：提取→核验→引擎验证）→ 见 **`docs/knowledge-pipeline.md`**
 > - **贡献指南**（三层经验隔离 + 提交规范）→ 见 **`CONTRIBUTING.md`**
 > - **术语表**（Ren'Py 中英术语对照）→ 见 **`docs/glossary.md`**
@@ -76,7 +77,7 @@ cd D:\dsh-renpy-dev
 4. 快速冒烟：
    - 左侧出现文件树 → 点开一个 `.rpy` → 编辑器打开
    - 改一行 → `Ctrl+S` 保存 → 顶栏 **⚠ 检查** → lint 通过
-   - 顶栏 **▶ 运行** → 游戏窗口弹出 → **📷 截图** → **■ 停止**
+   - 顶栏 **▶ 运行游戏** → 游戏窗口弹出 → **📷 截图** → 再点同一按钮（变 **■ 停止**）停止
 
 详细测试清单见 `GUIDE.md`。
 
@@ -101,22 +102,24 @@ dsh-renpy-dev/
 │           ├── renpy-host.mjs        # 9 个 agent 工具（lint/index/scaffold/run/...）
 │           └── indexer.py            # 项目索引器（引擎 dump）
 ├── skills/
-│   └── renpy-*.md                    # 14 个 Ren'Py 知识库（按需加载）
+│   ├── renpy-*.md                    # 14 个 Ren'Py 知识库（按需加载）
+│   └── workbench-ui.md               # 工作台界面样式设计规范（含图标系统）
 ├── docs/
+│   ├── TESTER-GUIDE.md               # 测试用户功能手册（逐功能操作 + 回归清单）
 │   ├── knowledge-pipeline.md         # 知识生产方法论（提取→核验→引擎验证）
 │   └── glossary.md                   # 中英术语对照表（翻译/本地化基准）
 ├── verification/                     # 验证资产（仓库版独有）
 │   ├── scripts/                      # 提取/验证脚本（extract-*.js、verify-text.py）
 │   ├── extracts/                     # 结构化提取产物（*-extract.json）
 │   ├── projects/                     # 17 个引擎验证项目 + eq-test
-│   └── tests/                        # 15 个单测（274 断言）
+│   └── tests/                        # 21 个单测（node --check + 全量回归）
 └── renpy-client/                     # web 插件包（编辑器 UI + /renpy-dev 服务）
     ├── package.json
     ├── cordis.patch.yml
     └── lib/
-        ├── host.js                   # 30 个 /renpy-dev/* 端点（需重启 dsh）
-        ├── renpy-core.js             # 共享纯函数模块（lineDiff/hasOpenToolCall）
-        └── client.js                 # Ren'Py 面板 UI（刷新即生效）
+        ├── host.js                   # 30+ 个 /renpy-dev/* 端点（需重启 dsh）
+        ├── renpy-core.js             # 共享纯函数模块（lineDiff/hasOpenToolCall/诊断/守卫）
+        └── client.js                 # Ren'Py 面板 UI（刷新即生效；含 codicon 图标系统）
 ```
 
 > 目录树中的 `dsh-renpy-dev/` 即本仓库根（解压发布包后即为该目录名，部署时 `cd` 进入即可）。

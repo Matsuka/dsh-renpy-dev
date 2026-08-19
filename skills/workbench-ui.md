@@ -92,6 +92,20 @@
 
 ## 五、控件规范
 
+### 图标系统（codicon 内嵌 SVG）
+
+- **来源**：VSCode 官方 codicon 图标（MIT，`client.js` 内嵌 37+ 个 SVG path，从 `codicon.ttf` 提取，viewBox 按各图标轮廓归一）。
+- **渲染**：统一走 `Ico` 组件（`<Ico name size className style>`），`fill: currentColor` —— **图标颜色跟随所在按钮/文字的主题色**，禁止给图标硬编码颜色。
+- **命名约定**（控件栏图标映射，改图标只改这里）：
+  - 编辑工具：`text-size`（样式预览）/ `arrow-swap`（Python 对照）/ `book`（学习）/ `color-mode`（GUI 主题）
+  - 调试面板：`graph`（路线图）/ `device-camera-video`（实时画面）/ `symbol-variable`（变量）/ `bug`（报错）/ **`checklist`（静态诊断——用清单勾选，不用 `search` 放大镜以免与搜索混淆）**
+  - 视图：`files` / `compass` / `collection` / `edit`
+  - 面板：`list-unordered`（日志）/ `history`（历史）/ `gear`（设置，**固定在控件栏底部**）
+  - 工具栏：`play`/`debug-stop`（运行/停止合一）/ `warning`（检查）/ `beaker`（测试）/ `refresh` / `save` / `device-camera`（截图）/ `comment-discussion`（对话）/ `location`（工作范围）
+  - 标题栏：`gripper`（拖拽手柄，最左）/ `chrome-maximize`/`chrome-restore` / `close`
+  - 素材：`file-media`（图片）/ `music`（音频）/ `device-camera-video`（视频）/ `text-size`（字体）/ `file`（其他）；导航：`tag`/`person`/`sync`/`symbol-variable`/`text-size`
+- **保留字符**：树折叠箭头 `▾/▸`、面板分组标题文字（`⚙ 功能`/`🎨 控件`）、日志文本 emoji（addLog 纯文本不换图标）。
+
 > 美术基调（§5.1）：**统一 1px 描边 + 投影**——所有可交互控件 idle 即带描边（边框 l2）与轻投影（0 1px 2px rgba(0,0,0,.18-.22)）；主按钮彩色投影（0 1px 3px rgba(0,0,0,.35)）；输入框内阴影（inset 0 1px 2px rgba(0,0,0,.18)）。亮暗主题阴影强度随 token 适配。
 
 | 控件 | 尺寸/圆角 | 状态（idle→hover→active→disabled） |

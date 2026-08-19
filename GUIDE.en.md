@@ -51,26 +51,42 @@ In one sentence: **the whole Ren'Py development loop — "read code → edit cod
 ## 3. UI overview
 
 ```
-┌─────────────┬──────────────────────────────────────┬─────────────┐
-│  Activity    │  Toolbar                            │             │
-│  bar         │  🔒Workspace ⟳Load ⚠Check 🧪Test   │  Side chat   │
-│  📄 Files    │  📖Learn ▶Run ■Stop 📷Screenshot    │  (message    │
-│  🖼 Assets   │  💾Save 🕘History 🎨GUI ⇄Python Aa  │  stream +    │
-│  ✎ Changes   │                                     │  checkpoint  │
-├─────────────┼──────────────────────────────────────┤  timeline +  │
-│  File tree / │  Editor (multi-file tabs)           │  trail)      │
-│  Asset tree /│  Find bar / error underlines /      │              │
-│  Change list │  workspace highlight                │              │
-│             │                                     │              │
-│             ├──────────────────────────────────────┤              │
-│             │  Unsaved-changes bar / lint results /│              │
-│             │  test report                        │              │
-├─────────────┴──────────────────────────────────────┴─────────────┤
-│  Status bar: filename | line:col | ●unsaved/✓saved | .rpy         │
-└────────────────────────────────────────────────────────────────────┘
+┌─────────┬──────────────────────────────────────────────┬─────────┐
+│ Control  │  Toolbar                                    │ Side    │
+│ bar      │  Project path [input] ⟳ 🎯Scope ⚠Check      │ chat    │
+│ (46px)   │  🧪Test ⟳Refresh 💾Save 📷Screenshot        │ panel   │
+│          │  💬Chat ▶Run/■Stop                          │ (default)│
+│ Edit     ├──────────────────────────────────────────────┤         │
+│ tools    │  Editor (multi-file tabs + syntax highlight  │         │
+│ Aa Preview│  + find bar)                                │         │
+│ ⇄ Python │                                              │         │
+│ 📖 Learn │                                              │         │
+│ 🎨 GUI   │                                              │         │
+│ ───────  │                                              │         │
+│ Debug    ├──────────────────────────────────────────────┤         │
+│ 🗺 Map    │  Bottom panel (log / lint results /         │         │
+│ 🎬 Scene  │  test report)                               │         │
+│ 📊 Vars   │                                              │         │
+│ 🐞 Errors │                                              │         │
+│ ✅ Diag   │                                              │         │
+│ ───────  │                                              │         │
+│ Views    │                                              │         │
+│ 📄 Files  │                                              │         │
+│ 🧭 Nav    │                                              │         │
+│ 🖼 Assets │                                              │         │
+│ ✎ Changes │                                              │         │
+│ ───────  │                                              │         │
+│ 📋 Log    │                                              │         │
+│ 📜 History│                                              │         │
+│ ⚙ Settings│  (⚙ Settings fixed at the bottom)          │         │
+│ « Collapse│                                              │         │
+└─────────┴──────────────────────────────────────────────┴─────────┘
 ```
 
-**Shortcuts**: `Ctrl+S` save ｜ `Ctrl+F` find/replace ｜ `Ctrl+/` toggle comment ｜ `Ctrl+Space` autocomplete ｜ `Ctrl+Shift+\` bracket jump ｜ `Enter` send message
+> Icons in the diagram are illustrative; the real ones are unified-line-style SVG icons (the **codicon icon system**, with tooltips on hover):
+> Run/Stop is a **single combined button** (▶ Run ↔ ■ Stop, toggling by state); static diagnostics use a ✅ **checklist** icon (a checklist, not a magnifying glass).
+
+**Shortcuts**: `Ctrl+S` save ｜ `Ctrl+F` find/replace ｜ `Ctrl+/` toggle comment ｜ `Ctrl+Space` autocomplete ｜ `Ctrl+Shift+\` bracket jump ｜ `Enter` send message ｜ `Esc` close popup/floating window
 
 ---
 
@@ -102,8 +118,8 @@ In one sentence: **the whole Ren'Py development loop — "read code → edit cod
 
 ### 4.4 Running the game and screenshots ★
 
-- **Operate**: click **▶ Run** (actually opens the game window) → play to the position you want → click **📷 Screenshot** → click **■ Stop**
-- **Expected**: the game window pops up; after the screenshot, it can be viewed in the panel/conversation (the AI can see the frame through the screenshot too)
+- **Operate**: click **▶ Run** (actually opens the game window; **the button turns red and becomes ■ Stop**) → play to the position you want → click **📷 Screenshot** → click the same button again (**■ Stop**)
+- **Expected**: the game window pops up; after the screenshot, it can be viewed in the panel/conversation (the AI can see the frame through the screenshot too); after stopping, the process closes and the button returns to ▶; **if the game exits by itself (window closed/crash), the button also auto-restores**
 - **Test points**: run, take a screenshot, confirm a PNG of the current frame was generated; after stop the process closes (toolbar state resets); screenshots are at `.renpy-user/screenshots/`
 
 ### 4.5 Automated tests
@@ -114,7 +130,7 @@ In one sentence: **the whole Ren'Py development loop — "read code → edit cod
 
 ### 4.6 Save history and rollback ★
 
-- **Operate**: edit and save → click **🕘 History**
+- **Operate**: edit and save → click **📜 History** (control bar)
 - **Expected**: a popup lists that file's historical versions (auto-backed-up on each save, newest first); click a version to preview it on the right; click **Restore** to revert in one click
 - **Test points**: save 2-3 times, open history, restore the earliest version, confirm the file content is reverted; backups are at `.renpy-user/backups/`
 
@@ -129,7 +145,7 @@ In one sentence: **the whole Ren'Py development loop — "read code → edit cod
 
 ### 4.8 Workspace locking ★
 
-- **Operate**: select a few lines in the editor (or put the cursor on one) → click **🔒 Workspace** → a green region highlight appears; click the adjacent「✖ Clear」to release
+- **Operate**: select a few lines in the editor (or put the cursor on one) → click **🎯 Workspace** → a green region highlight appears; click the adjacent「✖ Clear」to release
 - **Expected**: **editing outside the region is blocked** (input rejected with a notice); setting/releasing the region injects a【Workspace】constraint message into the conversation, so the AI's edits are limited to the region
 - **Test points**:
   - Set lines 8-15, try typing outside → rejected
@@ -171,6 +187,40 @@ In one sentence: **the whole Ren'Py development loop — "read code → edit cod
 - **Expected**: the message stream shows; assistant messages support **Markdown rendering** (code blocks/bold/lists), **🤔 Think ▸** expands reasoning, hover shows「⧉ Copy」, user messages show「✎ Edit」on hover to edit and resend; below are the **trail** (tool-call records; edit-type entries show「✎ filename」that jump the editor to the location) and the **checkpoint timeline**
 - **Test points**: send a message asking the AI to edit code → an edit entry appears in the trail → click it to jump to the editor; after the edit the checkpoint timeline gets a new entry
 
+### 4.14 Python syntax highlighting
+
+- **Operate**: open a `.rpy` containing Python code in the editor (`init python:` blocks, `python early:`, `$` one-liners, `define` right-hand-side expressions)
+- **Expected** (aligned with the VSCode Dark+/Light+ palettes):
+  - Lines inside `init python:` / `init -10 python:` / `python early:` / `python hide:` / `rpy python:` blocks get Python highlighting
+  - **Keywords in purple** (def/if/for/return/import…), **built-in types in cyan** (str/int/bool/list…), **built-in functions in blue** (print/len/range…), **function calls in yellow** (`foo(`)
+  - `$ x = 42` one-liners and the right-hand side of `define e = Character(...)` get the same treatment
+- **Test points**: write an `init python:` block (with def/if/str/print/function calls) and confirm each of the four colors appears
+
+### 4.15 Static diagnostics panel ★
+
+- **Operate**: click **✅ Static Diagnostics** in the control bar (a checklist icon)
+- **Expected**: scans all `.rpy` files in seconds for **reference integrity**: invalid jumps / undefined screens / undefined characters / missing assets (images/audio/fonts) / unreachable labels, grouped and colored by type (error/warn/info); clicking an entry jumps the editor to the location
+- **Test points**: deliberately reference a nonexistent label (`jump no_such_label`) → scan → should report「Invalid jump」; after fixing, it disappears
+  - Difference from lint: lint is the engine-level authoritative check (⚠); this scan is a fast first pass (✅), good for frequent self-checks
+
+### 4.16 Error diagnostics panel
+
+- **Operate**: after the game crashes, click **🐞 Error Diagnostics** in the control bar
+- **Expected**: reads `traceback.txt` / `log.txt` / `errors.txt` from the project root and displays them in structure: crash location (While running…), **root cause** (the deepest `game/` frame), the full stack-frame list, lint errors, and embedded error sections from the log; clicking any file:line jumps the editor
+- **Test points**: deliberately break a script while running to cause a crash → open the panel → the root cause is located accurately and jumpable
+
+### 4.17 Personalization settings panel ★
+
+- **Operate**: click **⚙ Settings** at the bottom of the control bar (fixed as the last item)
+- **Expected**: a full-screen settings panel (close with Esc/✕), with search + groups:
+  - **Features**: editing behavior (indentation / scroll-wheel zoom / autocomplete / bracket pairing / indent guides / line-number mode / whitespace display / rulers), light/dark mode
+  - **Controls**: fonts and layout (font family / size / weight / line height / letter spacing / density), **colors** (25 tokens: 12 editor + 8 UI + 5 interaction, with「🎨 Apply preset theme」to apply any of 8 themes in one click)
+  - Split into **global/project** layers (chips at the top-right), changes apply instantly
+- **Test points**:
+  - Change the font size to 16 → the editor grows immediately; switch light/dark mode → the whole workbench toggles
+  - Apply the「2026 Dark」theme → all colors change; switch back to default
+  - Project-layer changes affect only the current project (verify by switching projects)
+
 ---
 
 ## 5. Test checklist (quick regression table)
@@ -183,16 +233,20 @@ In one sentence: **the whole Ren'Py development loop — "read code → edit cod
 | 2 | Edit + save | Modify file → Ctrl+S | Status bar ✓; unsaved notice gone |
 | 3 | lint | ⚠ Check | No errors; errors underlined when present |
 | 4 | Autocomplete/find | Type keyword / Ctrl+F | Completion panel, find highlighting work |
-| 5 | Run/screenshot/stop | ▶ → 📷 → ■ | Window pops up, screenshot generated, process stops |
+| 5 | Run/screenshot/stop | ▶ → 📷 → ■ | Window pops up, button toggles (▶↔■), screenshot generated, process stops |
 | 6 | Automated tests | 🧪 Test | Report pass/fail correct |
-| 7 | Save history | Save multiple times → 🕘 | Version list, preview, restore work |
+| 7 | Save history | Save multiple times → 📜 | Version list, preview, restore work |
 | 8 | Checkpoints | Have AI edit → ✎ | Diff accurate, gutter markers, approve/revert work |
-| 9 | Workspace | 🔒 lock lines 8-15 | Out-of-region blocked; constraint injected into chat |
+| 9 | Workspace | 🎯 lock lines 8-15 | Out-of-region blocked; constraint injected into chat |
 | 10 | Learning annotations | 📖 → confirm | Annotations written, lint passes, clear works |
 | 11 | Style preview | Aa Preview | WYSIWYG styles; click to play typewriter |
 | 12 | GUI customization | 🎨 → change color → save | gui.rpy written back |
 | 13 | Statement⇄Python | ⇄ Python | Equivalent conversion correct |
 | 14 | Side chat | Send a message | Markdown/think/edit-resend/trail-jump work |
+| 15 | Python highlighting | Open a .rpy with python blocks | Keywords purple/type cyan/builtin blue/call yellow |
+| 16 | Static diagnostics | ✅ | Five check groups, click to jump |
+| 17 | Error diagnostics | Cause a crash → 🐞 | Root cause located, file:line jumps |
+| 18 | Personalization settings | ⚙ → change font size/theme | Instant effect; global/project layers |
 
 ---
 
