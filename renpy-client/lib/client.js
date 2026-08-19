@@ -1318,9 +1318,12 @@ window.__ModuleLoader__.load({
 			const { project, api, sessionId, settings, onChange, TXT, TXT2, TXT3, ACCENT, BORDER, LAYER, full } = props;
 			const [query, setQuery] = React.useState("");
 			const [scope, setScope] = React.useState("global");
+			// 本地镜像：控件立即响应（防止受控回滚）；父级 settings 变化或切换层级时同步
 			const editing = (scope === "global" ? (settings && settings.global) : (settings && settings.project)) || {};
-			const setVal = (id, val) => onChange(scope, { ...editing, [id]: val });
-			const resetVal = (id) => { const s = SETTINGS_SCHEMA.find((x) => x.id === id); onChange(scope, { ...editing, [id]: s ? s.default : undefined }); };
+			const [local, setLocal] = React.useState(editing);
+			React.useEffect(() => { setLocal(editing); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [scope, settings && settings.global, settings && settings.project]);
+			const setVal = (id, val) => { const next = { ...local, [id]: val }; setLocal(next); onChange(scope, next); };
+			const resetVal = (id) => { const s = SETTINGS_SCHEMA.find((x) => x.id === id); const next = { ...local, [id]: s ? s.default : undefined }; setLocal(next); onChange(scope, next); };
 			const groups = {};
 			for (const s of SETTINGS_SCHEMA) (groups[s.group] = groups[s.group] || []).push(s);
 			const shown = query.trim() ? SETTINGS_SCHEMA.filter((s) => s.id.indexOf(query) >= 0 || s.desc.indexOf(query) >= 0) : null;
@@ -1328,7 +1331,7 @@ window.__ModuleLoader__.load({
 			const wStr = 170, wNum = 80, wEnum = 150, wArr = 150, hCtl = full ? 28 : 24;
 			// 值控件（按 type 分发）
 			const control = (s) => {
-				const val = editing[s.id] !== undefined ? editing[s.id] : s.default;
+				const val = local[s.id] !== undefined ? local[s.id] : s.default;
 				const base = { boxSizing: "border-box", height: hCtl, background: "var(--dsw-alias-bg-layer-2)", color: TXT, border: "1px solid " + BORDER, borderRadius: 6, fontSize: full ? 13 : 12, padding: "0 6px", outline: "none", fontFamily: "inherit" };
 				if (s.type === "boolean") {
 					return React.createElement("input", { type: "checkbox", checked: !!val, onChange: (e) => setVal(s.id, e.target.checked), style: { width: full ? 18 : 16, height: full ? 18 : 16, cursor: "pointer", accentColor: ACCENT } });
@@ -1347,7 +1350,7 @@ window.__ModuleLoader__.load({
 				return React.createElement("input", { value: val || "", placeholder: "留空=默认", onChange: (e) => setVal(s.id, e.target.value), style: { ...base, width: wStr } });
 			};
 			const row = (s) => {
-				const modified = editing[s.id] !== undefined && editing[s.id] !== s.default;
+				const modified = local[s.id] !== undefined && local[s.id] !== s.default;
 				return React.createElement("div", { key: s.id, style: { display: "flex", alignItems: "center", gap: 8, padding: full ? "6px 10px" : "4px 8px", minHeight: full ? 34 : 28, borderBottom: "1px solid " + BORDER, flexWrap: "wrap" } },
 					// 描述区：flex 收缩但有下限（防控件挤压把描述文本变成逐字竖排）
 					React.createElement("div", { style: { flex: "1 1 110px", minWidth: 110 } },
