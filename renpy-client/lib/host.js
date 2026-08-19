@@ -206,54 +206,6 @@ init python:
     return ctx.shell.resolve(r)
   }
 
-  // 浏览器文件夹选择（<input webkitdirectory>）拿不到绝对路径（fakepath 限制）——
-  // 按文件夹名 + 特征文件（有 game/ 或 .rpy）在候选根中定位绝对路径。
-  // 候选根：client 传入的起始目录（当前工程父目录）> 用户目录/Documents/Desktop/OneDrive > dshHome > 各盘根。
-  const SKIP_DIRS = new Set(['appdata', 'windows', 'program files', 'program files (x86)', 'programdata', '$recycle.bin', 'system volume information', 'node_modules', '.git', '.hg', '.svn', 'venv', '.venv', '__pycache__', '.renpy-user', 'renpy-8.5.3-sdk'])
-  const resolveFolder = async (name, startDirs) => {
-    if (!name) return { error: 'missing folder name' }
-    const roots = []
-    const push = (p) => { if (p && roots.indexOf(p) < 0) roots.push(String(p).replace(/[\\/]+$/, '')) }
-    for (const d of (startDirs || [])) push(d)
-    const home = process.env.USERPROFILE || ''
-    if (home) { push(home); push(home + '/Documents'); push(home + '/Desktop'); push(home + '/OneDrive/Documents') }
-    push(dshHome)
-    for (let c = 65; c <= 90; c++) {
-      const letter = String.fromCharCode(c) + ':'
-      let st = null
-      try { st = await ctx.fs.stat(await ctx.fs.resolve(letter + '/')) } catch (e) { continue }
-      if (st) push(letter)
-    }
-    const find = async (root, target, depth, maxDepth) => {
-      if (depth > maxDepth) return null
-      let entries
-      try { entries = await ctx.fs.listDir(await ctx.fs.resolve(root)) } catch (e) { return null }
-      for (const e of entries) {
-        if (e.type !== 'directory') continue
-        const base = String(e.name || '').toLowerCase()
-        if (SKIP_DIRS.has(base)) continue
-        const full = root + '/' + e.name
-        if (e.name === target) {
-          let sub = []
-          try { sub = await ctx.fs.listDir(await ctx.fs.resolve(full)) } catch (e2) { /* ignore */ }
-          const hasGame = sub.some((s) => s.type === 'directory' && String(s.name).toLowerCase() === 'game')
-          const hasRpy = sub.some((s) => String(s.name).endsWith('.rpy'))
-          if (hasGame || hasRpy) return full
-        }
-        const hit = await find(full, target, depth + 1, maxDepth)
-        if (hit) return hit
-      }
-      return null
-    }
-    // 起始目录/文档/桌面深 4（用户项目常见位置），其余（盘根等）深 2 防慢
-    const seq = roots.map((r, i) => ({ r, max: i < 3 ? 4 : 2 }))
-    for (const { r, max } of seq) {
-      const hit = await find(r, name, 0, max)
-      if (hit) return { path: hit }
-    }
-    return { path: null }
-  }
-
   const readText = async (p) => ctx.fs.readText(await ctx.fs.resolve(p))
   const writeText = async (p, c, session) => {
     const policy = policyOf(session)
@@ -1319,7 +1271,6 @@ init python:
         if (p === '/renpy-dev/run') { respond(res, 200, await runGame(body.project, session)); return }
         if (p === '/renpy-dev/stop') { respond(res, 200, await stopGame(body.project)); return }
         if (p === '/renpy-dev/status') { respond(res, 200, await statusGame(body.project)); return }
-        if (p === '/renpy-dev/resolve-folder') { respond(res, 200, await resolveFolder(body.name, body.startDirs)); return }
         if (p === '/renpy-dev/screenshot') { respond(res, 200, await takeShot(session)); return }
         if (p === '/renpy-dev/index') { respond(res, 200, await runIndex(body.project, session)); return }
         if (p === '/renpy-dev/assets') { respond(res, 200, await listAssets(body.project)); return }
