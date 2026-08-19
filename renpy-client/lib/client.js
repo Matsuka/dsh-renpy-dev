@@ -4369,16 +4369,18 @@ window.__ModuleLoader__.load({
 					React.createElement("button", { style: iconBtnText, onClick: () => loadFiles(project), title: "加载/刷新项目文件列表" }, React.createElement("span", {}, "⟳"), React.createElement("span", {}, "刷新")),
 					React.createElement("button", { style: { ...iconBtnText, opacity: active ? 1 : .4 }, onClick: saveFile, disabled: !active, title: "保存当前文件 (Ctrl+S)" }, React.createElement("span", {}, "💾"), React.createElement("span", {}, "保存")),
 					React.createElement("button", { style: iconBtnText, onClick: doShot, title: "整屏截图（游戏窗口反馈）" }, React.createElement("span", {}, "📷"), React.createElement("span", {}, "截图")),
-					React.createElement("button", { style: { ...iconBtnText, opacity: active && !learnBusy ? 1 : .4, color: learnResult ? SUCCESS : undefined }, onClick: startTeach, disabled: !active || learnBusy, title: "AI 学习注释（逐行讲解）" }, React.createElement("span", {}, "📖"), React.createElement("span", {}, "学习")),
-					React.createElement("button", { style: { ...iconBtnText, opacity: active ? 1 : .4 }, onClick: openGuiPanel, disabled: !active, title: "GUI 主题定制（gui.rpy）" }, React.createElement("span", {}, "🎨"), React.createElement("span", {}, "主题")),
-					React.createElement("button", { style: { ...iconBtnText, opacity: active ? 1 : .4 }, onClick: convertCurrentLine, disabled: !active, title: "Ren'Py ↔ Python 等价对照" }, React.createElement("span", {}, "⇄"), React.createElement("span", {}, "对照")),
-					React.createElement("button", { style: { ...iconBtnText, opacity: active ? 1 : .4, background: stylePreview ? "rgba(100,160,255,.18)" : "transparent", border: stylePreview ? "1px solid rgba(100,160,255,.45)" : "1px solid transparent" }, onClick: () => { if (active) setStylePreview((v) => !v); }, disabled: !active, title: "文本样式预览（所见即所得）" }, React.createElement("span", { style: { fontFamily: CODE, fontWeight: 700 } }, "Aa"), React.createElement("span", {}, "样式")),
 					React.createElement("button", { style: { ...iconBtnText, color: (panelLayout.right.panels || []).includes("chat") ? ACCENT : TXT2 }, onClick: () => movePanel("chat", "right"), title: "对话面板（停靠右侧栏）" }, "💬", React.createElement("span", {}, "对话")),
 					busy ? React.createElement("span", { style: { color: TXT2 } }, "…") : null,
 				),
 				React.createElement("div", { style: { display: "flex", flex: 1, minHeight: 0, maxWidth: "100%", minWidth: 0 } },
 					// ── 控件总栏（固定收缩外观 46px 图标栏；hover 高亮；右侧 tooltip 在面板根 fixed 渲染） ──
 					React.createElement("div", { ref: navRef, style: { position: "relative", width: navCollapsed ? 46 : 172, flexShrink: 0, borderRight: "1px solid " + BORDER, background: LAYER, display: "flex", flexDirection: "column", paddingTop: 6, overflowY: "auto", overflowX: "hidden", transition: "width .15s" } },
+						// 编辑工具（作用于编辑器：样式预览/对照/学习/主题）
+						!navCollapsed ? React.createElement("div", { style: { width: "100%", padding: "1px 10px 5px", fontSize: 10, color: TXT3, fontWeight: 600 } }, "编辑工具") : null,
+						abIcon("Aa", "样式预览", () => { if (active) setStylePreview((v) => !v); }, { opacity: active ? 1 : .4, hideText: navCollapsed, active: stylePreview, color: stylePreview ? ACCENT : undefined, title: "文本样式预览（所见即所得）；激活中" }),
+						abIcon("⇄", "Python 对照", () => { if (active) convertCurrentLine(); }, { opacity: active ? 1 : .4, hideText: navCollapsed, title: "Ren'Py ↔ Python 等价对照（光标所在行）" }),
+						abIcon("📖", "学习注释", () => { if (active && !learnBusy) startTeach(); }, { opacity: active && !learnBusy ? 1 : .4, hideText: navCollapsed, color: learnResult ? SUCCESS : undefined, title: "AI 学习注释（逐行讲解）" }),
+						abIcon("🎨", "GUI 主题", () => { if (active) openGuiPanel(); }, { opacity: active ? 1 : .4, hideText: navCollapsed, title: "GUI 主题定制（gui.rpy）" }),
 						// 调试控件（需运行游戏：桥接回报驱动；点击停靠为面板控件，可拖拽/吸附/浮动）
 						!navCollapsed ? React.createElement("div", { style: { width: "100%", padding: "1px 10px 5px", fontSize: 10, color: TXT3, fontWeight: 600 } }, "调试 · 需运行（停靠右侧栏）") : null,
 						abIcon("🗺", "分支路线图", () => movePanel("route", "right"), { opacity: project ? 1 : .4, hideText: navCollapsed, title: "路线图面板（右侧栏；状态机图，点击节点跳游戏需运行）" }),
