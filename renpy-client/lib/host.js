@@ -254,6 +254,8 @@ init python:
   }
 
   // ── 保存历史备份：write-file 前把旧版本存入 userDir/backups/<projectKey>/<rel>/<ts>.bak ──
+  // 文件名 = 时间戳 + 递增序号（同毫秒多次保存不互相覆盖——测试批量跑曾踩此坑）
+  let backupSeq = 0
   const backupsKey = (project) => basename(project) + '-' + hashStr(project)
   const backupOf = async (absPath, rel, session) => {
     try {
@@ -262,7 +264,7 @@ init python:
       if (!st) return
       const old = await ctx.fs.readText(target)
       const project = String(absPath).replace(/[\\/]game[\\/].*$/, '')
-      const file = userDir + '/backups/' + backupsKey(project) + '/' + rel + '/' + String(Date.now()) + '.bak'
+      const file = userDir + '/backups/' + backupsKey(project) + '/' + rel + '/' + String(Date.now()) + '-' + (++backupSeq) + '.bak'
       await writeText(file, old, session) // writeText 自动递归建父目录
     } catch (e) { /* 备份失败不阻断保存 */ }
   }

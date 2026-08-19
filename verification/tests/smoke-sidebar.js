@@ -398,6 +398,7 @@ console.log('设置面板: 字号控件值 16', htmlSettings.indexOf('value="16"
 console.log('设置应用: gutter 字号 16px', htmlSettings.indexOf('font-size:16px') >= 0, '| 活动栏入口', htmlSettings.indexOf('个性化设置（最大化视图') >= 0);
 console.log('设置最大化: 全屏覆盖层', htmlSettings.indexOf('✕ 关闭') >= 0, '| 三列分组卡片', htmlSettings.indexOf('min-width:320px') >= 0, '| 宽松控件高 28', htmlSettings.indexOf('height:28px') >= 0);
 console.log('设置补全组: 分组名', htmlSettings.indexOf('补全') >= 0, '| quickSuggestions.other', htmlSettings.indexOf('editor.quickSuggestions.other') >= 0, '| 注释默认关', htmlSettings.indexOf('editor.quickSuggestions.comments') >= 0, '| 括号着色项', htmlSettings.indexOf('editor.bracketPairColorization.enabled') >= 0, '| 缩进线项', htmlSettings.indexOf('editor.guides.indentation') >= 0);
+console.log('设置新组: 编辑行为', htmlSettings.indexOf('编辑行为') >= 0 && htmlSettings.indexOf('editor.mouseWheelZoom') >= 0 && htmlSettings.indexOf('editor.smoothScrolling') >= 0, '| 颜色组', htmlSettings.indexOf('颜色') >= 0 && htmlSettings.indexOf('editor.background') >= 0, '| color 控件', htmlSettings.indexOf('type="color"') >= 0, '| padding 项', htmlSettings.indexOf('editor.padding.top') >= 0);
 
 // 显示开关关闭分支：缩进线 + 括号着色关闭 → 不渲染
 const srcShowOff = srcWithData

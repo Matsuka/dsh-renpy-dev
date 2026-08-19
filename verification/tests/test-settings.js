@@ -40,14 +40,19 @@ const src = fs.readFileSync(require('./paths').CLIENT_SRC, 'utf8')
   ok(!!m, 'SETTINGS_SCHEMA 数组可提取', m && m[1].slice(0, 80))
   if (m) {
     const ids = [...m[1].matchAll(/\{ id: "([^"]+)", group: "([^"]+)", type: "([^"]+)", default: ([^,]+),/g)].map((x) => ({ id: x[1], group: x[2], type: x[3], def: x[4] }))
-    const required = ["editor.fontFamily", "editor.fontSize", "editor.fontWeight", "editor.lineHeight", "editor.letterSpacing", "editor.tabSize", "editor.insertSpaces", "editor.lineNumbers", "editor.renderLineHighlight", "editor.renderWhitespace", "editor.rulers", "editor.bracketPairColorization.enabled", "editor.guides.indentation", "editor.quickSuggestions.other", "editor.quickSuggestions.comments", "editor.quickSuggestions.strings", "editor.suggestOnTriggerCharacters"]
+    const required = ["editor.fontFamily", "editor.fontSize", "editor.fontWeight", "editor.lineHeight", "editor.letterSpacing", "editor.tabSize", "editor.insertSpaces", "editor.lineNumbers", "editor.renderLineHighlight", "editor.renderWhitespace", "editor.rulers", "editor.bracketPairColorization.enabled", "editor.guides.indentation", "editor.quickSuggestions.other", "editor.quickSuggestions.comments", "editor.quickSuggestions.strings", "editor.suggestOnTriggerCharacters", "editor.padding.top", "editor.padding.bottom", "editor.mouseWheelZoom", "editor.smoothScrolling", "editor.trimAutoWhitespace", "editor.background", "editor.foreground", "editor.lineHighlightBackground", "editor.selectionBackground"]
     for (const rid of required) ok(ids.some((x) => x.id === rid), 'schema 含 ' + rid)
     const dup = ids.length - new Set(ids.map((x) => x.id)).size
     ok(dup === 0, 'schema id 无重复', dup)
     ok(ids.filter((x) => x.group === "字体").length === 5, '字体组 5 项', ids.filter((x) => x.group === "字体").length)
     ok(ids.filter((x) => x.group === "缩进").length === 2, '缩进组 2 项')
-    ok(ids.filter((x) => x.group === "显示").length === 6, '显示组 6 项（+括号着色+缩进线）', ids.filter((x) => x.group === "显示").length)
-    ok(ids.filter((x) => x.group === "补全").length === 4, '补全组 4 项', ids.filter((x) => x.group === "补全").length)
+    ok(ids.filter((x) => x.group === "显示").length === 8, '显示组 8 项（+括号/缩进线/padding 2）', ids.filter((x) => x.group === "显示").length)
+    ok(ids.filter((x) => x.group === "补全").length === 4, '补全组 4 项')
+    ok(ids.filter((x) => x.group === "编辑行为").length === 3, '编辑行为组 3 项', ids.filter((x) => x.group === "编辑行为").length)
+    ok(ids.filter((x) => x.group === "颜色").length === 4, '颜色组 4 项', ids.filter((x) => x.group === "颜色").length)
+    ok(ids.filter((x) => x.type === "color").length === 4, 'color 类型 4 项（新增控件类型）', ids.filter((x) => x.type === "color").length)
+    const mwz = ids.find((x) => x.id === "editor.mouseWheelZoom")
+    ok(mwz.def === "false", 'mouseWheelZoom 默认 false（不影响页面缩放，冲突可关）', mwz && mwz.def)
     // 关键默认值（与 VSCode 语义一致）
     const lineHeight = ids.find((x) => x.id === "editor.lineHeight")
     ok(lineHeight.def === "0", 'lineHeight 默认 0（=自动，VSCode 语义）', lineHeight && lineHeight.def)

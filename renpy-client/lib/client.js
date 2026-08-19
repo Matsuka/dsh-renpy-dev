@@ -54,6 +54,15 @@ window.__ModuleLoader__.load({
 			{ id: "editor.quickSuggestions.comments", group: "补全", type: "boolean", default: false, desc: "注释中自动弹出补全（默认关，对齐 VSCode）" },
 			{ id: "editor.quickSuggestions.strings", group: "补全", type: "boolean", default: false, desc: "字符串（对白文本）中自动弹出补全（默认关，对齐 VSCode）" },
 			{ id: "editor.suggestOnTriggerCharacters", group: "补全", type: "boolean", default: true, desc: "输入触发字符（_ 与 .）时自动弹出补全" },
+			{ id: "editor.padding.top", group: "显示", type: "number", default: 0, min: 0, max: 48, desc: "编辑器顶部内边距（px；overlay 定位同步偏移）" },
+			{ id: "editor.padding.bottom", group: "显示", type: "number", default: 0, min: 0, max: 48, desc: "编辑器底部内边距（px）" },
+			{ id: "editor.mouseWheelZoom", group: "编辑行为", type: "boolean", default: false, desc: "Ctrl+滚轮缩放字号（开启后编辑器内 Ctrl+滚轮不再缩放网页；默认关）" },
+			{ id: "editor.smoothScrolling", group: "编辑行为", type: "boolean", default: false, desc: "平滑滚动（滚轮滚动插值动画）" },
+			{ id: "editor.trimAutoWhitespace", group: "编辑行为", type: "boolean", default: true, desc: "保存时清理行尾空白" },
+			{ id: "editor.background", group: "颜色", type: "color", default: "", desc: "编辑器背景色（留空=默认 #1e1e1e 系）" },
+			{ id: "editor.foreground", group: "颜色", type: "color", default: "", desc: "编辑器前景色（代码文本；留空=默认）" },
+			{ id: "editor.lineHighlightBackground", group: "颜色", type: "color", default: "", desc: "当前行高亮背景色（留空=默认）" },
+			{ id: "editor.selectionBackground", group: "颜色", type: "color", default: "", desc: "选中文本背景色（留空=默认）" },
 		];
 		const SETTINGS_DEFAULTS = (() => {
 			const d = {};
@@ -1369,6 +1378,10 @@ window.__ModuleLoader__.load({
 				if (s.type === "boolean") {
 					return React.createElement("input", { type: "checkbox", checked: !!val, onChange: (e) => setVal(s.id, e.target.checked), style: { width: full ? 18 : 16, height: full ? 18 : 16, cursor: "pointer", accentColor: ACCENT } });
 				}
+				if (s.type === "color") {
+					// 颜色选择器；留空（默认）时显示占位色，选择后写入配置
+					return React.createElement("input", { type: "color", value: val || "#1e1e1e", onChange: (e) => setVal(s.id, e.target.value), style: { width: 44, height: hCtl, padding: 0, border: "1px solid " + BORDER, borderRadius: 4, background: "transparent", cursor: "pointer", boxSizing: "border-box" }, title: (val ? "当前: " + val : "默认（留空跟随主题）") + "，点击选择颜色" });
+				}
 				if (s.type === "enum") {
 					return React.createElement("select", { value: val, onChange: (e) => setVal(s.id, e.target.value), style: { ...base, minWidth: wEnum, cursor: "pointer" } },
 						(s.enum || []).map((e) => React.createElement("option", { key: e, value: e }, e)));
@@ -2154,6 +2167,53 @@ window.__ModuleLoader__.load({
 					overlayRef.current.style.transform = "translate(" + (-taRef.current.scrollLeft) + "px," + (-taRef.current.scrollTop) + "px)";
 				}
 			};
+			// ── 平滑滚动（editor.smoothScrolling：wheel 劫持 + rAF 插值）+ 滚轮缩放字号（editor.mouseWheelZoom：Ctrl+wheel） ──
+			// React onWheel 为 passive 无法 preventDefault——用原生监听（passive:false）；handler 走 ref 拿最新配置
+			const smoothScrollRef = React.useRef(null); // { raf, target }
+			const smoothScrollTo = (ta, target) => {
+				target = Math.max(0, Math.min(target, ta.scrollHeight - ta.clientHeight));
+				const st = smoothScrollRef.current || (smoothScrollRef.current = { raf: null, target: 0 });
+				st.target = target;
+				if (st.raf) return; // 动画进行中，仅更新目标
+				const step = () => {
+					const ta2 = taRef.current;
+					if (!ta2) { st.raf = null; return; }
+					const diff = st.target - ta2.scrollTop;
+					if (Math.abs(diff) < 0.5) { ta2.scrollTop = st.target; st.raf = null; syncScroll(); return; }
+					ta2.scrollTop += diff * 0.18;
+					syncScroll();
+					st.raf = requestAnimationFrame(step);
+				};
+				st.raf = requestAnimationFrame(step);
+			};
+			const editorWheelRef = React.useRef(null);
+			editorWheelRef.current = (e) => {
+				const c = cfgRef.current;
+				const zoom = c["editor.mouseWheelZoom"];
+				const smooth = c["editor.smoothScrolling"];
+				if (e.ctrlKey && zoom) {
+					// Ctrl+滚轮：缩放字号（替代页面缩放；仅在开启此选项时劫持）
+					e.preventDefault();
+					const cur = Number(c["editor.fontSize"]) || 13;
+					const next = Math.min(32, Math.max(8, cur + (e.deltaY > 0 ? -1 : 1)));
+					if (next !== cur) onSettingsChangeRef.current("global", { ...(settingsRef.current.global || {}), "editor.fontSize": next });
+					return;
+				}
+				if (smooth && !e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey) {
+					e.preventDefault();
+					const ta = taRef.current;
+					if (!ta) return;
+					const d = e.deltaMode === 1 ? e.deltaY * ED_LH : e.deltaY;
+					smoothScrollTo(ta, ta.scrollTop + d);
+				}
+			};
+			React.useEffect(() => {
+				const ta = taRef.current;
+				if (!ta) return;
+				const h = (e) => editorWheelRef.current(e);
+				ta.addEventListener("wheel", h, { passive: false });
+				return () => ta.removeEventListener("wheel", h);
+			}, [activeName]);
 			const onKeyDown = (e) => {
 				const ta = taRef.current;
 				if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "s") { e.preventDefault(); saveFile(); return; }
@@ -2364,7 +2424,7 @@ window.__ModuleLoader__.load({
 				if (!list.length) { setCompletions([]); return; }
 				const { line, col } = offsetToPos(cur, pos);
 				const scroll = ta.scrollTop || 0;
-				const cursorY = line * LINE_H() - scroll + 6;
+				const cursorY = line * LINE_H() - scroll + 6 + padTop;
 				const h = Math.min(list.length * 22 + 8, 240);
 				const top = cursorY + 24 > (ta.clientHeight || 400) - h ? Math.max(6, cursorY - h - 6) : cursorY + 24;
 				setCompPos({ left: 8 + col * CHAR_W, top: Math.max(6, top), h });
@@ -2683,15 +2743,18 @@ window.__ModuleLoader__.load({
 				if (!active || isViewTab) return; // teach:/doc: 只读视图标签不可保存
 				setBusy(true);
 				setSavedSnap({ name: active.name, content: content }); // 保存前快照：可回退到保存前
-				api("write-file", {}, { path: project + "/game/" + active.name, content: content, force: !!force }).then((r) => {
+				// editor.trimAutoWhitespace：保存时清理行尾空白（写入内容与编辑器显示同步）
+				const trimmed = (cfg["editor.trimAutoWhitespace"] !== false) ? content.split("\n").map((l) => l.replace(/[ \t]+$/, "")).join("\n") : content;
+				const outContent = trimmed;
+				api("write-file", {}, { path: project + "/game/" + active.name, content: outContent, force: !!force }).then((r) => {
 					if (r && r.guarded && !force) {
 						setBusy(false);
 						setGuardPrompt({ errors: r.errors || [] });
 						return;
 					}
 					setBusy(false);
-					setTabs((old) => old.map((t) => (t.name === activeName ? { ...t, dirty: false } : t)));
-					addLog("saved " + active.name + (force ? "（强制）" : ""));
+					setTabs((old) => old.map((t) => (t.name === activeName ? { ...t, content: outContent, dirty: false } : t)));
+					addLog("saved " + active.name + (force ? "（强制）" : "") + (outContent !== content ? "（已清理行尾空白）" : ""));
 					autoCp("手动保存"); // 手动修改后自动更新检查点基线
 					// 保存后防抖重新索引（连续保存合并为一次）
 					if (reindexTimerRef.current) clearTimeout(reindexTimerRef.current);
@@ -3592,10 +3655,21 @@ window.__ModuleLoader__.load({
 					api("settings-save", {}, { project, global: scope === "global" ? next : undefined, projectCfg: scope === "project" ? next : undefined }).catch(() => {});
 				}, 500);
 			};
+			// 供原生 wheel 监听等（定义在 cfg/onSettingsChange 之前的回调）读取最新值：ref 同步
+			const cfgRef = React.useRef(cfg); cfgRef.current = cfg;
+			const settingsRef = React.useRef(settings); settingsRef.current = settings;
+			const onSettingsChangeRef = React.useRef(onSettingsChange); onSettingsChangeRef.current = onSettingsChange;
 			// 字号/字体变化 → 强制重挂载编辑器（重测 CHAR_W 字符宽，避免 overlay 错位）
 			const editorRemountKey = String(cfg["editor.fontSize"]) + "|" + (cfg["editor.fontFamily"] || "") + "|" + cfg["editor.lineHeight"];
 			// 字体相关（空 fontFamily 回退 DSH 主题代码字体）
 			const codeFont = (cfg["editor.fontFamily"] && cfg["editor.fontFamily"].trim()) ? cfg["editor.fontFamily"] : CODE;
+			// 颜色覆写（workbench.colorCustomizations 式：editor.background/foreground/lineHighlightBackground 等）
+			const edBg = (cfg["editor.background"] && cfg["editor.background"].trim()) ? cfg["editor.background"] : "#1e1e1e";
+			const edFg = (cfg["editor.foreground"] && cfg["editor.foreground"].trim()) ? cfg["editor.foreground"] : "#d4d4d4";
+			const edLine = (cfg["editor.lineHighlightBackground"] && cfg["editor.lineHighlightBackground"].trim()) ? cfg["editor.lineHighlightBackground"] : "rgba(255,255,255,.035)";
+			// 编辑器上下内边距（editor.padding.top/bottom）：三处样式同步 + overlay 容器偏移 + 补全浮窗偏移
+			const padTop = Number(cfg["editor.padding.top"]) || 0;
+			const padBottom = Number(cfg["editor.padding.bottom"]) || 0;
 			// 空白显示标记（renderWhitespace）：boundary=行首缩进段+行尾空格段；trailing=仅行尾；all=全部空格段（连续段合并）
 			const whitespaceMarks = React.useMemo(() => {
 				const mode = cfg["editor.renderWhitespace"];
@@ -3878,7 +3952,7 @@ window.__ModuleLoader__.load({
 			// 工作范围强调按钮（单独放大）
 			const wsBtn = { display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 16px", cursor: "pointer", background: "rgba(100,160,255,.14)", color: "#fff", border: "1px solid rgba(100,160,255,.5)", borderRadius: 9, fontSize: 13, fontWeight: 600, lineHeight: 1.4, whiteSpace: "nowrap", boxShadow: "0 1px 6px rgba(100,160,255,.25)" };
 			const pre = { fontFamily: CODE, fontSize: 12, lineHeight: 1.6, whiteSpace: "pre-wrap", margin: 0, padding: 6, maxHeight: 140, overflow: "auto", borderTop: "1px solid " + BORDER, background: CODEBLK, color: TXT2 };
-			const editorWrap = { display: "flex", flex: 1, minHeight: 0, maxWidth: "100%", borderTop: "1px solid " + BORDER, background: "#1e1e1e", overflow: "hidden" };
+			const editorWrap = { display: "flex", flex: 1, minHeight: 0, maxWidth: "100%", borderTop: "1px solid " + BORDER, background: edBg, overflow: "hidden" };
 			// 行高：预览模式 34px（容纳 say 字号差异）；pre/ta/gutter 必须一致
 			const ED_LH = stylePreview ? 34 : lhPx();
 			// ── 括号匹配 → 屏幕位置（供 overlay 高亮；textWidth 依赖 cfg 的 letterSpacing，须在 cfg 之后定义） ──
@@ -3915,9 +3989,9 @@ window.__ModuleLoader__.load({
 				}
 				return Object.keys(guide).map((k) => ({ x: parseInt(k, 10) * CHAR_W, top: guide[k].first * LINE_H(), h: (guide[k].last - guide[k].first + 1) * LINE_H() }));
 			}, [content, charW, stylePreview, cfg["editor.tabSize"]]);
-			const gutterStyle = { position: "relative", width: 44, flexShrink: 0, overflow: "hidden", padding: "4px 6px 4px 4px", textAlign: "right", fontFamily: codeFont, fontSize: cfg["editor.fontSize"], lineHeight: ED_LH + "px", letterSpacing: cfg["editor.letterSpacing"] + "px", color: "rgba(128,128,128,.65)", userSelect: "none", background: "#252526" };
-			const preStyle = { position: "absolute", inset: 0, margin: 0, padding: 4, fontFamily: codeFont, fontSize: cfg["editor.fontSize"], lineHeight: ED_LH + "px", letterSpacing: cfg["editor.letterSpacing"] + "px", fontWeight: cfg["editor.fontWeight"], whiteSpace: "pre", overflow: "hidden", color: "#d4d4d4", pointerEvents: "none" };
-			const taStyle = { position: "absolute", inset: 0, margin: 0, padding: 4, fontFamily: codeFont, fontSize: cfg["editor.fontSize"], lineHeight: ED_LH + "px", letterSpacing: cfg["editor.letterSpacing"] + "px", fontWeight: cfg["editor.fontWeight"], whiteSpace: "pre", overflow: "auto", background: "transparent", color: "transparent", caretColor: "#e0e0e0", outline: "none", border: "none", resize: "none" };
+			const gutterStyle = { position: "relative", width: 44, flexShrink: 0, overflow: "hidden", paddingTop: 4 + padTop, paddingBottom: 4 + padBottom, paddingLeft: 4, paddingRight: 6, textAlign: "right", fontFamily: codeFont, fontSize: cfg["editor.fontSize"], lineHeight: ED_LH + "px", letterSpacing: cfg["editor.letterSpacing"] + "px", color: "rgba(128,128,128,.65)", userSelect: "none", background: edBg };
+			const preStyle = { position: "absolute", inset: 0, margin: 0, paddingTop: 4 + padTop, paddingBottom: 4 + padBottom, paddingLeft: 4, paddingRight: 4, fontFamily: codeFont, fontSize: cfg["editor.fontSize"], lineHeight: ED_LH + "px", letterSpacing: cfg["editor.letterSpacing"] + "px", fontWeight: cfg["editor.fontWeight"], whiteSpace: "pre", overflow: "hidden", color: edFg, pointerEvents: "none" };
+			const taStyle = { position: "absolute", inset: 0, margin: 0, paddingTop: 4 + padTop, paddingBottom: 4 + padBottom, paddingLeft: 4, paddingRight: 4, fontFamily: codeFont, fontSize: cfg["editor.fontSize"], lineHeight: ED_LH + "px", letterSpacing: cfg["editor.letterSpacing"] + "px", fontWeight: cfg["editor.fontWeight"], whiteSpace: "pre", overflow: "auto", background: "transparent", color: "transparent", caretColor: edFg, outline: "none", border: "none", resize: "none" };
 			const editorBox = { position: "relative", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" };
 			const tabBar = { display: "flex", gap: 2, padding: "4px 8px", overflowX: "auto", borderBottom: "1px solid " + BORDER, minHeight: 30, alignItems: "center", background: LAYER };
 			const tabStyle = (act) => ({ padding: "3px 10px", cursor: "pointer", background: act ? GHOST : "transparent", border: "1px solid " + (act ? BORDER : "transparent"), borderRadius: 6, fontSize: 13, whiteSpace: "nowrap", color: act ? ACCENT : TXT, fontFamily: "inherit" });
@@ -4230,13 +4304,13 @@ window.__ModuleLoader__.load({
 										: React.createElement("div", { dangerouslySetInnerHTML: { __html: mdToHtml(content) } }),
 								) : (active && /^doc:/.test(active.name)) ? React.createElement("pre", { style: { position: "absolute", inset: 0, overflow: "auto", margin: 0, padding: "10px 14px", fontFamily: CODE, fontSize: 12, lineHeight: 1.6, color: TXT, whiteSpace: "pre-wrap", wordBreak: "break-word" } }, content)
 								: React.createElement("pre", { ref: preRef, style: preStyle, dangerouslySetInnerHTML: { __html: highlightRpy(content, stylePreview) } }),
-								// 查找高亮 + lint 下划线（内容坐标；滚动时 transform 反向平移对齐）
-								!isViewTab ? React.createElement("div", { style: { position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none", zIndex: 1 } },
+								// 查找高亮 + lint 下划线（内容坐标；滚动时 transform 反向平移对齐；overlay 容器 top 偏移 = padTop）
+								!isViewTab ? React.createElement("div", { style: { position: "absolute", top: padTop, left: 0, right: 0, bottom: 0, overflow: "hidden", pointerEvents: "none", zIndex: 1 } },
 									React.createElement("div", { ref: overlayRef, style: { position: "absolute", top: 0, left: 0, width: 1, height: 1, transform: "translate(0,0)" } },
 										// 缩进线（最底：垂直虚线，随缩进档位；editor.guides.indentation 配置控制）
 										(cfg["editor.guides.indentation"] !== false) ? indentGuides.map((g) => React.createElement("div", { key: "ig" + g.x, style: { position: "absolute", top: g.top, left: g.x, width: 1, height: g.h, background: "rgba(255,255,255,.07)", boxShadow: "inset 1px 0 0 rgba(255,255,255,.03)" } })) : null,
 										// 当前行高亮（光标所在行整行浅背景；renderLineHighlight 配置控制；gutter/all 暂按 line 渲染）
-										(active && cursorPos.line >= 1 && cfg["editor.renderLineHighlight"] !== "none") ? React.createElement("div", { key: "curline", style: { position: "absolute", top: (cursorPos.line - 1) * LINE_H(), left: 0, width: 4000, height: LINE_H(), background: "rgba(255,255,255,.035)" } }) : null,
+										(active && cursorPos.line >= 1 && cfg["editor.renderLineHighlight"] !== "none") ? React.createElement("div", { key: "curline", style: { position: "absolute", top: (cursorPos.line - 1) * LINE_H(), left: 0, width: 4000, height: LINE_H(), background: edLine } }) : null,
 										// 垂直标尺（editor.rulers 列号数组 → 竖线）
 										(cfg["editor.rulers"] || []).map((r, ri) => React.createElement("div", { key: "rl" + ri, title: "标尺列 " + r, style: { position: "absolute", top: 0, left: Number(r) * CHAR_W, width: 1, height: "100%", background: "rgba(255,255,255,.14)" } })),
 										// 空白显示（renderWhitespace：boundary=行首缩进+行尾空格；trailing=仅行尾；all=全部空格）
@@ -4256,7 +4330,11 @@ window.__ModuleLoader__.load({
 										curLintLines.map((ln) => React.createElement("div", { key: "l" + ln, title: "lint 错误", style: { position: "absolute", top: (ln - 1) * LINE_H() + 17, left: 4, width: 4000, height: 2, background: "rgba(224,92,92,.9)", borderRadius: 1 } })),
 									),
 								) : null,
-								!isViewTab ? React.createElement("textarea", { ref: taRef, value: content, onChange: (e) => onChange(e.target.value), onScroll: syncScroll, onKeyDown: onKeyDown, onMouseUp: onEditorMouseUp, onSelect: trackCursor, onKeyUp: trackCursor, onClick: trackCursor, spellCheck: false, wrap: "off", style: taStyle }) : null,
+								!isViewTab ? React.createElement(React.Fragment, null,
+									// 选区背景覆写（editor.selectionBackground，VSCode 语义）：textarea ::selection
+									(cfg["editor.selectionBackground"] && cfg["editor.selectionBackground"].trim()) ? React.createElement("style", null, ".renpy-editor-ta::selection{background:" + cfg["editor.selectionBackground"].trim() + "}") : null,
+									React.createElement("textarea", { ref: taRef, value: content, onChange: (e) => onChange(e.target.value), onScroll: syncScroll, onKeyDown: onKeyDown, onMouseUp: onEditorMouseUp, onSelect: trackCursor, onKeyUp: trackCursor, onClick: trackCursor, spellCheck: false, wrap: "off", className: "renpy-editor-ta", style: taStyle }),
+								) : null,
 								// 代码补全面板
 								(completions.length && compPos) ? React.createElement("div", { style: { position: "absolute", left: compPos.left, top: compPos.top, zIndex: 5, width: 280, maxHeight: compPos.h, overflow: "auto", background: BG, border: "1px solid " + BORDER, borderRadius: 8, boxShadow: "0 6px 24px rgba(0,0,0,.35)", padding: 4 } },
 									completions.map((c, i) => React.createElement("div", { key: c.kind + c.label + i, style: { display: "flex", alignItems: "center", gap: 6, padding: "3px 8px", borderRadius: 5, cursor: "pointer", background: i === compSel ? GHOST : "transparent" }, onMouseEnter: () => setCompSel(i), onClick: () => { setCompSel(i); applyCompletion(); } },
