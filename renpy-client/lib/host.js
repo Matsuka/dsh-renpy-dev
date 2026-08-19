@@ -206,21 +206,52 @@ init python:
     return ctx.shell.resolve(r)
   }
 
-  // 文件夹选择（资源管理器对话框）：DSH shell 默认 pwsh 非交互 MTA，FolderBrowserDialog 需 STA——
-  // 脚本落盘后以 -STA 重入执行；用户取消时无输出（path 为 null）
-  const pickFolderCmd = async (startPath, session) => {
-    const ps1 = path.join(userDir, 'pick-folder.ps1')
-    const script = `$ErrorActionPreference = 'Stop'
-Add-Type -AssemblyName System.Windows.Forms | Out-Null
-$d = New-Object System.Windows.Forms.FolderBrowserDialog
-$d.Description = '选择 Ren'Py 工作区文件夹'
-$d.ShowNewFolderButton = $true
-$start = ${JSON.stringify(String(startPath || ''))}
-if ($start -and (Test-Path -LiteralPath $start)) { $d.SelectedPath = $start }
-if ($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { Write-Output $d.SelectedPath }`
-    await writeText(ps1, script, session)
-    const exe = `$e = Get-Command pwsh -ErrorAction SilentlyContinue; if (-not $e) { $e = Get-Command powershell -ErrorAction SilentlyContinue }; if (-not $e) { Write-Output 'ERR:NO_SHELL'; exit 1 }; & $e.Source -STA -NoProfile -File ${q(ps1)}; $c = $LASTEXITCODE; Remove-Item ${q(ps1)} -Force -ErrorAction SilentlyContinue; exit $c`
-    return exe
+  // 浏览器文件夹选择（<input webkitdirectory>）拿不到绝对路径（fakepath 限制）——
+  // 按文件夹名 + 特征文件（有 game/ 或 .rpy）在候选根中定位绝对路径。
+  // 候选根：client 传入的起始目录（当前工程父目录）> 用户目录/Documents/Desktop/OneDrive > dshHome > 各盘根。
+  const SKIP_DIRS = new Set(['appdata', 'windows', 'program files', 'program files (x86)', 'programdata', '$recycle.bin', 'system volume information', 'node_modules', '.git', '.hg', '.svn', 'venv', '.venv', '__pycache__', '.renpy-user', 'renpy-8.5.3-sdk'])
+  const resolveFolder = async (name, startDirs) => {
+    if (!name) return { error: 'missing folder name' }
+    const roots = []
+    const push = (p) => { if (p && roots.indexOf(p) < 0) roots.push(String(p).replace(/[\\/]+$/, '')) }
+    for (const d of (startDirs || [])) push(d)
+    const home = process.env.USERPROFILE || ''
+    if (home) { push(home); push(home + '/Documents'); push(home + '/Desktop'); push(home + '/OneDrive/Documents') }
+    push(dshHome)
+    for (let c = 65; c <= 90; c++) {
+      const letter = String.fromCharCode(c) + ':'
+      let st = null
+      try { st = await ctx.fs.stat(await ctx.fs.resolve(letter + '/')) } catch (e) { continue }
+      if (st) push(letter)
+    }
+    const find = async (root, target, depth, maxDepth) => {
+      if (depth > maxDepth) return null
+      let entries
+      try { entries = await ctx.fs.listDir(await ctx.fs.resolve(root)) } catch (e) { return null }
+      for (const e of entries) {
+        if (e.type !== 'directory') continue
+        const base = String(e.name || '').toLowerCase()
+        if (SKIP_DIRS.has(base)) continue
+        const full = root + '/' + e.name
+        if (e.name === target) {
+          let sub = []
+          try { sub = await ctx.fs.listDir(await ctx.fs.resolve(full)) } catch (e2) { /* ignore */ }
+          const hasGame = sub.some((s) => s.type === 'directory' && String(s.name).toLowerCase() === 'game')
+          const hasRpy = sub.some((s) => String(s.name).endsWith('.rpy'))
+          if (hasGame || hasRpy) return full
+        }
+        const hit = await find(full, target, depth + 1, maxDepth)
+        if (hit) return hit
+      }
+      return null
+    }
+    // 起始目录/文档/桌面深 4（用户项目常见位置），其余（盘根等）深 2 防慢
+    const seq = roots.map((r, i) => ({ r, max: i < 3 ? 4 : 2 }))
+    for (const { r, max } of seq) {
+      const hit = await find(r, name, 0, max)
+      if (hit) return { path: hit }
+    }
+    return { path: null }
   }
 
   const readText = async (p) => ctx.fs.readText(await ctx.fs.resolve(p))
@@ -1288,18 +1319,7 @@ if ($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { Write-Output 
         if (p === '/renpy-dev/run') { respond(res, 200, await runGame(body.project, session)); return }
         if (p === '/renpy-dev/stop') { respond(res, 200, await stopGame(body.project)); return }
         if (p === '/renpy-dev/status') { respond(res, 200, await statusGame(body.project)); return }
-        if (p === '/renpy-dev/pick-folder') {
-          // 打开资源管理器选择工作区文件夹；取消时 path 为 null
-          try {
-            const r = await ctx.shell.run(specOf(await pickFolderCmd(body.startPath, session), 120000, session))
-            if (r.exitCode !== 0) { respond(res, 200, { error: 'pick-folder failed: ' + String(r.stderr.text) }); return }
-            const picked = String(r.stdout.text || '').trim().split(/\r?\n/).map((l) => l.trim()).filter((l) => l && !l.startsWith('ERR:')).pop() || ''
-            respond(res, 200, { path: picked || null })
-          } catch (e) {
-            respond(res, 200, { error: 'pick-folder: ' + String(e && e.message || e) })
-          }
-          return
-        }
+        if (p === '/renpy-dev/resolve-folder') { respond(res, 200, await resolveFolder(body.name, body.startDirs)); return }
         if (p === '/renpy-dev/screenshot') { respond(res, 200, await takeShot(session)); return }
         if (p === '/renpy-dev/index') { respond(res, 200, await runIndex(body.project, session)); return }
         if (p === '/renpy-dev/assets') { respond(res, 200, await listAssets(body.project)); return }

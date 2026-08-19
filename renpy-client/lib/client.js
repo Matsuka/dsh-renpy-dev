@@ -2681,17 +2681,30 @@ window.__ModuleLoader__.load({
 				loadAssets(p);
 			};
 
-			// 选地址：打开资源管理器选择工作区文件夹，选中即切换工程
-			const pickFolder = () => {
-				api("pick-folder", {}, { startPath: (project || "").trim() }).then((r) => {
-					if (r && r.error) { addLog("选择文件夹失败: " + r.error); return; }
-					if (!r || !r.path) { addLog("已取消选择"); return; }
+			// 选地址：浏览器原生文件夹选择（<input webkitdirectory>）。浏览器不暴露绝对路径（fakepath 限制），
+			// 选中后取文件夹名，由 host 按「名称 + 特征文件（game/ 或 .rpy）」在候选目录中解析出绝对路径
+			const folderInputRef = React.useRef(null);
+			const pickFolder = () => { if (folderInputRef.current) folderInputRef.current.click(); };
+			const onFolderPicked = (e) => {
+				const input = e.target;
+				const files = input.files ? Array.from(input.files) : [];
+				input.value = ""; // 允许重复选择同一文件夹
+				if (!files.length) return;
+				const rel = files[0].webkitRelativePath || "";
+				const folderName = String(rel).split("/")[0];
+				if (!folderName) { addLog("无法读取所选文件夹名"); return; }
+				// 起始目录：当前工程的父目录（最常见位置优先）
+				const cur = String(project || "").trim().replace(/[\\/]+$/, "");
+				const startDirs = cur ? [cur.replace(/[\\/][^\\/]+$/, "")] : [];
+				api("resolve-folder", {}, { name: folderName, startDirs }).then((r) => {
+					if (r && r.error) { addLog("解析文件夹失败: " + r.error); return; }
+					if (!r || !r.path) { addLog("未在候选位置找到 " + folderName + " 的绝对路径（浏览器不暴露路径），请在输入框手动输入"); return; }
 					const p = r.path;
 					setProject(p);
-					try { if (typeof localStorage !== "undefined") localStorage.setItem("renpy-project", p); } catch (e) { /* ignore */ }
+					try { if (typeof localStorage !== "undefined") localStorage.setItem("renpy-project", p); } catch (e2) { /* ignore */ }
 					commitProject(p);
 					addLog("已选择工作区: " + p);
-				}).catch((e) => addLog("选择文件夹失败: " + String(e)));
+				}).catch((e3) => addLog("解析文件夹失败: " + String(e3)));
 			};
 
 			// 首次挂载：项目框为空（无本地持久化值）时，用 host 配置的默认工程（renpy.config.json 的 defaultProject）
@@ -4371,7 +4384,8 @@ window.__ModuleLoader__.load({
 				React.createElement("div", { style: { ...row, gap: 6, flexWrap: "wrap" } },
 					React.createElement("span", { style: { color: TXT2, fontSize: 13, flexShrink: 0 } }, "项目"),
 					React.createElement("input", { style: { flex: 1, minWidth: 120, maxWidth: 340, fontFamily: CODE, ...C.inp }, value: project, onChange: (e) => setProject(e.target.value), onBlur: commitProject, onKeyDown: (e) => { if (e.key === "Enter") { e.target.blur(); commitProject(); } }, placeholder: "项目目录绝对路径" }),
-					React.createElement("button", { title: "打开资源管理器选择工作区文件夹", style: iconBtnText, onClick: pickFolder }, "📁"),
+					React.createElement("button", { title: "选择工作区文件夹（浏览器文件选择）", style: iconBtnText, onClick: pickFolder }, "📁"),
+					React.createElement("input", { ref: folderInputRef, type: "file", webkitdirectory: "", directory: "", style: { display: "none" }, onChange: onFolderPicked }),
 					React.createElement("button", { title: "切到 host 配置的默认工程（renpy.config.json defaultProject）", style: { ...iconBtnText, fontSize: 12 }, onClick: () => { api("info").then((r) => { const d = r && r.defaultProject; if (!d) { addLog("host 未配置默认工程"); return; } setProject(d); try { if (typeof localStorage !== "undefined") localStorage.setItem("renpy-project", d); } catch (e) { /* ignore */ } commitProject(d); addLog("已切换到默认工程: " + d); }).catch((e) => addLog("读取默认工程失败: " + String(e))); } }, "⟳ 默认工程"),
 					// ── 工作范围（强调：单独放大） ──
 					React.createElement("button", { style: wsBtn, onClick: lockWorkspace, disabled: !active, title: "用编辑器选区/光标行设定工作范围（区域外只读，agent 越界会先询问）" },
