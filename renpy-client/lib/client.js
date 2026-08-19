@@ -72,7 +72,7 @@ window.__ModuleLoader__.load({
 			{ id: "editorFindMatchBackground", group: "颜色", type: "color", default: "", desc: "查找匹配高亮颜色（留空=默认）" },
 			{ id: "editorError.foreground", group: "颜色", type: "color", default: "", desc: "lint 错误下划线颜色（留空=默认）" },
 			{ id: "workbench.background", group: "界面", type: "color", default: "", desc: "工作台背景色（留空=跟随 DSH 主题）" },
-			{ id: "theme.mode", group: "界面", type: "enum", default: "system", enum: ["system", "light", "dark"], desc: "亮暗模式：跟随系统 / 强制亮色 / 强制暗色（切换整个 DSH 界面，编辑器随之适配）" },
+			{ id: "theme.mode", group: "界面", type: "enum", default: "dark", enum: ["light", "dark"], desc: "亮暗模式：亮色 / 暗色（手动切换整个 DSH 界面，编辑器随之适配）" },
 			{ id: "workbench.sideBar.background", group: "界面", type: "color", default: "", desc: "侧栏背景色（文件/导航/素材区）" },
 			{ id: "workbench.activityBar.background", group: "界面", type: "color", default: "", desc: "活动栏背景色（最左图标栏）" },
 			{ id: "workbench.panel.background", group: "界面", type: "color", default: "", desc: "面板背景色（对话/调试/设置等停靠面板）" },
@@ -3731,32 +3731,21 @@ window.__ModuleLoader__.load({
 			const settingsRef = React.useRef(settings); settingsRef.current = settings;
 			const onSettingsChangeRef = React.useRef(onSettingsChange); onSettingsChangeRef.current = onSettingsChange;
 			// ── 亮暗模式（theme.mode）：改 body[data-ds-dark-theme] 驱动整个 DSH 界面亮暗 ──
-			// 关键：system 模式首次挂载不干预宿主（避免打开工作台就把 DSH 亮暗"纠正"成系统偏好）；
-			// 仅从强制模式切回 system 时应用一次当前系统偏好，此后跟随系统变化
+			// 纯手动亮/暗切换：首次挂载不干预宿主（打开工作台不改变 DSH 亮暗），
+			// 用户手动切换后才生效（旧值 system 兜底按 dark 处理）
 			const prevThemeModeRef = React.useRef(null);
 			React.useEffect(() => {
-				const mode = cfg["theme.mode"] || "system";
+				const mode = cfg["theme.mode"] === "light" ? "light" : "dark";
+				if (prevThemeModeRef.current === mode) return;
 				const first = prevThemeModeRef.current === null;
 				prevThemeModeRef.current = mode;
-				const apply = (dark) => {
-					try {
-						const b = document.body;
-						if (!b) return;
-						if (dark) b.setAttribute("data-ds-dark-theme", "");
-						else b.removeAttribute("data-ds-dark-theme");
-					} catch (e) { /* 无 DOM 环境忽略 */ }
-				};
-				if (mode === "dark") { apply(true); return; }
-				if (mode === "light") { apply(false); return; }
-				let mq = null;
-				try { mq = window.matchMedia("(prefers-color-scheme: dark)"); } catch (e) { mq = null; }
-				if (mq && mq.addEventListener) {
-					const on = (e) => apply(e.matches);
-					if (!first) apply(mq.matches); // 切回 system：应用当前系统偏好；首次挂载不干预
-					mq.addEventListener("change", on);
-					return () => mq.removeEventListener("change", on);
-				}
-				if (!first) apply(false);
+				if (first) return; // 首次挂载不干预宿主亮暗
+				try {
+					const b = document.body;
+					if (!b) return;
+					if (mode === "dark") b.setAttribute("data-ds-dark-theme", "");
+					else b.removeAttribute("data-ds-dark-theme");
+				} catch (e) { /* 无 DOM 环境忽略 */ }
 				// eslint-disable-next-line react-hooks/exhaustive-deps
 			}, [cfg["theme.mode"]]);
 			// 界面颜色覆写（workbench.* → --dsw-* CSS 变量，注入面板根；对齐 VSCode colorCustomizations 语义）

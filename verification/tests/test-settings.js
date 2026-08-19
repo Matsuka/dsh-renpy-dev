@@ -53,7 +53,7 @@ const src = fs.readFileSync(require('./paths').CLIENT_SRC, 'utf8')
     ok(ids.filter((x) => x.group === "界面").length === 9, '界面组 9 项（workbench.* + theme.mode）', ids.filter((x) => x.group === "界面").length)
     ok(ids.filter((x) => x.group === "交互").length === 5, '交互组 5 项（button/list/input，含按钮文字色）', ids.filter((x) => x.group === "交互").length)
     ok(ids.filter((x) => x.type === "color").length === 25, 'color 类型 25 项（编辑器 12 + 界面 8 + 交互 5）', ids.filter((x) => x.type === "color").length)
-    ok(ids.some((x) => x.id === "theme.mode" && x.def === '"system"'), 'theme.mode 默认 system（跟随系统）')
+    ok(ids.some((x) => x.id === "theme.mode" && x.def === '"dark"' && /"light", "dark"/.test(m[1].slice(m[1].indexOf("theme.mode"), m[1].indexOf("theme.mode") + 200))), 'theme.mode 仅亮/暗两档（默认 dark，无 system）')
     const mwz = ids.find((x) => x.id === "editor.mouseWheelZoom")
     ok(mwz.def === "false", 'mouseWheelZoom 默认 false（不影响页面缩放，冲突可关）', mwz && mwz.def)
     // 关键默认值（与 VSCode 语义一致）
