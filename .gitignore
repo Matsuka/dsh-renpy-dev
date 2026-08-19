@@ -47,3 +47,6 @@ Thumbs.db
 # 临时与归档
 *.tmp
 *.bak
+
+# VSCode 主题调研素材（本地来源，不进仓库）
+vscode_theme_research/

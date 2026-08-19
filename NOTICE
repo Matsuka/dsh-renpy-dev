@@ -15,6 +15,16 @@ Third-party notices
   This project runs as a plugin/preset on DeepSeek Harness. See
   https://github.com/deepseek-ai/dsh for details.
 
+- Visual Studio Code codicons (icon set used in the workbench UI):
+  MIT License, Copyright (c) Microsoft Corporation.
+  The SVG icon paths embedded in renpy-client/lib/client.js are extracted
+  from the official codicon font (https://github.com/microsoft/vscode-codicons).
+
+- Visual Studio Code configuration keys (editor.* / workbench.* semantics
+  used by the personalization settings): MIT License, Copyright (c) Microsoft
+  Corporation. Only the functional key names and value semantics are aligned;
+  no source code is copied.
+
 - Verification projects (verification/projects/): demo assets and test scripts
   are used solely for engine verification of the skill content. Sample images
   and fonts are from the Ren'Py SDK distribution.

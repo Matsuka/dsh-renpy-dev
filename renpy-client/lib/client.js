@@ -45,6 +45,190 @@ const ICONS = {
 				React.createElement("path", { d: ic.d }));
 		};
 
+		// ── i18n：界面语言（设置 ui.language：system/zh/en；默认跟随系统） ──
+		// t(key, vars)：key 即中文原文；zh 直接返回原文，en 查 I18N_EN 表，缺失回退中文。
+		// 日志消息（addLog/setLog）保留中文（过程记录），不在本表。
+		let UI_LANG = "system"; // 模块级，由组件 effect 从设置同步
+		const I18N_EN = {
+			"项目": "Project", "项目目录绝对路径": "Absolute path to the project directory", "默认工程": "Default project",
+			"切到 host 配置的默认工程（renpy.config.json defaultProject）": "Switch to the host-configured default project (renpy.config.json defaultProject)",
+			"工作范围": "Workspace", "用编辑器选区/光标行设定工作范围（区域外只读，agent 越界会先询问）": "Lock editing to the selected lines / cursor line (outside is read-only; the agent will ask before touching it)",
+			"清除工作范围": "Clear workspace", "运行游戏": "Run Game", "停止游戏": "Stop Game",
+			"运行游戏（调试桥接自动注入；点击后切换为停止）": "Run the game (debug bridge auto-injected; click again to stop)",
+			"停止游戏（点击停止当前运行的实例）": "Stop the currently running game instance",
+			"检查": "Check", "Ren'Py 语法检查（lint）": "Ren'Py syntax check (lint)", "测试": "Test", "自动化测试（rpytest）": "Automated tests (rpytest)",
+			"刷新": "Refresh", "加载/刷新项目文件列表": "Load / refresh the project file list", "保存": "Save", "保存当前文件 (Ctrl+S)": "Save the current file (Ctrl+S)",
+			"截图": "Screenshot", "整屏截图（游戏窗口反馈）": "Full-screen screenshot (game window feedback)", "对话": "Chat", "对话面板（停靠右侧栏）": "Chat panel (docks to the right sidebar)",
+			"编辑工具": "Editing tools", "样式预览": "Style preview", "Python 对照": "Python equivalent", "学习注释": "Learn annotations", "GUI 主题": "GUI theme",
+			"文本样式预览（所见即所得）；激活中": "Text style preview (WYSIWYG); active", "Ren'Py ↔ Python 等价对照（光标所在行）": "Ren'Py ↔ Python equivalent (current line)", "AI 学习注释（逐行讲解）": "AI learning annotations (line-by-line)", "GUI 主题定制（gui.rpy）": "GUI theme customization (gui.rpy)",
+			"调试 · 需运行（停靠右侧栏）": "Debug · requires running (docks right)", "分支路线图": "Branch route map", "实时画面": "Live view", "运行时变量": "Runtime variables", "报错诊断": "Error diagnostics", "静态诊断": "Static diagnostics", "个性化设置": "Settings",
+			"路线图面板（右侧栏；状态机图，点击节点跳游戏需运行）": "Route map panel (right; state-machine graph, click a node to jump in-game, requires running)",
+			"实时画面面板（右侧栏；截图 + 点击/推进/回滚）": "Live view panel (right; screenshot + click/advance/rollback)",
+			"变量监控面板（右侧栏；变化高亮）": "Variable monitor panel (right; change highlight)",
+			"报错诊断面板（右侧栏；traceback/log/errors 结构化 + 跳转）": "Error diagnostics panel (right; structured traceback/log/errors + jump)",
+			"静态诊断面板（右侧栏；无效跳转/未定义 screen/角色/缺失资源/不可达 label）": "Static diagnostics panel (right; invalid jumps / undefined screens / characters / missing assets / unreachable labels)",
+			"个性化设置（最大化视图：字体/缩进/显示，全局或按项目；🗗 还原）": "Settings (maximized view: font/indent/display, global or per-project; 🗗 restore)",
+			"项目文件": "Project files", "导航": "Navigation", "项目素材": "Assets", "基线更改": "Baseline changes",
+			"操作日志": "Log", "保存历史": "History", "保存历史与回滚": "Save history & rollback",
+			"展开控件栏": "Expand sidebar", "收起控件栏（只显图标）": "Collapse sidebar (icons only)",
+			"拖拽手柄：按住拖动面板": "Drag handle: hold to drag the panel", "移除面板（导航可重开）": "Remove panel (reopen from sidebar)",
+			"最大化：占满整个工作区": "Maximize: fill the workspace", "还原（再次点击）": "Restore (click again)",
+			"拖拽：拖到左/右/下分区吸附，或拖出成浮动窗": "Drag: snap to left/right/bottom regions, or pull out as a floating window",
+			"关闭": "Close", "关闭 (Esc)": "Close (Esc)", "取消": "Cancel", "确认": "Confirm", "清除": "Clear", "全部通过": "Accept all", "全部撤回": "Revert all", "通过": "Accept", "撤回": "Revert",
+			"检查点修改": "Checkpoint changes", "未保存修改": "Unsaved changes", "撤回修改": "Revert changes", "放弃未保存修改，恢复到上次保存": "Discard unsaved changes, restore last save",
+			"关闭历史弹层": "Close history", "恢复到该版本": "Restore this version", "关闭修改面板": "Close changes panel", "接受全部修改到基线": "Accept all changes to baseline", "撤回全部修改": "Revert all changes", "接受该文件修改到基线": "Accept this file to baseline", "撤回该文件修改": "Revert this file",
+			"写守卫拦截了保存": "Write guard blocked the save", "仍要保存（强制）": "Force save anyway", "取消（先修正）": "Cancel (fix first)", "绕过写守卫强制保存（可能破坏脚本）": "Force save bypassing the guard (may break the script)",
+			"查找…": "Find…", "替换为…": "Replace with…", "替换": "Replace", "全部替换": "Replace all", "替换当前匹配": "Replace current match", "替换全部匹配": "Replace all matches",
+			"搜索设置": "Search settings", "重置": "Reset", "已修改": "modified", "默认": "default", "全局": "Global", "项目": "Project",
+			"编辑层：全局配置（所有项目生效）": "Scope: global config (all projects)", "编辑层：项目配置（仅当前项目）": "Scope: project config (this project only)",
+			"应用预制配色": "Apply preset theme", "预制配色": "Preset theme",
+			"配置键名与语义对齐 VSCode（editor.*，MIT 借鉴）；保存于工作区 .renpy-user（不写入项目目录）。更改即时生效，字号/字体改动会重载编辑器。": "Key names and semantics follow VSCode (editor.*, MIT-inspired); saved to .renpy-user (not the project directory). Changes apply immediately; font changes reload the editor.",
+			"功能": "Features", "控件": "Controls", "亮暗模式": "Light/Dark mode", "编辑行为": "Editing behavior", "补全": "Completions", "显示": "Display", "字体": "Font", "布局": "Layout", "颜色·编辑器": "Colors · Editor", "颜色·界面": "Colors · UI", "颜色·交互": "Colors · Interaction",
+			"界面语言": "UI language", "界面语言（system=跟随系统/浏览器语言）": "UI language (system = follow the browser/OS language)",
+			"🎨 预制配色…": "🎨 Preset theme…",
+			"💥 崩溃 traceback": "💥 Crash traceback",
+			"异常信息未知": "Unknown exception",
+			"最近: ": "Last: ",
+			"点击画面可操作游戏": "Click the view to operate the game",
+			"⚙ 功能": "⚙ Features",
+			"🎨 控件": "🎨 Controls",
+			"GUI 主题定制": "GUI theme customization", "保存到 gui.rpy": "Save to gui.rpy", "查看源码": "View source", "将 GUI 设置写回 gui.rpy": "Write GUI settings back to gui.rpy",
+			"批量生成 AI 学习注释": "Batch-generate AI learning annotations", "整个文件": "Whole file", "确认生成": "Generate", "取消（不消耗 AI 资源）": "Cancel (no AI usage)",
+			"AI 学习注释（批量）": "AI learning annotations (batch)", "清除全部": "Clear all", "关闭预览": "Close preview",
+			"加载": "Load", "正在加载…": "Loading…", "暂无数据": "No data", "空状态": "Empty state", "未知": "Unknown",
+			"打字速度 {cps} 为时序效果——预览模式下点击该行可播放打字动画": "Typing speed {cps} is a timing effect — click the line in preview mode to play the animation",
+			"描边 {outlinecolor} 预览不模拟（仅改现有描边色）": "Outline {outlinecolor} is not simulated in preview (only recolors an existing outline)",
+			"文本着色器 {shader} 预览不支持": "Text shader {shader} is not supported in preview",
+			"修改面板": "Changes panel",
+			"未加载 — 点面板标题栏 ⟳ 加载分支结构": "Not loaded — click ⟳ in the panel title to load the graph",
+			"拖动移动 · 右下角缩放 · Esc 关闭": "Drag to move · resize bottom-right · Esc to close",
+			"拖拽缩放": "Drag to resize",
+			"点击请求失败": "Click request failed",
+			"点击画面 = 点击游戏（选项/按钮）": "Click the view = click the game (choices/buttons)",
+			"游戏运行后自动显示画面（无画面请点刷新）": "The view appears once the game runs (click refresh if empty)",
+			"⟲ 回滚": "⟲ Rollback",
+			"回滚上一句": "Roll back one line",
+			"⏩ 推进": "⏩ Advance",
+			"推进对话/交互": "Advance dialogue / interaction",
+			"↑ 菜单上移": "↑ Menu up",
+			"↑ 失败": "↑ failed",
+			"菜单选项上移（EVENTNAME 机制，headless 也可靠）": "Move menu choice up (EVENTNAME mechanism, headless-safe)",
+			"↓ 菜单下移": "↓ Menu down",
+			"↓ 失败": "↓ failed",
+			"菜单选项下移": "Move menu choice down",
+			"✓ 确认选择": "✓ Confirm choice",
+			"✓ 失败": "✓ failed",
+			"确认当前选项": "Confirm the current choice",
+			"✓ 确定": "✓ OK",
+			"游戏画面": "Game view",
+			"立即刷新截图（触发游戏截图并拉取）": "Refresh the screenshot now (triggers an in-game capture)",
+			"变量监控": "Variable monitor",
+			"过滤变量名…": "Filter variable names…",
+			"游戏运行后自动显示变量（无变量请确认游戏在跑且有桥接）": "Variables appear once the game runs (confirm the game is running with the bridge)",
+			"点击：编辑器跳转定义处 + 路线图高亮关联节点": "Click: jump to the definition in the editor + highlight related nodes in the route map",
+			"点击变量行 → 编辑器跳定义 + 路线图高亮写入/读取该变量的节点；蓝=修改 绿=新增 红=删除": "Click a variable → editor jumps to its definition; route map highlights nodes reading/writing it (blue=modified, green=added, red=deleted)",
+			"点击跳转": "Click to jump",
+			"重新读取报错文件": "Re-read error files",
+			"点击跳转编辑器": "Click to jump to the editor",
+			"栈帧: ": "Frame: ",
+			"重新扫描": "Re-scan",
+			"如 80, 120": "e.g. 80, 120",
+			"留空=默认": "empty = default",
+			"重置为默认值": "Reset to default",
+			"一键应用 VSCode 预制配色方案（写入当前层）": "Apply a preset VSCode theme in one click (writes to the current scope)",
+			"无匹配的设置": "No matching settings",
+			"⚙ 个性化设置": "⚙ Settings",
+			"搜索设置…": "Search settings…",
+			"全局（所有项目）": "Global (all projects)",
+			"项目（当前）": "Project (current)",
+			"未选择项目": "No project selected",
+			"（Esc 关闭）": "(Esc to close)",
+			"关闭（Esc）": "Close (Esc)",
+			"✕ 关闭": "✕ Close",
+			"拖到左/下边缘吸附": "Drag to the left/bottom edge to dock",
+			"吸附回区域 (Esc)": "Dock back (Esc)",
+			"语句": "Statements",
+			"角色": "Characters",
+			"图片": "Images",
+			"音频": "Audio",
+			"GUI 变量": "GUI variables",
+			"刷新文件列表": "Refresh file list",
+			"折叠全部": "Collapse all",
+			"刷新导航索引（标签/人物/转场/变量/字体）": "Refresh navigation index (labels/chars/transitions/variables/fonts)",
+			"刷新资源": "Refresh assets",
+			"重新加载路线图": "Reload route map",
+			"立即刷新截图": "Refresh screenshot now",
+			"打开修改面板": "Open changes panel",
+			"拖动调整面板比例": "Drag to resize panels",
+			"暂无字体 — 把 .ttf/.otf 放进项目 game/ 目录后点 ⟳ 加载": "No fonts — put .ttf/.otf into game/ and click ⟳",
+			"暂无修改 — 点顶栏 ✎ 打开修改面板": "No changes — open the changes panel from the ✎ button",
+			"复制这条消息": "Copy this message",
+			"⧉ 复制": "⧉ Copy",
+			"编辑并重发这条消息": "Edit and resend this message",
+			"✎ 编辑": "✎ Edit",
+			"暂无对话 — 在下方输入框发消息": "No messages — type below to chat",
+			"暂无检查点 — 下一次对话结束或手动保存后自动出现": "No checkpoints — they appear after each conversation turn or a manual save",
+			"给 agent 发消息…": "Message the agent…",
+			"发送 (Enter)": "Send (Enter)",
+			"Enter 发送 · Shift+Enter 换行": "Enter to send · Shift+Enter for newline",
+			"松开吸附": "Release to dock",
+			"操作日志（停靠底部区）": "Log (docks to the bottom region)",
+			"拖动调整左栏宽度": "Drag to resize the left column",
+			"上一个 (Shift+Enter)": "Previous (Shift+Enter)",
+			"下一个 (Enter)": "Next (Enter)",
+			"say 文本已按样式渲染（粗/斜/下/删/色/透明所见即所得；字号/字体/插值以底色标记，悬停看详情）": "Say text rendered with styles (bold/italic/underline/strikethrough/color/alpha WYSIWYG; size/font/interpolation marked by background, hover for details)",
+			"标尺列 ": "Ruler col ",
+			"跳转落点": "Jump target",
+			"匹配括号": "Matching bracket",
+			"工作范围（范围内修改、范围外不动）": "Workspace scope (edit inside; outside untouched)",
+			"lint 错误": "lint error",
+			"🎯 工作范围": "🎯 Workspace",
+			"解除工作范围限制": "Remove workspace scope",
+			"解除": "Release",
+			"保存文件 (Ctrl+S)": "Save file (Ctrl+S)",
+			"展开/收起 rpytest 报告": "Expand/collapse the rpytest report",
+			"详情": "Details",
+			"拖动调整右栏宽度": "Drag to resize the right column",
+			"恢复": "Restore",
+			"暂无历史版本（每次保存自动备份）": "No history (each save is backed up automatically)",
+			"暂无检查点": "No checkpoints",
+			"拖动移动位置": "Drag to move",
+			"🔤 字体预览": "🔤 Font preview",
+			"字体预览 Font Preview 0123456789": "Font preview 0123456789",
+			"你好，Ren'Py 文本样式预览": "Hello, Ren'Py text style preview",
+			"Python 等价": "Python equivalent",
+			"拖动标题栏移动位置": "Drag the title bar to move",
+			"重新播放": "Replay",
+			"▶ 重播": "▶ Replay",
+			"▶ 准备播放…": "▶ Ready to play…",
+			"✓ 播放完成": "✓ Finished",
+			"🎨 GUI 主题定制": "🎨 GUI theme customization",
+			"分辨率": "Resolution",
+			"gui.init(宽, 高)": "gui.init(width, height)",
+			"主题色（颜色框直接选；无定义项会追加）": "Theme colors (pick directly; missing entries are appended)",
+			"字号（像素）": "Font size (px)",
+			"关闭面板并打开 gui.rpy": "Close panel and open gui.rpy",
+			"清除当前文件（或工作区域内）全部学习注释": "Clear all learning annotations in this file (or the workspace scope)",
+			"🗑 清除全部": "🗑 Clear all",
+			"📖 批量生成 AI 学习注释？": "📖 Batch-generate AI learning annotations?",
+			"确认生成（消耗 token 资源）": "Generate (uses token resources)",
+			"🛡 写守卫拦截了保存": "🛡 Write guard blocked the save",
+			"返回编辑器修正后重新保存": "Return to the editor, fix, and save again",
+			"拖动调整底部区高度": "Drag to resize the bottom region",
+			"renderSlot 不可用": "renderSlot unavailable",
+			"Ren'Py 开发工作区": "Ren'Py dev workspace",
+		};
+		const uiLang = () => {
+			if (UI_LANG === "zh" || UI_LANG === "en") return UI_LANG;
+			try { const l = (typeof navigator !== "undefined" && (navigator.language || "zh")) || "zh"; return String(l).toLowerCase().startsWith("zh") ? "zh" : "en"; } catch (e) { return "zh"; }
+		};
+		const tr = (text, vars) => {
+			let out = text;
+			if (uiLang() === "en" && I18N_EN[text] !== undefined) out = I18N_EN[text];
+			if (vars) for (const k of Object.keys(vars)) out = out.split("{" + k + "}").join(String(vars[k]));
+			return out;
+		};
+
 		// ── 个性化配置注册表（设计借鉴 VSCode（MIT）：声明式 → 设置面板/校验/应用全由它驱动；
 		//    键名对齐 editor.* 命名，值语义与 VSCode 一致，支持未来配置互操作/导入） ──
 		// 字段：id / category（功能|控件）/ group（子分组）/ type / default / enum / min / max / step / desc
@@ -69,6 +253,8 @@ const ICONS = {
 			{ id: "editor.guides.indentation", category: "功能", group: "显示", type: "boolean", default: true, desc: "缩进向导线（缩进参考虚线）" },
 			// ── 功能 · 亮暗模式 ──
 			{ id: "theme.mode", category: "功能", group: "亮暗模式", type: "enum", default: "dark", enum: ["light", "dark"], desc: "亮暗模式：亮色 / 暗色（手动切换整个 DSH 界面，编辑器随之适配）" },
+			// ── 功能 · 界面语言 ──
+			{ id: "ui.language", category: "功能", group: "显示", type: "enum", default: "system", enum: ["system", "zh", "en"], desc: "界面语言（system=跟随系统/浏览器语言）" },
 			// ── 控件 · 字体 ──
 			{ id: "editor.fontFamily", category: "控件", group: "字体", type: "string", default: "", desc: "编辑器代码字体（CSS font-family，可逗号分隔 fallback）；留空=跟随 DSH 主题 --ds-font-family-code" },
 			{ id: "editor.fontSize", category: "控件", group: "字体", type: "number", default: 13, min: 8, max: 32, desc: "编辑器字号（px）" },
@@ -415,15 +601,15 @@ const ICONS = {
 					const base = st.cps !== undefined ? st.cps : 20;
 					const cps = value[0] === "*" ? base * parseFloat(value.slice(1)) : parseFloat(value);
 					push("cps", { cps });
-					note("cps", "打字速度 {cps} 为时序效果——预览模式下点击该行可播放打字动画");
+					note("cps", tr("打字速度 {cps} 为时序效果——预览模式下点击该行可播放打字动画"));
 				}
 				else if (tag === "a") push("a", { href: value });
 				else if (tag === "rt" || tag === "art" || tag === "rb") { push(tag, { ruby: tag }); note("ruby", "注音标签 {" + tag + "} 需引擎 ruby 样式，预览标记显示"); }
 				else if (tag === "alt") push("alt", { alt: true });
 				else if (tag === "noalt") push("noalt", { noalt: true });
-				else if (tag === "outlinecolor") note("outlinecolor", "描边 {outlinecolor} 预览不模拟（仅改现有描边色）");
+				else if (tag === "outlinecolor") note("outlinecolor", tr("描边 {outlinecolor} 预览不模拟（仅改现有描边色）"));
 				else if (tag === "vert" || tag === "horiz") note("vert", "竖排/横排切换 {" + tag + "} 预览不模拟");
-				else if (tag === "shader") note("shader", "文本着色器 {shader} 预览不支持");
+				else if (tag === "shader") note("shader", tr("文本着色器 {shader} 预览不支持"));
 				else if (tag === "instance") push("instance", {});
 				else if (tag === "") { push("=style", { styleName: value }); note("style", "样式 {=" + value + "} 需引擎样式表，预览仅标记"); }
 				else if (tag.indexOf("feature:") === 0) note("feature", "OpenType 特性 {" + tag + "} 预览不支持");
@@ -718,19 +904,19 @@ const ICONS = {
 
 		// ── 面板注册表（P2 停靠系统：面板元数据；内容渲染在组件内按 id 分发） ──
 		const PANEL_META = {
-			files: { title: "项目文件", icon: "files" },
-			nav: { title: "导航", icon: "compass" },
-			assets: { title: "项目素材", icon: "collection" },
-			edits: { title: "基线更改", icon: "edit" },
-			log: { title: "操作日志", icon: "list-unordered" },
-			chat: { title: "对话", icon: "comment-discussion" },
-			route: { title: "分支路线图", icon: "graph" },
-			shot: { title: "实时画面", icon: "device-camera-video" },
-			vars: { title: "运行时变量", icon: "symbol-variable" },
-			cp: { title: "修改面板", icon: "edit" },
-			err: { title: "报错诊断", icon: "bug" },
-			diag: { title: "静态诊断", icon: "checklist" },
-			settings: { title: "个性化设置", icon: "gear" },
+			files: { title: tr("项目文件"), icon: "files" },
+			nav: { title: tr("导航"), icon: "compass" },
+			assets: { title: tr("项目素材"), icon: "collection" },
+			edits: { title: tr("基线更改"), icon: "edit" },
+			log: { title: tr("操作日志"), icon: "list-unordered" },
+			chat: { title: tr("对话"), icon: "comment-discussion" },
+			route: { title: tr("分支路线图"), icon: "graph" },
+			shot: { title: tr("实时画面"), icon: "device-camera-video" },
+			vars: { title: tr("运行时变量"), icon: "symbol-variable" },
+			cp: { title: tr("修改面板"), icon: "edit" },
+			err: { title: tr("报错诊断"), icon: "bug" },
+			diag: { title: tr("静态诊断"), icon: "checklist" },
+			settings: { title: tr("个性化设置"), icon: "gear" },
 		};
 		// 默认布局（Win11 式：区域内多面板平铺平分；持久化到 localStorage.renpy-panel-layout）
 		const LAYOUT_DEFAULT = { left: { panels: ["files", "nav", "assets", "edits"] }, right: { panels: ["chat"] }, bottom: { panels: ["log"] } };
@@ -999,7 +1185,7 @@ const ICONS = {
 
 			const content = map && map.layout
 				? React.createElement(RouteCanvas, { map, onNodeClick, currentId, focusNodes, TXT, TXT2, ACCENT, BORDER, BG, GHOST })
-				: React.createElement("div", { style: { color: TXT2, fontSize: 13, padding: "18px 6px", textAlign: "center" } }, "未加载 — 点面板标题栏 ⟳ 加载分支结构");
+				: React.createElement("div", { style: { color: TXT2, fontSize: 13, padding: "18px 6px", textAlign: "center" } }, tr("未加载 — 点面板标题栏 ⟳ 加载分支结构"));
 
 			const onBarDown = (e) => {
 				e.preventDefault();
@@ -1052,11 +1238,11 @@ const ICONS = {
 				React.createElement("div", { onMouseDown: onBarDown, style: { display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", background: LAYER, borderBottom: "1px solid " + BORDER, cursor: dragState === "move" ? "grabbing" : "grab", userSelect: "none", flexShrink: 0 } },
 					React.createElement("span", { style: { fontSize: 13, fontWeight: 600, color: TXT } }, "graph", ),
 					React.createElement("span", { style: { fontSize: 11, color: TXT2 } }, map ? ((map.states || []).length) + " 状态 / " + ((map.transitions || []).length) + " 转移" : "未加载"),
-					React.createElement("span", { style: { fontSize: 11, color: TXT3, marginLeft: "auto", whiteSpace: "nowrap" } }, "拖动移动 · 右下角缩放 · Esc 关闭"),
-					React.createElement("button", { onClick: onClose, title: "关闭 (Esc)", style: { ...C.iconBtn, flexShrink: 0 } }, React.createElement(Ico, { name: "close", size: 11 })),
+					React.createElement("span", { style: { fontSize: 11, color: TXT3, marginLeft: "auto", whiteSpace: "nowrap" } }, tr("拖动移动 · 右下角缩放 · Esc 关闭")),
+					React.createElement("button", { onClick: onClose, title: tr("关闭 (Esc)"), style: { ...C.iconBtn, flexShrink: 0 } }, React.createElement(Ico, { name: "close", size: 11 })),
 				),
 				React.createElement("div", { style: { flex: 1, minHeight: 0, position: "relative" } }, content),
-				React.createElement("div", { onMouseDown: onResizeDown, title: "拖拽缩放", style: { position: "absolute", right: 0, bottom: 0, width: 18, height: 18, cursor: "nwse-resize", background: "linear-gradient(135deg, transparent 50%, rgba(128,128,128,.55) 50%)", borderBottomRightRadius: 10 } }),
+				React.createElement("div", { onMouseDown: onResizeDown, title: tr("拖拽缩放"), style: { position: "absolute", right: 0, bottom: 0, width: 18, height: 18, cursor: "nwse-resize", background: "linear-gradient(135deg, transparent 50%, rgba(128,128,128,.55) 50%)", borderBottomRightRadius: 10 } }),
 			);
 			return ReactDOM.createPortal(body, document.body);
 		}
@@ -1156,30 +1342,30 @@ const ICONS = {
 			// 内容体（embedded 与弹窗共用）：画面 + 底部操作条
 			const content = React.createElement(React.Fragment, null,
 				React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#000", position: "relative" } },
-					imgUrl ? React.createElement("img", { src: imgUrl, onClick: onClickImg, title: "点击画面 = 点击游戏（选项/按钮）", style: { maxWidth: "100%", maxHeight: "100%", objectFit: "contain", cursor: "crosshair" } })
-						: React.createElement("span", { style: { color: TXT3, fontSize: 12 } }, "游戏运行后自动显示画面（无画面请点刷新）"),
+					imgUrl ? React.createElement("img", { src: imgUrl, onClick: onClickImg, title: tr("点击画面 = 点击游戏（选项/按钮）"), style: { maxWidth: "100%", maxHeight: "100%", objectFit: "contain", cursor: "crosshair" } })
+						: React.createElement("span", { style: { color: TXT3, fontSize: 12 } }, tr("游戏运行后自动显示画面（无画面请点刷新）")),
 				),
 				React.createElement("div", { style: { flexShrink: 0, display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", borderTop: "1px solid " + BORDER, background: LAYER, flexWrap: "wrap" } },
-					React.createElement("button", { onClick: () => sendAct("rollback", "⟲ 回滚"), title: "回滚上一句", style: C.btn }, "⟲ 回滚"),
-					React.createElement("button", { onClick: () => sendAct("dismiss", "⏩ 推进"), title: "推进对话/交互", style: C.btn }, "⏩ 推进"),
+					React.createElement("button", { onClick: () => sendAct("rollback", tr("⟲ 回滚")), title: tr("回滚上一句"), style: C.btn }, tr("⟲ 回滚")),
+					React.createElement("button", { onClick: () => sendAct("dismiss", tr("⏩ 推进")), title: tr("推进对话/交互"), style: C.btn }, tr("⏩ 推进")),
 					React.createElement("span", { style: { width: 1, height: 16, background: BORDER, flexShrink: 0 } }),
-					React.createElement("button", { onClick: () => api("route-act", {}, { project, action: "nav", dir: "up" }).then(() => setLastAct("↑ 菜单上移")).catch(() => setLastAct("↑ 失败")), title: "菜单选项上移（EVENTNAME 机制，headless 也可靠）", style: C.btn }, "↑"),
-					React.createElement("button", { onClick: () => api("route-act", {}, { project, action: "nav", dir: "down" }).then(() => setLastAct("↓ 菜单下移")).catch(() => setLastAct("↓ 失败")), title: "菜单选项下移", style: C.btn }, "↓"),
-					React.createElement("button", { onClick: () => api("route-act", {}, { project, action: "nav", select: true }).then(() => setLastAct("✓ 确认选择")).catch(() => setLastAct("✓ 失败")), title: "确认当前选项", style: { ...C.btn, color: "#4caf50", borderColor: "#4caf50" } }, "✓ 确定"),
+					React.createElement("button", { onClick: () => api("route-act", {}, { project, action: "nav", dir: "up" }).then(() => setLastAct("↑ 菜单上移")).catch(() => setLastAct("↑ 失败")), title: tr("菜单选项上移（EVENTNAME 机制，headless 也可靠）"), style: C.btn }, "↑"),
+					React.createElement("button", { onClick: () => api("route-act", {}, { project, action: "nav", dir: "down" }).then(() => setLastAct("↓ 菜单下移")).catch(() => setLastAct("↓ 失败")), title: tr("菜单选项下移"), style: C.btn }, "↓"),
+					React.createElement("button", { onClick: () => api("route-act", {}, { project, action: "nav", select: true }).then(() => setLastAct("✓ 确认选择")).catch(() => setLastAct("✓ 失败")), title: tr("确认当前选项"), style: { ...C.btn, color: "#4caf50", borderColor: "#4caf50" } }, tr("✓ 确定")),
 					React.createElement("span", { style: { flex: 1 } }),
-					React.createElement("span", { style: { fontSize: 10, color: TXT3 } }, lastAct ? "最近: " + lastAct : "点击画面可操作游戏"),
+					React.createElement("span", { style: { fontSize: 10, color: TXT3 } }, lastAct ? tr("最近: ") + lastAct : tr("点击画面可操作游戏")),
 				),
 			);
 			if (embedded) return React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column", background: "#000" } }, content);
 			const body = React.createElement("div", { style: { position: "fixed", left: win.x, top: win.y, width: win.w, height: win.h, zIndex: 10001, display: "flex", flexDirection: "column", background: BG, border: "1px solid " + BORDER, borderRadius: 10, boxShadow: "0 10px 40px rgba(0,0,0,.4)", overflow: "hidden", minWidth: 320, minHeight: 240 } },
 				React.createElement("div", { onMouseDown: onBarDown, style: { display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", background: LAYER, borderBottom: "1px solid " + BORDER, cursor: dragState === "move" ? "grabbing" : "grab", userSelect: "none", flexShrink: 0 } },
-					React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 600, color: TXT } }, React.createElement(Ico, { name: "device-camera-video", size: 13 }), "游戏画面"),
+					React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 600, color: TXT } }, React.createElement(Ico, { name: "device-camera-video", size: 13 }), tr("游戏画面")),
 					React.createElement("span", { style: { fontSize: 11, color: TXT3, marginLeft: "auto", whiteSpace: "nowrap" } }, lastAt ? "更新于 " + new Date(lastAt).toLocaleTimeString() : "未获取"),
-					React.createElement("button", { onClick: refresh, title: "立即刷新截图（触发游戏截图并拉取）", style: C.btn }, loading ? "…" : [React.createElement(Ico, { name: "refresh", size: 12 }), " 刷新"]),
-					React.createElement("button", { onClick: onClose, title: "关闭 (Esc)", style: { ...C.iconBtn, flexShrink: 0 } }, React.createElement(Ico, { name: "close", size: 11 })),
+					React.createElement("button", { onClick: refresh, title: tr("立即刷新截图（触发游戏截图并拉取）"), style: C.btn }, loading ? "…" : [React.createElement(Ico, { name: "refresh", size: 12 }), " 刷新"]),
+					React.createElement("button", { onClick: onClose, title: tr("关闭 (Esc)"), style: { ...C.iconBtn, flexShrink: 0 } }, React.createElement(Ico, { name: "close", size: 11 })),
 				),
 				content,
-				React.createElement("div", { onMouseDown: onResizeDown, title: "拖拽缩放", style: { position: "absolute", right: 0, bottom: 0, width: 18, height: 18, cursor: "nwse-resize", background: "linear-gradient(135deg, transparent 50%, rgba(128,128,128,.55) 50%)", borderBottomRightRadius: 10 } }),
+				React.createElement("div", { onMouseDown: onResizeDown, title: tr("拖拽缩放"), style: { position: "absolute", right: 0, bottom: 0, width: 18, height: 18, cursor: "nwse-resize", background: "linear-gradient(135deg, transparent 50%, rgba(128,128,128,.55) 50%)", borderBottomRightRadius: 10 } }),
 			);
 			return ReactDOM.createPortal(body, document.body);
 		}
@@ -1246,43 +1432,43 @@ const ICONS = {
 			// 内容体（embedded 与弹窗共用）：过滤框 + 变量表 + 底部说明
 			const content = React.createElement(React.Fragment, null,
 				React.createElement("div", { style: { flexShrink: 0, display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", background: LAYER, borderBottom: "1px solid " + BORDER, flexWrap: "wrap" } },
-					React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, color: TXT, flexShrink: 0 } }, React.createElement(Ico, { name: "symbol-variable", size: 12 }), "变量监控"),
-					React.createElement("input", { value: query, onChange: (e) => setQuery(e.target.value), placeholder: "过滤变量名…", style: { flex: 1, minWidth: 60, ...C.inp } }),
+					React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, color: TXT, flexShrink: 0 } }, React.createElement(Ico, { name: "symbol-variable", size: 12 }), tr("变量监控")),
+					React.createElement("input", { value: query, onChange: (e) => setQuery(e.target.value), placeholder: tr("过滤变量名…"), style: { flex: 1, minWidth: 60, ...C.inp } }),
 					React.createElement("span", { style: { fontSize: 11, color: TXT3, whiteSpace: "nowrap" } }, names.length + " 个"),
 				),
 				React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", padding: "4px 6px" } },
 					names.length === 0
-						? React.createElement("div", { style: { color: TXT3, fontSize: 12, padding: "16px 8px", textAlign: "center" } }, "游戏运行后自动显示变量（无变量请确认游戏在跑且有桥接）")
-						: filtered.map((n) => React.createElement("div", { key: n, title: "点击：编辑器跳转定义处 + 路线图高亮关联节点", onClick: () => { onVarJump && onVarJump(n); onVarFocus && onVarFocus(n); }, style: { ...C.listRow(false), gap: 8 }, onMouseEnter: (e) => { e.currentTarget.style.background = "var(--dsw-alias-interactive-bg-hover)"; }, onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; } },
+						? React.createElement("div", { style: { color: TXT3, fontSize: 12, padding: "16px 8px", textAlign: "center" } }, tr("游戏运行后自动显示变量（无变量请确认游戏在跑且有桥接）"))
+						: filtered.map((n) => React.createElement("div", { key: n, title: tr("点击：编辑器跳转定义处 + 路线图高亮关联节点"), onClick: () => { onVarJump && onVarJump(n); onVarFocus && onVarFocus(n); }, style: { ...C.listRow(false), gap: 8 }, onMouseEnter: (e) => { e.currentTarget.style.background = "var(--dsw-alias-interactive-bg-hover)"; }, onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; } },
 							React.createElement("span", { style: { flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "monospace", fontSize: 12, color: routeVarNames.has(n) ? ACCENT : TXT } }, n),
 							React.createElement("span", { style: { width: 26, flexShrink: 0, fontSize: 10, color: TXT3, textAlign: "center" } }, typeOf(vars[n])),
 							React.createElement("span", { style: { flex: 1.4, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "monospace", fontSize: 12, color: TXT2 } }, valStr(vars[n])),
 							React.createElement("span", { style: { width: 30, flexShrink: 0, fontSize: 10, textAlign: "center", color: stateColor(n) } }, changes[n] === "add" ? "新增" : changes[n] === "mod" ? "变化" : changes[n] === "del" ? "删除" : ""),
 						)),
 				),
-				React.createElement("div", { style: { flexShrink: 0, padding: "3px 10px", fontSize: 10, color: TXT3, borderTop: "1px solid " + BORDER } }, "点击变量行 → 编辑器跳定义 + 路线图高亮写入/读取该变量的节点；蓝=修改 绿=新增 红=删除"),
+				React.createElement("div", { style: { flexShrink: 0, padding: "3px 10px", fontSize: 10, color: TXT3, borderTop: "1px solid " + BORDER } }, tr("点击变量行 → 编辑器跳定义 + 路线图高亮写入/读取该变量的节点；蓝=修改 绿=新增 红=删除")),
 			);
 			if (embedded) return React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } }, content);
 			if (typeof document === "undefined" || !document.body) return null;
 			const body = React.createElement("div", { style: { position: "fixed", left: win.x, top: win.y, width: win.w, height: win.h, zIndex: 10002, display: "flex", flexDirection: "column", background: BG, border: "1px solid " + BORDER, borderRadius: 10, boxShadow: "0 10px 40px rgba(0,0,0,.4)", overflow: "hidden", minWidth: 360, minHeight: 280 } },
 				React.createElement("div", { onMouseDown: onBarDown, style: { display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", background: LAYER, borderBottom: "1px solid " + BORDER, cursor: dragState === "move" ? "grabbing" : "grab", userSelect: "none", flexShrink: 0 } },
-					React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 600, color: TXT } }, React.createElement(Ico, { name: "symbol-variable", size: 13 }), "变量监控"),
-					React.createElement("input", { value: query, onChange: (e) => setQuery(e.target.value), placeholder: "过滤变量名…", style: { flex: 1, minWidth: 60, ...C.inp } }),
+					React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 600, color: TXT } }, React.createElement(Ico, { name: "symbol-variable", size: 13 }), tr("变量监控")),
+					React.createElement("input", { value: query, onChange: (e) => setQuery(e.target.value), placeholder: tr("过滤变量名…"), style: { flex: 1, minWidth: 60, ...C.inp } }),
 					React.createElement("span", { style: { fontSize: 11, color: TXT3, whiteSpace: "nowrap" } }, names.length + " 个"),
-					React.createElement("button", { onClick: onClose, title: "关闭 (Esc)", style: { ...C.iconBtn, flexShrink: 0 } }, React.createElement(Ico, { name: "close", size: 11 })),
+					React.createElement("button", { onClick: onClose, title: tr("关闭 (Esc)"), style: { ...C.iconBtn, flexShrink: 0 } }, React.createElement(Ico, { name: "close", size: 11 })),
 				),
 				React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", padding: "4px 6px" } },
 					names.length === 0
-						? React.createElement("div", { style: { color: TXT3, fontSize: 12, padding: "16px 8px", textAlign: "center" } }, "游戏运行后自动显示变量（无变量请确认游戏在跑且有桥接）")
-						: filtered.map((n) => React.createElement("div", { key: n, title: "点击：编辑器跳转定义处 + 路线图高亮关联节点", onClick: () => { onVarJump && onVarJump(n); onVarFocus && onVarFocus(n); }, style: { ...C.listRow(false), gap: 8 }, onMouseEnter: (e) => { e.currentTarget.style.background = "var(--dsw-alias-interactive-bg-hover)"; }, onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; } },
+						? React.createElement("div", { style: { color: TXT3, fontSize: 12, padding: "16px 8px", textAlign: "center" } }, tr("游戏运行后自动显示变量（无变量请确认游戏在跑且有桥接）"))
+						: filtered.map((n) => React.createElement("div", { key: n, title: tr("点击：编辑器跳转定义处 + 路线图高亮关联节点"), onClick: () => { onVarJump && onVarJump(n); onVarFocus && onVarFocus(n); }, style: { ...C.listRow(false), gap: 8 }, onMouseEnter: (e) => { e.currentTarget.style.background = "var(--dsw-alias-interactive-bg-hover)"; }, onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; } },
 							React.createElement("span", { style: { flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "monospace", fontSize: 12, color: routeVarNames.has(n) ? ACCENT : TXT } }, n),
 							React.createElement("span", { style: { width: 26, flexShrink: 0, fontSize: 10, color: TXT3, textAlign: "center" } }, typeOf(vars[n])),
 							React.createElement("span", { style: { flex: 1.4, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "monospace", fontSize: 12, color: TXT2 } }, valStr(vars[n])),
 							React.createElement("span", { style: { width: 30, flexShrink: 0, fontSize: 10, textAlign: "center", color: stateColor(n) } }, changes[n] === "add" ? "新增" : changes[n] === "mod" ? "变化" : changes[n] === "del" ? "删除" : ""),
 						)),
 				),
-				React.createElement("div", { style: { flexShrink: 0, padding: "3px 10px", fontSize: 10, color: TXT3, borderTop: "1px solid " + BORDER } }, "点击变量行 → 编辑器跳定义 + 路线图高亮写入/读取该变量的节点；蓝=修改 绿=新增 红=删除"),
-				React.createElement("div", { onMouseDown: onResizeDown, title: "拖拽缩放", style: { position: "absolute", right: 0, bottom: 0, width: 18, height: 18, cursor: "nwse-resize", background: "linear-gradient(135deg, transparent 50%, rgba(128,128,128,.55) 50%)", borderBottomRightRadius: 10 } }),
+				React.createElement("div", { style: { flexShrink: 0, padding: "3px 10px", fontSize: 10, color: TXT3, borderTop: "1px solid " + BORDER } }, tr("点击变量行 → 编辑器跳定义 + 路线图高亮写入/读取该变量的节点；蓝=修改 绿=新增 红=删除")),
+				React.createElement("div", { onMouseDown: onResizeDown, title: tr("拖拽缩放"), style: { position: "absolute", right: 0, bottom: 0, width: 18, height: 18, cursor: "nwse-resize", background: "linear-gradient(135deg, transparent 50%, rgba(128,128,128,.55) 50%)", borderBottomRightRadius: 10 } }),
 			);
 			return ReactDOM.createPortal(body, document.body);
 		}
@@ -1311,14 +1497,14 @@ const ICONS = {
 			const t = data && data.traceback;
 			const frameEls = [];
 			if (t && t.frames) t.frames.forEach((f, i) => {
-				frameEls.push(React.createElement("span", { key: "f" + i, style: { cursor: "pointer", color: TXT2 }, onClick: () => jump(f.file, f.line), title: "点击跳转" }, f.file + ":" + f.line));
+				frameEls.push(React.createElement("span", { key: "f" + i, style: { cursor: "pointer", color: TXT2 }, onClick: () => jump(f.file, f.line), title: tr("点击跳转") }, f.file + ":" + f.line));
 				if (i < t.frames.length - 1) frameEls.push(React.createElement("span", { key: "a" + i, style: { color: TXT3 } }, " → "));
 			});
 			return React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } },
 				React.createElement("div", { style: { flexShrink: 0, display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", background: LAYER, borderBottom: "1px solid " + BORDER } },
-					React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, color: TXT } }, React.createElement(Ico, { name: "bug", size: 12 }), "报错诊断"),
+					React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, color: TXT } }, React.createElement(Ico, { name: "bug", size: 12 }), tr("报错诊断")),
 					React.createElement("span", { style: { fontSize: 11, color: TXT3 } }, data ? (["traceback", "log", "errors"].filter((k) => data.files && data.files[k]).length + "/3 文件") : "…"),
-					React.createElement("button", { onClick: load, disabled: busy, title: "重新读取报错文件", style: { ...C.iconBtn, marginLeft: "auto" } }, React.createElement(Ico, { name: "refresh", size: 12 })),
+					React.createElement("button", { onClick: load, disabled: busy, title: tr("重新读取报错文件"), style: { ...C.iconBtn, marginLeft: "auto" } }, React.createElement(Ico, { name: "refresh", size: 12 })),
 				),
 				React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", padding: "6px 8px" } },
 					none ? React.createElement("div", { style: { color: TXT3, fontSize: 12, padding: "18px 8px", textAlign: "center", lineHeight: 1.8, whiteSpace: "pre-line" } },
@@ -1326,21 +1512,21 @@ const ICONS = {
 					: React.createElement(React.Fragment, null,
 						hasTrace ? React.createElement("div", { style: { marginBottom: 8, border: "1px solid " + BORDER, borderRadius: 8, overflow: "hidden", background: "rgba(224,92,92,.05)" } },
 							React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, padding: "5px 8px", background: "rgba(224,92,92,.12)", borderBottom: "1px solid " + BORDER, fontSize: 11, color: "#e05c5c", fontWeight: 600 } },
-								"💥 崩溃 traceback", t.version ? React.createElement("span", { style: { marginLeft: "auto", color: TXT3, fontWeight: 400 } }, t.version) : null),
+								tr("💥 崩溃 traceback"), t.version ? React.createElement("span", { style: { marginLeft: "auto", color: TXT3, fontWeight: 400 } }, t.version) : null),
 							React.createElement("div", { style: { padding: "6px 8px", fontSize: 12, lineHeight: 1.6, color: TXT } },
 								React.createElement("div", { style: { marginBottom: 4, wordBreak: "break-all" } },
 									t.exception ? React.createElement(React.Fragment, null,
 										React.createElement("span", { style: { color: "#e05c5c", fontWeight: 700, fontFamily: "monospace" } }, t.exception.type),
-										React.createElement("span", { style: { color: TXT2 } }, ": " + t.exception.message)) : "异常信息未知"),
-								t.rootFrame ? React.createElement("div", { style: { cursor: "pointer", color: ACCENT, textDecoration: "underline", wordBreak: "break-all" }, onClick: () => jump(t.rootFrame.file, t.rootFrame.line), title: "点击跳转编辑器" },
+										React.createElement("span", { style: { color: TXT2 } }, ": " + t.exception.message)) : tr("异常信息未知")),
+								t.rootFrame ? React.createElement("div", { style: { cursor: "pointer", color: ACCENT, textDecoration: "underline", wordBreak: "break-all" }, onClick: () => jump(t.rootFrame.file, t.rootFrame.line), title: tr("点击跳转编辑器") },
 									"◆ 根因: " + t.rootFrame.file + ":" + t.rootFrame.line + (t.rootFrame.source ? "  " + t.rootFrame.source : "")) : null,
 								t.whileRunning ? React.createElement("div", { style: { fontSize: 11, color: TXT3, marginTop: 2, wordBreak: "break-all" } }, "运行位置: " + t.whileRunning.file + ":" + t.whileRunning.line) : null,
-								frameEls.length ? React.createElement("div", { style: { marginTop: 4, fontSize: 10, color: TXT3, lineHeight: 1.5, wordBreak: "break-all" } }, "栈帧: ", frameEls) : null,
+								frameEls.length ? React.createElement("div", { style: { marginTop: 4, fontSize: 10, color: TXT3, lineHeight: 1.5, wordBreak: "break-all" } }, tr("栈帧: "), frameEls) : null,
 							),
 						) : null,
 						hasErrList ? React.createElement("div", { style: { marginBottom: 8, border: "1px solid " + BORDER, borderRadius: 8, overflow: "hidden" } },
 							React.createElement("div", { style: { padding: "5px 8px", background: LAYER, borderBottom: "1px solid " + BORDER, fontSize: 11, color: TXT2, fontWeight: 600 } }, "⚠ lint 错误 " + data.errors.errors.length + " 条（点击跳转）"),
-							data.errors.errors.map((e, i) => React.createElement("div", { key: "e" + i, onClick: () => jump(e.file, e.line), title: "点击跳转", style: { ...C.listRow(false), gap: 6, fontSize: 11 }, onMouseEnter: (ev) => { ev.currentTarget.style.background = "var(--dsw-alias-interactive-bg-hover)"; }, onMouseLeave: (ev) => { ev.currentTarget.style.background = "transparent"; } },
+							data.errors.errors.map((e, i) => React.createElement("div", { key: "e" + i, onClick: () => jump(e.file, e.line), title: tr("点击跳转"), style: { ...C.listRow(false), gap: 6, fontSize: 11 }, onMouseEnter: (ev) => { ev.currentTarget.style.background = "var(--dsw-alias-interactive-bg-hover)"; }, onMouseLeave: (ev) => { ev.currentTarget.style.background = "transparent"; } },
 								React.createElement("span", { style: { color: "#e05c5c", fontFamily: "monospace", flexShrink: 0 } }, e.file + ":" + e.line),
 								React.createElement("span", { style: { color: TXT2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, e.message),
 							)),
@@ -1383,11 +1569,11 @@ const ICONS = {
 			const warnN = items.filter((it) => it.level === "warn").length;
 			return React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } },
 				React.createElement("div", { style: { flexShrink: 0, display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", background: LAYER, borderBottom: "1px solid " + BORDER } },
-					React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, color: TXT } }, React.createElement(Ico, { name: "checklist", size: 12 }), "静态诊断"),
+					React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, color: TXT } }, React.createElement(Ico, { name: "checklist", size: 12 }), tr("静态诊断")),
 					React.createElement("span", { style: { fontSize: 11, color: TXT3 } }, data ? ("扫描 " + data.files + " 个文件") : "…"),
 					errN > 0 ? React.createElement("span", { style: { fontSize: 11, color: "#e05c5c" } }, "错误 " + errN) : null,
 					warnN > 0 ? React.createElement("span", { style: { fontSize: 11, color: "#e5c07b" } }, "警告 " + warnN) : null,
-					React.createElement("button", { onClick: load, disabled: busy, title: "重新扫描", style: { ...C.iconBtn, marginLeft: "auto" } }, React.createElement(Ico, { name: "refresh", size: 12 })),
+					React.createElement("button", { onClick: load, disabled: busy, title: tr("重新扫描"), style: { ...C.iconBtn, marginLeft: "auto" } }, React.createElement(Ico, { name: "refresh", size: 12 })),
 				),
 				React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", padding: "6px 8px" } },
 					items.length === 0 ? React.createElement("div", { style: { color: TXT3, fontSize: 12, padding: "18px 8px", textAlign: "center", lineHeight: 1.8, whiteSpace: "pre-line" } },
@@ -1396,7 +1582,7 @@ const ICONS = {
 						React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, padding: "5px 8px", background: LAYER, borderBottom: "1px solid " + BORDER, fontSize: 11, color: TXT2, fontWeight: 600 } },
 							(KIND_LABEL[kind] || kind) + " " + groups[kind].length + " 条",
 							React.createElement("span", { style: { marginLeft: "auto", color: levelColor(groups[kind][0].level), fontWeight: 400 } }, groups[kind][0].level === "error" ? "error" : groups[kind][0].level === "warn" ? "warn" : "info")),
-						groups[kind].map((it, i) => React.createElement("div", { key: i, onClick: () => jump(it.file, it.line), title: "点击跳转编辑器", style: { ...C.listRow(false), gap: 6, fontSize: 11, alignItems: "flex-start", flexWrap: "wrap", padding: "3px 8px" }, onMouseEnter: (ev) => { ev.currentTarget.style.background = "var(--dsw-alias-interactive-bg-hover)"; }, onMouseLeave: (ev) => { ev.currentTarget.style.background = "transparent"; } },
+						groups[kind].map((it, i) => React.createElement("div", { key: i, onClick: () => jump(it.file, it.line), title: tr("点击跳转编辑器"), style: { ...C.listRow(false), gap: 6, fontSize: 11, alignItems: "flex-start", flexWrap: "wrap", padding: "3px 8px" }, onMouseEnter: (ev) => { ev.currentTarget.style.background = "var(--dsw-alias-interactive-bg-hover)"; }, onMouseLeave: (ev) => { ev.currentTarget.style.background = "transparent"; } },
 							React.createElement("span", { style: { color: levelColor(it.level), fontFamily: "monospace", flexShrink: 0 } }, it.file + ":" + it.line),
 							React.createElement("span", { style: { color: ACCENT, fontFamily: "monospace", flexShrink: 0 } }, it.target || ""),
 							React.createElement("span", { style: { color: TXT2, minWidth: 0 } }, it.msg),
@@ -1466,13 +1652,13 @@ const ICONS = {
 						(s.enum || []).map((e) => React.createElement("option", { key: e, value: e }, e)));
 				}
 				if (s.type === "number[]") {
-					return React.createElement("input", { value: Array.isArray(val) ? val.join(", ") : "", placeholder: "如 80, 120", onChange: (e) => setVal(s.id, e.target.value.split(",").map((x) => parseInt(x.trim(), 10)).filter((x) => !isNaN(x))), style: { ...base, width: wArr } });
+					return React.createElement("input", { value: Array.isArray(val) ? val.join(", ") : "", placeholder: tr("如 80, 120"), onChange: (e) => setVal(s.id, e.target.value.split(",").map((x) => parseInt(x.trim(), 10)).filter((x) => !isNaN(x))), style: { ...base, width: wArr } });
 				}
 				if (s.type === "number") {
 					return React.createElement("input", { type: "number", value: val, min: s.min, max: s.max, step: s.step || 1, onChange: (e) => setVal(s.id, e.target.value === "" ? s.default : Number(e.target.value)), style: { ...base, width: wNum } });
 				}
 				// string
-				return React.createElement("input", { value: val || "", placeholder: "留空=默认", onChange: (e) => setVal(s.id, e.target.value), style: { ...base, width: wStr } });
+				return React.createElement("input", { value: val || "", placeholder: tr("留空=默认"), onChange: (e) => setVal(s.id, e.target.value), style: { ...base, width: wStr } });
 			};
 			const row = (s) => {
 				const modified = local[s.id] !== undefined && local[s.id] !== s.default;
@@ -1480,11 +1666,11 @@ const ICONS = {
 					// 描述区：flex 收缩但有下限（防控件挤压把描述文本变成逐字竖排）
 					React.createElement("div", { style: { flex: "1 1 110px", minWidth: 110 } },
 						React.createElement("div", { style: { fontSize: full ? 13 : 12, color: TXT, fontFamily: "monospace", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, s.id),
-						React.createElement("div", { style: { fontSize: full ? 11.5 : 11, color: TXT3, lineHeight: 1.4 } }, s.desc),
+						React.createElement("div", { style: { fontSize: full ? 11.5 : 11, color: TXT3, lineHeight: 1.4 } }, tr(s.desc)),
 					),
 					React.createElement("span", { style: { fontSize: 10, color: modified ? "#e5c07b" : TXT3, flexShrink: 0, width: 34, textAlign: "right" } }, modified ? "已修改" : "默认"),
 					control(s),
-					React.createElement("button", { onClick: () => resetVal(s.id), title: "重置为默认值", style: { ...C.iconBtn, flexShrink: 0 } }, "↺"),
+					React.createElement("button", { onClick: () => resetVal(s.id), title: tr("重置为默认值"), style: { ...C.iconBtn, flexShrink: 0 } }, "↺"),
 				);
 			};
 			const list = (shown || SETTINGS_SCHEMA).map(row);
@@ -1497,46 +1683,46 @@ const ICONS = {
 			}
 			const CAT_ORDER = ["功能", "控件"];
 			const firstColorGroup = SETTINGS_SCHEMA.find((s) => s.type === "color").group;
-			const presetSelect = (small) => React.createElement("select", { defaultValue: "", onChange: (e) => { if (e.target.value) { applyPreset(e.target.value); e.target.value = ""; } }, title: "一键应用 VSCode 预制配色方案（写入当前层）", style: { marginLeft: "auto", height: small ? 20 : 22, fontSize: small ? 10 : 11, background: "var(--dsw-alias-bg-layer-2)", color: TXT, border: "1px solid " + BORDER, borderRadius: 6, padding: "0 3px", cursor: "pointer", outline: "none", fontFamily: "inherit" } },
-				React.createElement("option", { value: "" }, small ? "🎨 预制配色…" : "🎨 应用预制配色…"),
+			const presetSelect = (small) => React.createElement("select", { defaultValue: "", onChange: (e) => { if (e.target.value) { applyPreset(e.target.value); e.target.value = ""; } }, title: tr("一键应用 VSCode 预制配色方案（写入当前层）"), style: { marginLeft: "auto", height: small ? 20 : 22, fontSize: small ? 10 : 11, background: "var(--dsw-alias-bg-layer-2)", color: TXT, border: "1px solid " + BORDER, borderRadius: 6, padding: "0 3px", cursor: "pointer", outline: "none", fontFamily: "inherit" } },
+				React.createElement("option", { value: "" }, tr("🎨 预制配色…")),
 				COLOR_PRESET_NAMES.map((n) => React.createElement("option", { key: n, value: n }, n)),
 			);
 			const groupCard = (g, items) => React.createElement("div", { key: g, style: { flex: "1 1 320px", minWidth: 320, border: "1px solid " + BORDER, borderRadius: 8, overflow: "hidden", background: "var(--dsw-alias-bg-base)" } },
 				React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: TXT2, background: LAYER, borderBottom: "1px solid " + BORDER } },
-					g,
+					tr(g),
 					(g === firstColorGroup) ? presetSelect(false) : null,
 				),
 				items.map(row),
 			);
 			const groupList = (g, items) => React.createElement("div", { key: g },
 				React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: TXT2, background: "rgba(128,128,128,.07)", borderBottom: "1px solid " + BORDER } },
-					g,
+					tr(g),
 					(g === firstColorGroup) ? presetSelect(true) : null,
 				),
 				items.map(row),
 			);
 			// 分组列表：全屏时按大区分区块（功能/控件）+ 区内卡片横排；小面板纵向堆叠
 			const body = query.trim()
-				? (list.length ? list : React.createElement("div", { style: { color: TXT3, fontSize: 12, padding: "16px 8px", textAlign: "center" } }, "无匹配的设置"))
+				? (list.length ? list : React.createElement("div", { style: { color: TXT3, fontSize: 12, padding: "16px 8px", textAlign: "center" } }, tr("无匹配的设置")))
 				: (full
 					? CAT_ORDER.map((cat) => React.createElement("div", { key: cat, style: { marginBottom: 14 } },
-						React.createElement("div", { style: { fontSize: 13, fontWeight: 700, color: TXT, padding: "4px 2px 6px", borderBottom: "2px solid " + BORDER, marginBottom: 8 } }, cat === "功能" ? "⚙ 功能" : "🎨 控件"),
+						React.createElement("div", { style: { fontSize: 13, fontWeight: 700, color: TXT, padding: "4px 2px 6px", borderBottom: "2px solid " + BORDER, marginBottom: 8 } }, cat === "功能" ? tr("⚙ 功能") : tr("🎨 控件")),
 						React.createElement("div", { style: { display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap" } },
 							Object.keys(groupsByCat[cat] || {}).map((g) => groupCard(g, groupsByCat[cat][g])),
 						),
 					))
 					: CAT_ORDER.map((cat) => React.createElement("div", { key: cat, style: { marginBottom: 10 } },
-						React.createElement("div", { style: { padding: "4px 10px", fontSize: 11, fontWeight: 700, color: TXT2, borderBottom: "1px solid " + BORDER, marginBottom: 4 } }, cat === "功能" ? "⚙ 功能" : "🎨 控件"),
+						React.createElement("div", { style: { padding: "4px 10px", fontSize: 11, fontWeight: 700, color: TXT2, borderBottom: "1px solid " + BORDER, marginBottom: 4 } }, cat === "功能" ? tr("⚙ 功能") : tr("🎨 控件")),
 						Object.keys(groupsByCat[cat] || {}).map((g) => groupList(g, groupsByCat[cat][g])),
 					)));
 			return React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } },
 				React.createElement("div", { style: { flexShrink: 0, display: "flex", alignItems: "center", gap: 6, padding: full ? "8px 18px" : "4px 10px", background: LAYER, borderBottom: "1px solid " + BORDER, flexWrap: "wrap" } },
-					React.createElement("span", { style: { fontSize: full ? 14 : 12, fontWeight: 600, color: TXT } }, "⚙ 个性化设置"),
-					React.createElement("input", { value: query, onChange: (e) => onQuery(e.target.value), placeholder: "搜索设置…", style: { ...C.inp, flex: 1, minWidth: 80, height: full ? 28 : 26 } }),
+					React.createElement("span", { style: { fontSize: full ? 14 : 12, fontWeight: 600, color: TXT } }, tr("⚙ 个性化设置")),
+					React.createElement("input", { value: query, onChange: (e) => onQuery(e.target.value), placeholder: tr("搜索设置…"), style: { ...C.inp, flex: 1, minWidth: 80, height: full ? 28 : 26 } }),
 					React.createElement("span", { style: { fontSize: 11, color: TXT3, whiteSpace: "nowrap" } }, scope === "global" ? "全局" : "项目"),
 					React.createElement("div", { style: { display: "flex", gap: 6 } },
-						React.createElement("button", { onClick: () => onScope("global"), title: "编辑层：全局配置（所有项目生效）", style: { ...C.chip(scope === "global") } }, "全局（所有项目）"),
-						project ? React.createElement("button", { onClick: () => onScope("project"), title: "编辑层：项目配置（仅当前项目）", style: { ...C.chip(scope === "project") } }, "项目（当前）") : React.createElement("span", { style: { fontSize: 11, color: TXT3 } }, "未选择项目"),
+						React.createElement("button", { onClick: () => onScope("global"), title: tr("编辑层：全局配置（所有项目生效）"), style: { ...C.chip(scope === "global") } }, tr("全局（所有项目）")),
+						project ? React.createElement("button", { onClick: () => onScope("project"), title: tr("编辑层：项目配置（仅当前项目）"), style: { ...C.chip(scope === "project") } }, tr("项目（当前）")) : React.createElement("span", { style: { fontSize: 11, color: TXT3 } }, tr("未选择项目")),
 					),
 				),
 				React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", padding: full ? "8px 18px" : "4px 0", display: "flex", flexDirection: "column" } }, body),
@@ -1558,11 +1744,11 @@ const ICONS = {
 			return React.createElement("div", { style: { position: "absolute", inset: 0, zIndex: 9000, display: "flex", flexDirection: "column", background: BG } },
 				React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, padding: "5px 10px", background: LAYER, borderBottom: "1px solid " + BORDER, flexShrink: 0, flexWrap: "wrap" } },
 					React.createElement(Ico, { name: meta.icon, size: 13 }),
-					React.createElement("span", { style: { fontSize: 13, fontWeight: 600, color: TXT } }, meta.title),
-					React.createElement("span", { style: { fontSize: 11, color: TXT3, whiteSpace: "nowrap" } }, "（Esc 关闭）"),
+					React.createElement("span", { style: { fontSize: 13, fontWeight: 600, color: TXT } }, tr(meta.title)),
+					React.createElement("span", { style: { fontSize: 11, color: TXT3, whiteSpace: "nowrap" } }, tr("（Esc 关闭）")),
 					React.createElement("span", { style: { flex: 1 } }),
 					renderPanelOps(id),
-					React.createElement("button", { onClick: onClose, title: "关闭（Esc）", style: { display: "inline-flex", alignItems: "center", gap: 5, height: 26, padding: "0 14px", cursor: "pointer", background: "transparent", color: "#e05c5c", border: "1px solid #e05c5c", borderRadius: 6, fontSize: 12, lineHeight: 1, whiteSpace: "nowrap", boxShadow: "0 1px 2px rgba(0,0,0,.18)" }, onMouseEnter: (e) => { e.currentTarget.style.background = "rgba(224,92,92,.12)"; }, onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; } }, "✕ 关闭"),
+					React.createElement("button", { onClick: onClose, title: tr("关闭（Esc）"), style: { display: "inline-flex", alignItems: "center", gap: 5, height: 26, padding: "0 14px", cursor: "pointer", background: "transparent", color: "#e05c5c", border: "1px solid #e05c5c", borderRadius: 6, fontSize: 12, lineHeight: 1, whiteSpace: "nowrap", boxShadow: "0 1px 2px rgba(0,0,0,.18)" }, onMouseEnter: (e) => { e.currentTarget.style.background = "rgba(224,92,92,.12)"; }, onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; } }, tr("✕ 关闭")),
 				),
 				React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", display: "flex", flexDirection: "column" } }, renderPanel(id)),
 			);
@@ -1619,11 +1805,11 @@ const ICONS = {
 			const body = React.createElement("div", { ref: rootRef, style: { position: "fixed", left: win.x, top: win.y, width: win.w, height: win.h, zIndex: 10010, display: "flex", flexDirection: "column", background: BG, border: "1px solid " + BORDER, borderRadius: 10, boxShadow: "0 10px 40px rgba(0,0,0,.4)", overflow: "hidden", minWidth: 300, minHeight: 200 } },
 				React.createElement("div", { onMouseDown: onBarDown, style: { display: "flex", alignItems: "center", gap: 8, padding: "5px 10px", background: LAYER, borderBottom: "1px solid " + BORDER, cursor: dragState === "move" ? "grabbing" : "grab", userSelect: "none", flexShrink: 0 } },
 					React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 600, color: TXT } }, React.createElement(Ico, { name: meta.icon, size: 13 }), meta.title),
-					React.createElement("span", { style: { fontSize: 10, color: TXT3, marginLeft: "auto", whiteSpace: "nowrap" } }, "拖到左/下边缘吸附"),
-					React.createElement("button", { onClick: onClose, title: "吸附回区域 (Esc)", style: { ...C.iconBtn, flexShrink: 0 } }, React.createElement(Ico, { name: "close", size: 11 })),
+					React.createElement("span", { style: { fontSize: 10, color: TXT3, marginLeft: "auto", whiteSpace: "nowrap" } }, tr("拖到左/下边缘吸附")),
+					React.createElement("button", { onClick: onClose, title: tr("吸附回区域 (Esc)"), style: { ...C.iconBtn, flexShrink: 0 } }, React.createElement(Ico, { name: "close", size: 11 })),
 				),
 				React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", display: "flex", flexDirection: "column" } }, children),
-				React.createElement("div", { onMouseDown: onResizeDown, title: "拖拽缩放", style: { position: "absolute", right: 0, bottom: 0, width: 18, height: 18, cursor: "nwse-resize", background: "linear-gradient(135deg, transparent 50%, rgba(128,128,128,.55) 50%)", borderBottomRightRadius: 10 } }),
+				React.createElement("div", { onMouseDown: onResizeDown, title: tr("拖拽缩放"), style: { position: "absolute", right: 0, bottom: 0, width: 18, height: 18, cursor: "nwse-resize", background: "linear-gradient(135deg, transparent 50%, rgba(128,128,128,.55) 50%)", borderBottomRightRadius: 10 } }),
 				// 吸附预览：拖动靠近视口左/右/下边缘时，边缘显示品牌色高亮条
 				snapHint === "left" ? React.createElement("div", { style: { position: "fixed", left: 0, top: 0, bottom: 0, width: 4, background: ACCENT, zIndex: 10011, pointerEvents: "none", opacity: .8 } }) : null,
 				snapHint === "right" ? React.createElement("div", { style: { position: "fixed", right: 0, top: 0, bottom: 0, width: 4, background: ACCENT, zIndex: 10011, pointerEvents: "none", opacity: .8 } }) : null,
@@ -2528,15 +2714,15 @@ const ICONS = {
 				const push = (label, detail, kind, insert) => {
 					if (forceAll || !p || label.toLowerCase().indexOf(p) >= 0) out.push({ label, detail, kind, insert: insert === undefined ? label : insert });
 				};
-				for (const w of STMT_WORDS) push(w, "语句", "stmt");
-				for (const ph of STMT_PHRASES) push(ph, "语句", "stmt");
+				for (const w of STMT_WORDS) push(w, tr("语句"), "stmt");
+				for (const ph of STMT_PHRASES) push(ph, tr("语句"), "stmt");
 				for (const s of SNIPPETS) push(s.label, s.detail, "snippet", s.insert);
 				const map = indexMapRef.current || {};
 				for (const name of Object.keys(map)) push(name, map[name].kind === "characters" ? "人物" : "定义", "ref");
-				for (const ch of (chars || [])) push(ch.name, "角色", "char");
-				for (const a of (assets.image || [])) push(String(a.rel).split("/").pop(), "图片", "asset");
-				for (const a of (assets.audio || [])) push(String(a.rel).split("/").pop(), "音频", "asset");
-				for (const gv of GUI_VARS) push("gui." + gv, "GUI 变量", "stmt");
+				for (const ch of (chars || [])) push(ch.name, tr("角色"), "char");
+				for (const a of (assets.image || [])) push(String(a.rel).split("/").pop(), tr("图片"), "asset");
+				for (const a of (assets.audio || [])) push(String(a.rel).split("/").pop(), tr("音频"), "asset");
+				for (const gv of GUI_VARS) push("gui." + gv, tr("GUI 变量"), "stmt");
 				return out.slice(0, 40);
 			};
 			// 补全：基于最新文本内容计算（text 由 onChange 传入，避免读 React state 滞后）
@@ -3569,12 +3755,12 @@ const ICONS = {
 			// 面板标题栏操作（并入标题栏，避免内容区重复标题；mousedown 阻止拖拽）
 			const renderPanelOps = (id) => {
 				const op = (icon, title, fn) => React.createElement("span", { title, style: { fontSize: 12, color: TXT3, cursor: "pointer", padding: "1px 4px" }, onMouseDown: (e) => e.stopPropagation(), onClick: (e) => { e.stopPropagation(); fn(); } }, ICONS[icon] ? React.createElement(Ico, { name: icon, size: 12 }) : icon);
-				if (id === "files") return React.createElement(React.Fragment, null, op("refresh", "刷新文件列表", () => loadFiles(project)), op("▾", "折叠全部", () => setExpandedFiles({})));
-				if (id === "nav") return op("refresh", "刷新导航索引（标签/人物/转场/变量/字体）", () => { loadFiles(project); loadAssets(project); });
-				if (id === "assets") return op("refresh", "刷新资源", () => loadAssets(project));
-				if (id === "route") return op("refresh", "重新加载路线图", () => loadRouteMap());
-				if (id === "shot") return op("refresh", "立即刷新截图", () => api("route-shot", {}, { project }).catch(() => {}));
-				if (id === "edits") return op("↗", "打开修改面板", () => openCpPanel());
+				if (id === "files") return React.createElement(React.Fragment, null, op("refresh", tr("刷新文件列表"), () => loadFiles(project)), op("▾", tr("折叠全部"), () => setExpandedFiles({})));
+				if (id === "nav") return op("refresh", tr("刷新导航索引（标签/人物/转场/变量/字体）"), () => { loadFiles(project); loadAssets(project); });
+				if (id === "assets") return op("refresh", tr("刷新资源"), () => loadAssets(project));
+				if (id === "route") return op("refresh", tr("重新加载路线图"), () => loadRouteMap());
+				if (id === "shot") return op("refresh", tr("立即刷新截图"), () => api("route-shot", {}, { project }).catch(() => {}));
+				if (id === "edits") return op("↗", tr("打开修改面板"), () => openCpPanel());
 				return null;
 			};
 			// 区域渲染：多面板平铺（左/右栏垂直堆叠 / 底部水平排布），面板间分隔条可拖拽调比例；各面板标题栏可拖拽；吸附示意高亮区域
@@ -3593,16 +3779,16 @@ const ICONS = {
 						const dragging = dragGhost && dragGhost.id === id;
 						return React.createElement(React.Fragment, { key: id },
 							// 面板间分隔条：拖拽调整两面板比例（左/右栏横条改上下比，底部竖条改左右比）
-							pi > 0 ? React.createElement("div", { onMouseDown: (e) => startPanelSplit(region, pi - 1, e), title: "拖动调整面板比例", style: { flexShrink: 0, ...(vertical ? { height: 4, cursor: "row-resize", width: "100%" } : { width: 4, cursor: "col-resize", height: "100%" }), background: "transparent", zIndex: 3, transition: "background .12s" }, onMouseEnter: (e) => { e.currentTarget.style.background = "rgba(100,160,255,.25)"; }, onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; } }) : null,
+							pi > 0 ? React.createElement("div", { onMouseDown: (e) => startPanelSplit(region, pi - 1, e), title: tr("拖动调整面板比例"), style: { flexShrink: 0, ...(vertical ? { height: 4, cursor: "row-resize", width: "100%" } : { width: 4, cursor: "col-resize", height: "100%" }), background: "transparent", zIndex: 3, transition: "background .12s" }, onMouseEnter: (e) => { e.currentTarget.style.background = "rgba(100,160,255,.25)"; }, onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; } }) : null,
 							React.createElement("div", { style: { flex: sizes[id] || 1, minWidth: 0, minHeight: 0, display: "flex", flexDirection: "column", borderBottom: vertical && last ? "1px solid " + BORDER : "none", borderRight: !vertical && last ? "1px solid " + BORDER : "none", opacity: dragging ? 0.35 : 1, transition: "opacity .12s", filter: dragging ? "saturate(.6)" : "none" } },
-								React.createElement("div", { onMouseDown: (e) => startDragPanel(id, e), title: "拖拽：拖到左/右/下分区吸附，或拖出成浮动窗", style: { display: "flex", alignItems: "center", gap: 6, padding: "3px 8px", background: LAYER, borderBottom: "1px solid " + BORDER, cursor: "grab", userSelect: "none", flexShrink: 0, flexWrap: "wrap" } },
+								React.createElement("div", { onMouseDown: (e) => startDragPanel(id, e), title: tr("拖拽：拖到左/右/下分区吸附，或拖出成浮动窗"), style: { display: "flex", alignItems: "center", gap: 6, padding: "3px 8px", background: LAYER, borderBottom: "1px solid " + BORDER, cursor: "grab", userSelect: "none", flexShrink: 0, flexWrap: "wrap" } },
 									React.createElement(Ico, { name: "gripper", size: 11, style: { color: TXT3, cursor: "grab", marginRight: 2 } }),
 									React.createElement(Ico, { name: meta.icon, size: 12 }),
-									React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: TXT } }, meta.title),
+									React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: TXT } }, tr(meta.title)),
 									React.createElement("span", { style: { flex: 1 } }),
 									renderPanelOps(id),
 									React.createElement("span", { title: maximized === id ? "还原（再次点击）" : "最大化：占满整个工作区", style: { fontSize: 11, color: maximized === id ? ACCENT : TXT3, cursor: "pointer", padding: "1px 4px" }, onMouseDown: (e) => e.stopPropagation(), onClick: (e) => { e.stopPropagation(); setMaximized(maximized === id ? null : id); } }, React.createElement(Ico, { name: maximized === id ? "chrome-restore" : "chrome-maximize", size: 11 })),
-									React.createElement("span", { title: "移除面板（导航可重开）", style: { fontSize: 12, color: TXT3, cursor: "pointer" }, onMouseDown: (e) => e.stopPropagation(), onClick: (e) => { e.stopPropagation(); removePanel(id); } }, React.createElement(Ico, { name: "close", size: 11 })),
+									React.createElement("span", { title: tr("移除面板（导航可重开）"), style: { fontSize: 12, color: TXT3, cursor: "pointer" }, onMouseDown: (e) => e.stopPropagation(), onClick: (e) => { e.stopPropagation(); removePanel(id); } }, React.createElement(Ico, { name: "close", size: 11 })),
 								),
 								React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", display: "flex", flexDirection: "column" } }, renderPanel(id)),
 							),
@@ -3632,7 +3818,7 @@ const ICONS = {
 								React.createElement(Ico, { name: "text-size", size: 11 }),
 								React.createElement("span", { style: { flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: CODE, fontSize: 12 } }, String(f.rel).split("/").pop()),
 								React.createElement("span", { style: { flexShrink: 0, fontSize: 10, color: TXT3 } }, fmtSize(f.size)),
-							)) : React.createElement("div", { style: { color: TXT2, fontSize: 12, padding: "2px 8px" } }, "暂无字体 — 把 .ttf/.otf 放进项目 game/ 目录后点 ⟳ 加载"),
+							)) : React.createElement("div", { style: { color: TXT2, fontSize: 12, padding: "2px 8px" } }, tr("暂无字体 — 把 .ttf/.otf 放进项目 game/ 目录后点 ⟳ 加载")),
 						) : (navKind === "labels" ? labels : navKind === "chars" ? chars : navKind === "trans" ? trans : vars).map((l) => React.createElement("div", { key: l.name, style: { ...itemRow(false), display: "flex", alignItems: "center", gap: 5, color: ACCENT }, onMouseEnter: () => setHoverRow(l.name), onMouseLeave: () => setHoverRow(null), onClick: () => jumpEntry(l) },
 							React.createElement(Ico, { name: NAV_ICONS[navKind], size: 12 }),
 							React.createElement("span", { style: { flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, l.name),
@@ -3665,7 +3851,7 @@ const ICONS = {
 							React.createElement("span", { style: { flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, f.rel),
 							React.createElement("span", { style: { flexShrink: 0, fontSize: 10, color: SUCCESS } }, "+" + f.added),
 							React.createElement("span", { style: { flexShrink: 0, fontSize: 10, color: ERRCOL } }, "-" + f.removed),
-						)) : React.createElement("div", { style: { color: TXT2, fontSize: 12, padding: 8 } }, "暂无修改 — 点顶栏 ✎ 打开修改面板"),
+						)) : React.createElement("div", { style: { color: TXT2, fontSize: 12, padding: 8 } }, tr("暂无修改 — 点顶栏 ✎ 打开修改面板")),
 					),
 				);
 			};
@@ -3679,13 +3865,13 @@ const ICONS = {
 					const meta = React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, marginBottom: 3 } },
 						React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: isUser ? ACCENT : TXT2 } }, isUser ? "我" : "助手"),
 						ts ? React.createElement("span", { style: { fontSize: 11, color: TXT2, opacity: .75 } }, ts) : null,
-						(hoverMsgId === msgKey) ? React.createElement("span", { style: { fontSize: 11, color: TXT3, cursor: "pointer", opacity: .85 }, onClick: () => copyText(c.text), title: "复制这条消息" }, "⧉ 复制") : null,
+						(hoverMsgId === msgKey) ? React.createElement("span", { style: { fontSize: 11, color: TXT3, cursor: "pointer", opacity: .85 }, onClick: () => copyText(c.text), title: tr("复制这条消息") }, tr("⧉ 复制")) : null,
 						(isUser && hoverMsgId === msgKey) ? React.createElement("span", { style: { fontSize: 11, color: TXT3, cursor: "pointer", opacity: .85 }, onClick: () => {
 							try { if (props.inputActions) props.inputActions.setDraft(c.text); } catch (e) { /* ignore */ }
 							setMsg(c.text);
 							if (composerRef.current) composerRef.current.focus();
 							addLog("已取回输入框，修改后按 Enter 重发（原消息保留在历史中）");
-						}, title: "编辑并重发这条消息" }, "✎ 编辑") : null,
+						}, title: tr("编辑并重发这条消息") }, tr("✎ 编辑")) : null,
 					);
 					const bubble = isUser
 						? React.createElement("div", { style: { maxWidth: "100%", background: "var(--dsw-alias-bg-layer-1)", borderRadius: "12px 4px 12px 12px", padding: "7px 11px", fontSize: 13, lineHeight: "20px", color: TXT, whiteSpace: "pre-wrap", wordBreak: "break-word" } }, c.text)
@@ -3703,7 +3889,7 @@ const ICONS = {
 								React.createElement("div", { style: { display: "flex", flexDirection: "column", minWidth: 0 } }, meta, reasonTag, bubble, reasonBlock),
 							),
 					);
-				}) : React.createElement("div", { style: { color: TXT2, fontSize: 13, padding: "18px 6px", textAlign: "center" } }, "暂无对话 — 在下方输入框发消息");
+				}) : React.createElement("div", { style: { color: TXT2, fontSize: 13, padding: "18px 6px", textAlign: "center" } }, tr("暂无对话 — 在下方输入框发消息"));
 				return React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } },
 					React.createElement("div", { ref: feedScrollRef, style: { flex: 1, overflow: "auto", padding: "10px 12px" } },
 						list,
@@ -3713,16 +3899,16 @@ const ICONS = {
 								React.createElement("span", { style: { color: ACCENT } }, "●"),
 								React.createElement("span", { style: { flex: 1 } }, fmtStamp(c.id)),
 								React.createElement("span", { style: { color: TXT3 } }, c.files + " 文件"),
-							)) : React.createElement("div", { style: { padding: "3px 6px", fontSize: 11, color: TXT2 } }, "暂无检查点 — 下一次对话结束或手动保存后自动出现"),
+							)) : React.createElement("div", { style: { padding: "3px 6px", fontSize: 11, color: TXT2 } }, tr("暂无检查点 — 下一次对话结束或手动保存后自动出现")),
 							cpList.length > 3 ? React.createElement("div", { style: { padding: "3px 6px", fontSize: 11, color: TXT3 } }, "… 共 " + cpList.length + " 个，点击打开全部 →") : null,
 						),
 					),
 					props.inputActions ? React.createElement("div", { style: { borderTop: "1px solid " + BORDER, padding: "7px 10px 9px", background: LAYER, flexShrink: 0 } },
 						React.createElement("div", { style: { display: "flex", gap: 6, alignItems: "flex-end", border: "1px solid " + (composerFocus ? ACCENT : BORDER), borderRadius: 10, background: "var(--dsw-alias-bg-layer-1)", padding: 4, transition: "border-color .15s" } },
-							React.createElement("textarea", { ref: composerRef, value: msg, onChange: (e) => setMsg(e.target.value), onKeyDown: (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMsg(); } }, onFocus: () => setComposerFocus(true), onBlur: () => setComposerFocus(false), placeholder: "给 agent 发消息…", rows: 2, style: { flex: 1, background: "transparent", color: TXT, border: "none", outline: "none", borderRadius: 6, fontSize: 13, lineHeight: "20px", resize: "none", fontFamily: "inherit", padding: "3px 4px" } }),
-							React.createElement("button", { onClick: sendMsg, disabled: !msg.trim(), title: "发送 (Enter)", style: { width: 30, height: 30, borderRadius: 15, flexShrink: 0, cursor: "pointer", background: msg.trim() ? ACCENT : "rgba(128,128,128,.35)", color: "var(--dsw-alias-label-primary-foreground)", border: "none", fontSize: 14, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" } }, "➤"),
+							React.createElement("textarea", { ref: composerRef, value: msg, onChange: (e) => setMsg(e.target.value), onKeyDown: (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMsg(); } }, onFocus: () => setComposerFocus(true), onBlur: () => setComposerFocus(false), placeholder: tr("给 agent 发消息…"), rows: 2, style: { flex: 1, background: "transparent", color: TXT, border: "none", outline: "none", borderRadius: 6, fontSize: 13, lineHeight: "20px", resize: "none", fontFamily: "inherit", padding: "3px 4px" } }),
+							React.createElement("button", { onClick: sendMsg, disabled: !msg.trim(), title: tr("发送 (Enter)"), style: { width: 30, height: 30, borderRadius: 15, flexShrink: 0, cursor: "pointer", background: msg.trim() ? ACCENT : "rgba(128,128,128,.35)", color: "var(--dsw-alias-label-primary-foreground)", border: "none", fontSize: 14, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" } }, "➤"),
 						),
-						React.createElement("div", { style: { fontSize: 11, color: TXT3, marginTop: 4 } }, "Enter 发送 · Shift+Enter 换行"),
+						React.createElement("div", { style: { fontSize: 11, color: TXT3, marginTop: 4 } }, tr("Enter 发送 · Shift+Enter 换行")),
 					) : null,
 				);
 			};
@@ -3806,6 +3992,10 @@ const ICONS = {
 				} catch (e) { /* 无 DOM 环境忽略 */ }
 				// eslint-disable-next-line react-hooks/exhaustive-deps
 			}, [cfg["theme.mode"]]);
+			// ── 界面语言（ui.language：system/zh/en）→ 模块级 UI_LANG，驱动 t() ──
+			React.useEffect(() => {
+				UI_LANG = cfg["ui.language"] === "zh" ? "zh" : cfg["ui.language"] === "en" ? "en" : "system";
+			}, [cfg["ui.language"]]);
 			// 界面颜色覆写（workbench.* → --dsw-* CSS 变量，注入面板根；对齐 VSCode colorCustomizations 语义）
 			// 侧栏区域容器已用 SIDEFILL（--dsw-specific-sidebar-fill），故 sideBar 映射可生效；
 			// panel 映射 bg-base（面板内容组件用 BG token），后写覆盖根背景
@@ -4388,7 +4578,7 @@ const ICONS = {
 					React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", background: LAYER, borderBottom: "1px solid " + ACCENT, fontSize: 12, color: TXT } },
 						React.createElement(Ico, { name: (PANEL_META[dragGhost.id] || {}).icon || "package", size: 13 }),
 						React.createElement("span", { style: { fontWeight: 600 } }, (PANEL_META[dragGhost.id] || {}).title || dragGhost.id),
-						React.createElement("span", { style: { marginLeft: "auto", fontSize: 10, color: TXT3 } }, "松开吸附"),
+						React.createElement("span", { style: { marginLeft: "auto", fontSize: 10, color: TXT3 } }, tr("松开吸附")),
 					),
 					React.createElement("div", { style: { flex: 1, margin: 4, borderRadius: 4, border: "1px dashed " + ACCENT, opacity: .5 } }),
 				) : null,
@@ -4402,17 +4592,17 @@ const ICONS = {
 					: null,
 				// ── 顶栏（类 VSCode：项目输入 + 图标+文字操作 + 强调工作范围 + 对话） ──
 				React.createElement("div", { style: { ...row, gap: 6, flexWrap: "wrap" } },
-					React.createElement("span", { style: { color: TXT2, fontSize: 13, flexShrink: 0 } }, "项目"),
-					React.createElement("input", { style: { flex: 1, minWidth: 120, maxWidth: 340, fontFamily: CODE, ...C.inp }, value: project, onChange: (e) => setProject(e.target.value), onBlur: commitProject, onKeyDown: (e) => { if (e.key === "Enter") { e.target.blur(); commitProject(); } }, placeholder: "项目目录绝对路径" }),
+					React.createElement("span", { style: { color: TXT2, fontSize: 13, flexShrink: 0 } }, tr("项目")),
+					React.createElement("input", { style: { flex: 1, minWidth: 120, maxWidth: 340, fontFamily: CODE, ...C.inp }, value: project, onChange: (e) => setProject(e.target.value), onBlur: commitProject, onKeyDown: (e) => { if (e.key === "Enter") { e.target.blur(); commitProject(); } }, placeholder: tr("项目目录绝对路径") }),
 					React.createElement("button", { title: "切到 host 配置的默认工程（renpy.config.json defaultProject）", style: { ...iconBtnText, fontSize: 12 }, onClick: () => { api("info").then((r) => { const d = r && r.defaultProject; if (!d) { addLog("host 未配置默认工程"); return; } setProject(d); try { if (typeof localStorage !== "undefined") localStorage.setItem("renpy-project", d); } catch (e) { /* ignore */ } commitProject(d); addLog("已切换到默认工程: " + d); }).catch((e) => addLog("读取默认工程失败: " + String(e))); } }, React.createElement(Ico, { name: "refresh", size: 12 })),
 					// ── 工作范围（强调：单独放大） ──
-					React.createElement("button", { style: wsBtn, onClick: lockWorkspace, disabled: !active, title: "用编辑器选区/光标行设定工作范围（区域外只读，agent 越界会先询问）" },
+					React.createElement("button", { style: wsBtn, onClick: lockWorkspace, disabled: !active, title: tr("用编辑器选区/光标行设定工作范围（区域外只读，agent 越界会先询问）") },
 						React.createElement(Ico, { name: "location", size: 16 }),
-						React.createElement("span", {}, "工作范围"),
+						React.createElement("span", {}, tr("工作范围")),
 					),
-					(wsLock && wsLock.file === activeName) ? React.createElement("button", { style: { ...wsBtn, background: "transparent", color: SUCCESS, border: "1px solid " + SUCCESS }, onClick: clearWorkspace, title: "清除工作范围" },
+					(wsLock && wsLock.file === activeName) ? React.createElement("button", { style: { ...wsBtn, background: "transparent", color: SUCCESS, border: "1px solid " + SUCCESS }, onClick: clearWorkspace, title: tr("清除工作范围") },
 						React.createElement(Ico, { name: "close", size: 13 }),
-						React.createElement("span", {}, "清除"),
+						React.createElement("span", {}, tr("清除")),
 					) : null,
 					React.createElement("div", { style: { width: 1, height: 22, background: BORDER, flexShrink: 0 } }),
 					// 全局主操作（常驻可见）：运行/停止合一（点击切换；状态来自 host status 轮询 + doRun/doStop 乐观更新）
@@ -4421,30 +4611,30 @@ const ICONS = {
 						React.createElement("span", {}, gameRunning ? "停止游戏" : "运行游戏")),
 					React.createElement("div", { style: { width: 1, height: 22, background: BORDER, flexShrink: 0 } }),
 					// ── 按键（点击立即起效；统一顶部，控件在左导航） ──
-					React.createElement("button", { style: iconBtnText, onClick: doLint, title: "Ren'Py 语法检查（lint）" }, React.createElement(Ico, { name: "warning", size: 14 }), React.createElement("span", {}, "检查")),
-					React.createElement("button", { style: iconBtnText, onClick: doTest, title: "自动化测试（rpytest）" }, React.createElement(Ico, { name: "beaker", size: 14 }), React.createElement("span", {}, "测试")),
-					React.createElement("button", { style: iconBtnText, onClick: () => loadFiles(project), title: "加载/刷新项目文件列表" }, React.createElement(Ico, { name: "refresh", size: 14 }), React.createElement("span", {}, "刷新")),
-					React.createElement("button", { style: { ...iconBtnText, opacity: active ? 1 : .4 }, onClick: saveFile, disabled: !active, title: "保存当前文件 (Ctrl+S)" }, React.createElement(Ico, { name: "save", size: 14 }), React.createElement("span", {}, "保存")),
-					React.createElement("button", { style: iconBtnText, onClick: doShot, title: "整屏截图（游戏窗口反馈）" }, React.createElement(Ico, { name: "device-camera", size: 14 }), React.createElement("span", {}, "截图")),
-					React.createElement("button", { style: { ...iconBtnText, color: (panelLayout.right.panels || []).includes("chat") ? ACCENT : TXT2 }, onClick: () => movePanel("chat", "right"), title: "对话面板（停靠右侧栏）" }, React.createElement(Ico, { name: "comment-discussion", size: 14 }), React.createElement("span", {}, "对话")),
+					React.createElement("button", { style: iconBtnText, onClick: doLint, title: tr("Ren'Py 语法检查（lint）") }, React.createElement(Ico, { name: "warning", size: 14 }), React.createElement("span", {}, tr("检查"))),
+					React.createElement("button", { style: iconBtnText, onClick: doTest, title: tr("自动化测试（rpytest）") }, React.createElement(Ico, { name: "beaker", size: 14 }), React.createElement("span", {}, tr("测试"))),
+					React.createElement("button", { style: iconBtnText, onClick: () => loadFiles(project), title: tr("加载/刷新项目文件列表") }, React.createElement(Ico, { name: "refresh", size: 14 }), React.createElement("span", {}, tr("刷新"))),
+					React.createElement("button", { style: { ...iconBtnText, opacity: active ? 1 : .4 }, onClick: saveFile, disabled: !active, title: tr("保存当前文件 (Ctrl+S)") }, React.createElement(Ico, { name: "save", size: 14 }), React.createElement("span", {}, tr("保存"))),
+					React.createElement("button", { style: iconBtnText, onClick: doShot, title: tr("整屏截图（游戏窗口反馈）") }, React.createElement(Ico, { name: "device-camera", size: 14 }), React.createElement("span", {}, tr("截图"))),
+					React.createElement("button", { style: { ...iconBtnText, color: (panelLayout.right.panels || []).includes("chat") ? ACCENT : TXT2 }, onClick: () => movePanel("chat", "right"), title: tr("对话面板（停靠右侧栏）") }, React.createElement(Ico, { name: "comment-discussion", size: 14 }), React.createElement("span", {}, tr("对话"))),
 					busy ? React.createElement("span", { style: { color: TXT2 } }, "…") : null,
 				),
 				React.createElement("div", { style: { display: "flex", flex: 1, minHeight: 0, maxWidth: "100%", minWidth: 0 } },
 					// ── 控件总栏（固定收缩外观 46px 图标栏；hover 高亮；右侧 tooltip 在面板根 fixed 渲染） ──
 					React.createElement("div", { ref: navRef, style: { position: "relative", width: navCollapsed ? 46 : 172, flexShrink: 0, borderRight: "1px solid " + BORDER, background: LAYER, display: "flex", flexDirection: "column", paddingTop: 6, overflowY: "auto", overflowX: "hidden", transition: "width .15s" } },
 						// 编辑工具（作用于编辑器：样式预览/对照/学习/主题）
-						!navCollapsed ? React.createElement("div", { style: { width: "100%", padding: "1px 10px 5px", fontSize: 10, color: TXT3, fontWeight: 600 } }, "编辑工具") : null,
-						abIcon("text-size", "样式预览", () => { if (active) setStylePreview((v) => !v); }, { opacity: active ? 1 : .4, hideText: navCollapsed, active: stylePreview, color: stylePreview ? ACCENT : undefined, title: "文本样式预览（所见即所得）；激活中" }),
-						abIcon("arrow-swap", "Python 对照", () => { if (active) convertCurrentLine(); }, { opacity: active ? 1 : .4, hideText: navCollapsed, title: "Ren'Py ↔ Python 等价对照（光标所在行）" }),
-						abIcon("book", "学习注释", () => { if (active && !learnBusy) startTeach(); }, { opacity: active && !learnBusy ? 1 : .4, hideText: navCollapsed, color: learnResult ? SUCCESS : undefined, title: "AI 学习注释（逐行讲解）" }),
-						abIcon("color-mode", "GUI 主题", () => { if (active) openGuiPanel(); }, { opacity: active ? 1 : .4, hideText: navCollapsed, title: "GUI 主题定制（gui.rpy）" }),
+						!navCollapsed ? React.createElement("div", { style: { width: "100%", padding: "1px 10px 5px", fontSize: 10, color: TXT3, fontWeight: 600 } }, tr("编辑工具")) : null,
+						abIcon("text-size", tr("样式预览"), () => { if (active) setStylePreview((v) => !v); }, { opacity: active ? 1 : .4, hideText: navCollapsed, active: stylePreview, color: stylePreview ? ACCENT : undefined, title: tr("文本样式预览（所见即所得）；激活中") }),
+						abIcon("arrow-swap", tr("Python 对照"), () => { if (active) convertCurrentLine(); }, { opacity: active ? 1 : .4, hideText: navCollapsed, title: tr("Ren'Py ↔ Python 等价对照（光标所在行）") }),
+						abIcon("book", tr("学习注释"), () => { if (active && !learnBusy) startTeach(); }, { opacity: active && !learnBusy ? 1 : .4, hideText: navCollapsed, color: learnResult ? SUCCESS : undefined, title: tr("AI 学习注释（逐行讲解）") }),
+						abIcon("color-mode", tr("GUI 主题"), () => { if (active) openGuiPanel(); }, { opacity: active ? 1 : .4, hideText: navCollapsed, title: tr("GUI 主题定制（gui.rpy）") }),
 						// 调试控件（需运行游戏：桥接回报驱动；点击停靠为面板控件，可拖拽/吸附/浮动）
-						!navCollapsed ? React.createElement("div", { style: { width: "100%", padding: "1px 10px 5px", fontSize: 10, color: TXT3, fontWeight: 600 } }, "调试 · 需运行（停靠右侧栏）") : null,
-						abIcon("graph", "分支路线图", () => movePanel("route", "right"), { opacity: project ? 1 : .4, hideText: navCollapsed, title: "路线图面板（右侧栏；状态机图，点击节点跳游戏需运行）" }),
-						abIcon("device-camera-video", "实时画面", () => movePanel("shot", "right"), { opacity: project ? 1 : .4, hideText: navCollapsed, title: "实时画面面板（右侧栏；截图 + 点击/推进/回滚）" }),
-						abIcon("symbol-variable", "运行时变量", () => movePanel("vars", "right"), { opacity: project ? 1 : .4, hideText: navCollapsed, title: "变量监控面板（右侧栏；变化高亮）" }),
-						abIcon("bug", "报错诊断", () => movePanel("err", "right"), { opacity: project ? 1 : .4, hideText: navCollapsed, title: "报错诊断面板（右侧栏；traceback/log/errors 结构化 + 跳转）" }),
-						abIcon("checklist", "静态诊断", () => movePanel("diag", "right"), { opacity: project ? 1 : .4, hideText: navCollapsed, title: "静态诊断面板（右侧栏；无效跳转/未定义 screen/角色/缺失资源/不可达 label）" }),
+						!navCollapsed ? React.createElement("div", { style: { width: "100%", padding: "1px 10px 5px", fontSize: 10, color: TXT3, fontWeight: 600 } }, tr("调试 · 需运行（停靠右侧栏）")) : null,
+						abIcon("graph", tr("分支路线图"), () => movePanel("route", "right"), { opacity: project ? 1 : .4, hideText: navCollapsed, title: tr("路线图面板（右侧栏；状态机图，点击节点跳游戏需运行）") }),
+						abIcon("device-camera-video", tr("实时画面"), () => movePanel("shot", "right"), { opacity: project ? 1 : .4, hideText: navCollapsed, title: tr("实时画面面板（右侧栏；截图 + 点击/推进/回滚）") }),
+						abIcon("symbol-variable", tr("运行时变量"), () => movePanel("vars", "right"), { opacity: project ? 1 : .4, hideText: navCollapsed, title: tr("变量监控面板（右侧栏；变化高亮）") }),
+						abIcon("bug", tr("报错诊断"), () => movePanel("err", "right"), { opacity: project ? 1 : .4, hideText: navCollapsed, title: tr("报错诊断面板（右侧栏；traceback/log/errors 结构化 + 跳转）") }),
+						abIcon("checklist", tr("静态诊断"), () => movePanel("diag", "right"), { opacity: project ? 1 : .4, hideText: navCollapsed, title: tr("静态诊断面板（右侧栏；无效跳转/未定义 screen/角色/缺失资源/不可达 label）") }),
 						React.createElement("div", { style: { width: 148, height: 1, background: BORDER, margin: "4px 0 6px", alignSelf: "center" } }),
 						// 视图控件（停靠左栏）
 						[["files", "files", "项目文件"], ["nav", "compass", "导航"], ["assets", "collection", "项目素材"], ["edits", "edit", "基线更改"]].map(([k, icon, label]) => { const inLeft = (panelLayout.left.panels || []).includes(k); return React.createElement("div", { key: k, title: label, onClick: () => movePanel(k, "left"), style: { position: "relative", width: "100%", height: 32, marginBottom: 2, display: "flex", alignItems: "center", gap: 7, padding: "0 10px", cursor: "pointer" } },
@@ -4454,10 +4644,10 @@ const ICONS = {
 						); }),
 						React.createElement("div", { style: { width: 148, height: 1, background: BORDER, margin: "4px 0 6px", alignSelf: "center" } }),
 						// 面板控件
-						abIcon("list-unordered", "操作日志", () => movePanel("log", "bottom"), { hideText: navCollapsed, title: "操作日志（停靠底部区）" }),
-						abIcon("history", "保存历史", openHistory, { opacity: active ? 1 : .4, hideText: navCollapsed, title: "保存历史与回滚" }),
+						abIcon("list-unordered", tr("操作日志"), () => movePanel("log", "bottom"), { hideText: navCollapsed, title: tr("操作日志（停靠底部区）") }),
+						abIcon("history", tr("保存历史"), openHistory, { opacity: active ? 1 : .4, hideText: navCollapsed, title: tr("保存历史与回滚") }),
 						// 设置（固定最底部）
-						abIcon("gear", "个性化设置", () => setMaximized("settings"), { hideText: navCollapsed, title: "个性化设置（最大化视图：字体/缩进/显示，全局或按项目；🗗 还原）" }),
+						abIcon("gear", tr("个性化设置"), () => setMaximized("settings"), { hideText: navCollapsed, title: tr("个性化设置（最大化视图：字体/缩进/显示，全局或按项目；🗗 还原）") }),
 						// 收缩按钮
 						React.createElement("div", { style: { marginTop: "auto", borderTop: "1px solid " + BORDER, display: "flex", justifyContent: "center", padding: "3px 0" } },
 							React.createElement("span", { title: navCollapsed ? "展开控件栏" : "收起控件栏（只显图标）", style: { cursor: "pointer", fontSize: 12, color: TXT3, padding: "2px 10px", userSelect: "none" }, onClick: () => setNavCollapsed(!navCollapsed) }, navCollapsed ? "»" : "«"),
@@ -4468,7 +4658,7 @@ const ICONS = {
 							renderRegion("left"),
 						),
 						// 左栏宽拖拽条
-						React.createElement("div", { onMouseDown: (e) => startRegionResize("left", e), title: "拖动调整左栏宽度", style: { width: 5, flexShrink: 0, cursor: "col-resize", background: "transparent", alignSelf: "stretch" }, onMouseEnter: (e) => { e.currentTarget.style.background = "rgba(100,160,255,.25)"; }, onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; } }),
+						React.createElement("div", { onMouseDown: (e) => startRegionResize("left", e), title: tr("拖动调整左栏宽度"), style: { width: 5, flexShrink: 0, cursor: "col-resize", background: "transparent", alignSelf: "stretch" }, onMouseEnter: (e) => { e.currentTarget.style.background = "rgba(100,160,255,.25)"; }, onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; } }),
 					) : null,
 					React.createElement("div", { ref: colRRef, style: colR },
 						React.createElement("div", { style: tabBar },
@@ -4480,19 +4670,19 @@ const ICONS = {
 						React.createElement("div", { style: { padding: "4px 10px", fontSize: 12, color: TXT3 } }, statusText),
 						// ── 查找/替换栏（Ctrl+F） ──
 						findOpen ? React.createElement("div", { style: { display: "flex", gap: 6, alignItems: "center", padding: "5px 8px", borderBottom: "1px solid " + BORDER, background: LAYER, flexWrap: "wrap" } },
-							React.createElement("input", { ref: findInputRef, value: findText, onChange: (e) => { setFindText(e.target.value); setFindIdx(0); }, onKeyDown: (e) => { if (e.key === "Enter") { e.shiftKey ? findPrev() : findNext(); } if (e.key === "Escape") setFindOpen(false); }, placeholder: "查找…", style: { width: 170, ...C.inp } }),
+							React.createElement("input", { ref: findInputRef, value: findText, onChange: (e) => { setFindText(e.target.value); setFindIdx(0); }, onKeyDown: (e) => { if (e.key === "Enter") { e.shiftKey ? findPrev() : findNext(); } if (e.key === "Escape") setFindOpen(false); }, placeholder: tr("查找…"), style: { width: 170, ...C.inp } }),
 							React.createElement("span", { style: { fontSize: 11, color: TXT3, minWidth: 30 } }, findMatches.length ? ((Math.min(findIdx, findMatches.length - 1) + 1) + "/" + findMatches.length) : "0/0"),
-							React.createElement("button", { style: { ...btn, padding: "1px 8px", fontSize: 12 }, onClick: findPrev, disabled: !findMatches.length, title: "上一个 (Shift+Enter)" }, "↑"),
-							React.createElement("button", { style: { ...btn, padding: "1px 8px", fontSize: 12 }, onClick: findNext, disabled: !findMatches.length, title: "下一个 (Enter)" }, "↓"),
-							React.createElement("input", { value: findReplace, onChange: (e) => setFindReplace(e.target.value), placeholder: "替换为…", style: { width: 150, ...C.inp } }),
-							React.createElement("button", { style: { ...btn, padding: "1px 8px", fontSize: 12 }, title: "替换当前匹配", onClick: doReplace, disabled: !findMatches.length }, "替换"),
-							React.createElement("button", { style: { ...btn, padding: "1px 8px", fontSize: 12 }, title: "替换全部匹配", onClick: doReplaceAll, disabled: !findText }, "全部替换"),
-							React.createElement("button", { style: { ...btn, padding: "1px 8px", fontSize: 12 }, onClick: () => setFindOpen(false), title: "关闭 (Esc)" }, React.createElement(Ico, { name: "close", size: 11 })),
+							React.createElement("button", { style: { ...btn, padding: "1px 8px", fontSize: 12 }, onClick: findPrev, disabled: !findMatches.length, title: tr("上一个 (Shift+Enter)") }, "↑"),
+							React.createElement("button", { style: { ...btn, padding: "1px 8px", fontSize: 12 }, onClick: findNext, disabled: !findMatches.length, title: tr("下一个 (Enter)") }, "↓"),
+							React.createElement("input", { value: findReplace, onChange: (e) => setFindReplace(e.target.value), placeholder: tr("替换为…"), style: { width: 150, ...C.inp } }),
+							React.createElement("button", { style: { ...btn, padding: "1px 8px", fontSize: 12 }, title: tr("替换当前匹配"), onClick: doReplace, disabled: !findMatches.length }, tr("替换")),
+							React.createElement("button", { style: { ...btn, padding: "1px 8px", fontSize: 12 }, title: tr("替换全部匹配"), onClick: doReplaceAll, disabled: !findText }, tr("全部替换")),
+							React.createElement("button", { style: { ...btn, padding: "1px 8px", fontSize: 12 }, onClick: () => setFindOpen(false), title: tr("关闭 (Esc)") }, React.createElement(Ico, { name: "close", size: 11 })),
 						) : null,
 						// ── 样式预览模式提示条（降级项汇总，黄色） ──
 						stylePreview ? React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", borderBottom: "1px solid " + BORDER, background: previewNotes.length ? "rgba(229,192,123,.12)" : "rgba(100,160,255,.08)", fontSize: 11, flexShrink: 0, flexWrap: "wrap" } },
 							React.createElement("span", { style: { color: previewNotes.length ? "#e5c07b" : "#569cd6", fontWeight: 600 } }, previewNotes.length ? "⚠ 样式预览降级提示" : "✓ 样式预览模式"),
-							previewNotes.length ? previewNotes.slice(0, 6).map((n, i) => React.createElement("span", { key: i, style: { color: "#e5c07b" } }, "• " + n.msg)) : React.createElement("span", { style: { color: TXT2 } }, "say 文本已按样式渲染（粗/斜/下/删/色/透明所见即所得；字号/字体/插值以底色标记，悬停看详情）"),
+							previewNotes.length ? previewNotes.slice(0, 6).map((n, i) => React.createElement("span", { key: i, style: { color: "#e5c07b" } }, "• " + n.msg)) : React.createElement("span", { style: { color: TXT2 } }, tr("say 文本已按样式渲染（粗/斜/下/删/色/透明所见即所得；字号/字体/插值以底色标记，悬停看详情）")),
 							previewNotes.length > 6 ? React.createElement("span", { style: { color: "#e5c07b" } }, "… 共 " + previewNotes.length + " 条") : null,
 						) : null,
 						React.createElement("div", { style: editorWrap, key: "ed" + editorRemountKey },
@@ -4525,22 +4715,22 @@ const ICONS = {
 										// 当前行高亮（光标所在行整行浅背景；renderLineHighlight 配置控制；gutter/all 暂按 line 渲染）
 										(active && cursorPos.line >= 1 && cfg["editor.renderLineHighlight"] !== "none") ? React.createElement("div", { key: "curline", style: { position: "absolute", top: (cursorPos.line - 1) * LINE_H(), left: 0, width: 4000, height: LINE_H(), background: edLine } }) : null,
 										// 垂直标尺（editor.rulers 列号数组 → 竖线）
-										(cfg["editor.rulers"] || []).map((r, ri) => React.createElement("div", { key: "rl" + ri, title: "标尺列 " + r, style: { position: "absolute", top: 0, left: Number(r) * CHAR_W, width: 1, height: "100%", background: "rgba(255,255,255,.14)" } })),
+										(cfg["editor.rulers"] || []).map((r, ri) => React.createElement("div", { key: "rl" + ri, title: tr("标尺列 ") + r, style: { position: "absolute", top: 0, left: Number(r) * CHAR_W, width: 1, height: "100%", background: "rgba(255,255,255,.14)" } })),
 										// 空白显示（renderWhitespace：boundary=行首缩进+行尾空格；trailing=仅行尾；all=全部空格）
 										(cfg["editor.renderWhitespace"] && cfg["editor.renderWhitespace"] !== "none") ? whitespaceMarks.map((wm) => React.createElement("div", { key: "ws" + wm.line + "-" + wm.col, style: { position: "absolute", top: (wm.line - 1) * LINE_H() + (LINE_H() - 4) / 2, left: wm.left, width: wm.len * CHAR_W, height: 2, background: wm.boundary ? "rgba(224,92,92,.55)" : edWs, borderRadius: 1 } })) : null,
 										// 跳转落点闪烁高亮（路线图节点 / lint / 定义跳转；仅当前文件，2.2s 后消失）
-										(jumpFlash && jumpFlash.file === activeName) ? React.createElement("div", { key: "jf" + jumpFlash.key, title: "跳转落点", style: { position: "absolute", top: (jumpFlash.line - 1) * LINE_H(), left: 0, width: 4000, height: LINE_H(), background: "rgba(86,156,214,.22)", boxShadow: "inset 3px 0 0 rgba(86,156,214,.85)" } }) : null,
+										(jumpFlash && jumpFlash.file === activeName) ? React.createElement("div", { key: "jf" + jumpFlash.key, title: tr("跳转落点"), style: { position: "absolute", top: (jumpFlash.line - 1) * LINE_H(), left: 0, width: 4000, height: LINE_H(), background: "rgba(86,156,214,.22)", boxShadow: "inset 3px 0 0 rgba(86,156,214,.85)" } }) : null,
 										// 括号匹配高亮（配对括号字符块；editor.bracketPairColorization.enabled 配置控制）
 										(bracketRects && cfg["editor.bracketPairColorization.enabled"] !== false) ? React.createElement(React.Fragment, null,
-											bracketRects.open ? React.createElement("div", { key: "bo", title: "匹配括号", style: { position: "absolute", top: (bracketRects.open.line - 1) * LINE_H() + 2, left: bracketRects.open.left, width: CHAR_W, height: LINE_H() - 4, background: edBracket, borderRadius: 2 } }) : null,
-											bracketRects.close ? React.createElement("div", { key: "bc", title: "匹配括号", style: { position: "absolute", top: (bracketRects.close.line - 1) * LINE_H() + 2, left: bracketRects.close.left, width: CHAR_W, height: LINE_H() - 4, background: edBracket, borderRadius: 2 } }) : null,
+											bracketRects.open ? React.createElement("div", { key: "bo", title: tr("匹配括号"), style: { position: "absolute", top: (bracketRects.open.line - 1) * LINE_H() + 2, left: bracketRects.open.left, width: CHAR_W, height: LINE_H() - 4, background: edBracket, borderRadius: 2 } }) : null,
+											bracketRects.close ? React.createElement("div", { key: "bc", title: tr("匹配括号"), style: { position: "absolute", top: (bracketRects.close.line - 1) * LINE_H() + 2, left: bracketRects.close.left, width: CHAR_W, height: LINE_H() - 4, background: edBracket, borderRadius: 2 } }) : null,
 										) : null,
-										(wsLock && wsLock.file === activeName) ? React.createElement("div", { key: "ws", title: "工作范围（范围内修改、范围外不动）", style: { position: "absolute", top: (wsLock.startLine - 1) * LINE_H(), left: 0, width: 4000, height: (wsLock.endLine - wsLock.startLine + 1) * LINE_H() - 1, background: "rgba(76,175,80,.07)", borderTop: "1px solid rgba(76,175,80,.55)", borderBottom: "1px solid rgba(76,175,80,.55)" } }) : null,
+										(wsLock && wsLock.file === activeName) ? React.createElement("div", { key: "ws", title: tr("工作范围（范围内修改、范围外不动）"), style: { position: "absolute", top: (wsLock.startLine - 1) * LINE_H(), left: 0, width: 4000, height: (wsLock.endLine - wsLock.startLine + 1) * LINE_H() - 1, background: "rgba(76,175,80,.07)", borderTop: "1px solid rgba(76,175,80,.55)", borderBottom: "1px solid rgba(76,175,80,.55)" } }) : null,
 										matchRects.map((r) => {
 											const isCur = r.i === Math.min(findIdx, matchRects.length - 1);
 											return React.createElement("div", { key: "m" + r.i, style: { position: "absolute", top: (r.line - 1) * LINE_H() + 1, left: r.left, width: r.width, height: 17, background: isCur ? edFind : edFind, borderRadius: 2, boxShadow: isCur ? "inset 0 0 0 1px rgba(255,255,255,.25)" : "none" } });
 										}),
-										curLintLines.map((ln) => React.createElement("div", { key: "l" + ln, title: "lint 错误", style: { position: "absolute", top: (ln - 1) * LINE_H() + 17, left: 4, width: 4000, height: 2, background: edErr, borderRadius: 1 } })),
+										curLintLines.map((ln) => React.createElement("div", { key: "l" + ln, title: tr("lint 错误"), style: { position: "absolute", top: (ln - 1) * LINE_H() + 17, left: 4, width: 4000, height: 2, background: edErr, borderRadius: 1 } })),
 									),
 								) : null,
 								!isViewTab ? React.createElement(React.Fragment, null,
@@ -4560,10 +4750,10 @@ const ICONS = {
 						),
 						// ── 工作区域条（编辑器下侧） ──
 						(wsLock && wsLock.file === activeName) ? React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, padding: "4px 10px", borderTop: "1px solid " + BORDER, background: "rgba(76,175,80,.08)" } },
-							React.createElement("span", { style: { fontSize: 12, color: SUCCESS, fontWeight: 600 } }, "🎯 工作范围"),
+							React.createElement("span", { style: { fontSize: 12, color: SUCCESS, fontWeight: 600 } }, tr("🎯 工作范围")),
 							React.createElement("span", { style: { fontSize: 12, color: TXT2 } }, activeName + " L" + wsLock.startLine + "-" + wsLock.endLine + (wsLock.label ? "（label " + wsLock.label + "）" : "") + " — 修改限定在此范围内，已通知 agent"),
 							React.createElement("span", { style: { flex: 1 } }),
-							React.createElement("button", { style: { ...btn, padding: "1px 10px", fontSize: 12 }, title: "解除工作范围限制", onClick: clearWorkspace }, "解除"),
+							React.createElement("button", { style: { ...btn, padding: "1px 10px", fontSize: 12 }, title: tr("解除工作范围限制"), onClick: clearWorkspace }, tr("解除")),
 						) : null,
 						// ── 未保存修改提示条（编辑器下侧：+N -M 行 + 保存/撤回） ──
 						(active && active.dirty) ? React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, padding: "5px 10px", borderTop: "1px solid " + BORDER, background: LAYER, flexWrap: "wrap" } },
@@ -4571,8 +4761,8 @@ const ICONS = {
 							diffStats.hasBase ? React.createElement("span", { style: { fontSize: 12, color: SUCCESS, fontWeight: 600 } }, "+" + diffStats.added + " 行") : null,
 							diffStats.hasBase ? React.createElement("span", { style: { fontSize: 12, color: ERRCOL, fontWeight: 600 } }, "-" + diffStats.removed + " 行") : null,
 							React.createElement("span", { style: { flex: 1 } }),
-							React.createElement("button", { style: { ...btn, padding: "1px 10px", fontSize: 12, background: ACCENT, color: "var(--dsw-alias-label-primary-foreground)", border: "1px solid " + ACCENT }, title: "保存文件 (Ctrl+S)", onClick: saveFile }, "保存"),
-							React.createElement("button", { style: { ...btn, padding: "1px 10px", fontSize: 12 }, title: "放弃未保存修改，恢复到上次保存", onClick: revertUnsaved }, "撤回修改"),
+							React.createElement("button", { style: { ...btn, padding: "1px 10px", fontSize: 12, background: ACCENT, color: "var(--dsw-alias-label-primary-foreground)", border: "1px solid " + ACCENT }, title: tr("保存文件 (Ctrl+S)"), onClick: saveFile }, tr("保存")),
+							React.createElement("button", { style: { ...btn, padding: "1px 10px", fontSize: 12 }, title: tr("放弃未保存修改，恢复到上次保存"), onClick: revertUnsaved }, tr("撤回修改")),
 						) : null,
 						lintErrors.length ? React.createElement("div", { style: { maxHeight: 100, overflow: "auto", borderTop: "1px solid " + BORDER, padding: 4, fontSize: 12, background: LAYER } },
 							lintErrors.map((e, i) => React.createElement("div", { key: i, style: { color: ERRCOL, cursor: "pointer", padding: "2px 6px", borderRadius: 4 }, onMouseEnter: () => setHoverRow("lint" + i), onMouseLeave: () => setHoverRow(null), onClick: () => jumpFromError(e) }, e.file.replace(/^game\//, "") + ":" + e.line + (e.msg ? " — " + e.msg : ""))),
@@ -4583,7 +4773,7 @@ const ICONS = {
 								React.createElement("span", { style: { color: testReport.status === "PASSED" ? SUCCESS : ERRCOL, fontWeight: 600 } }, testReport.status === "PASSED" ? "✓ 测试通过" : "✗ 测试失败"),
 								testReport.passed !== null ? React.createElement("span", { style: { color: TXT2 } }, testReport.passed + " passed" + (testReport.failed ? " · " + testReport.failed + " failed" : "") + " · " + (testReport.status || "")) : null,
 								React.createElement("span", { style: { flex: 1 } }),
-								React.createElement("span", { style: { fontSize: 11, color: TXT2, cursor: "pointer" }, onClick: () => setTestReport((r) => Object.assign({}, r, { output: r.output ? "" : (r.__full || r.output) })), title: "展开/收起 rpytest 报告" }, "详情"),
+								React.createElement("span", { style: { fontSize: 11, color: TXT2, cursor: "pointer" }, onClick: () => setTestReport((r) => Object.assign({}, r, { output: r.output ? "" : (r.__full || r.output) })), title: tr("展开/收起 rpytest 报告") }, tr("详情")),
 							),
 							(testReport.output && testReport.output.length > 2000) ? React.createElement("pre", { style: { fontSize: 10, color: TXT2, margin: "4px 0 0", whiteSpace: "pre-wrap", fontFamily: CODE, maxHeight: 60, overflow: "auto" } }, testReport.output.slice(0, 2000) + "…") : null,
 						) : null,
@@ -4592,7 +4782,7 @@ const ICONS = {
 					// ── 右侧栏（P2：调试面板停靠区，与 left 对称；左缘拖拽条调宽，空时不占空间） ──
 					(panelLayout.right && panelLayout.right.panels.length) ? React.createElement(React.Fragment, null,
 						// 右栏宽拖拽条（在右栏左缘：向左拖变大 → base - delta）
-						React.createElement("div", { onMouseDown: (e) => startRegionResize("right", e), title: "拖动调整右栏宽度", style: { width: 5, flexShrink: 0, cursor: "col-resize", background: "transparent", alignSelf: "stretch" }, onMouseEnter: (e) => { e.currentTarget.style.background = "rgba(100,160,255,.25)"; }, onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; } }),
+						React.createElement("div", { onMouseDown: (e) => startRegionResize("right", e), title: tr("拖动调整右栏宽度"), style: { width: 5, flexShrink: 0, cursor: "col-resize", background: "transparent", alignSelf: "stretch" }, onMouseEnter: (e) => { e.currentTarget.style.background = "rgba(100,160,255,.25)"; }, onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; } }),
 						React.createElement("div", { style: { ...colL, width: regionSize.right || 220, overflow: "hidden", padding: 0, display: "flex", flexDirection: "column", position: "relative", borderRight: "none", borderLeft: "1px solid " + BORDER, flexShrink: 0 } },
 							renderRegion("right"),
 						),
@@ -4605,15 +4795,15 @@ const ICONS = {
 							React.createElement("span", { style: { fontWeight: 600, fontSize: 13 } }, "保存历史 — " + (active ? active.name : "")),
 							React.createElement("span", { style: { fontSize: 11, color: TXT3 } }, histVersions.length + " 个版本"),
 							React.createElement("span", { style: { flex: 1 } }),
-							React.createElement("button", { style: { ...btn, padding: "2px 8px" }, title: "关闭历史弹层", onClick: () => setHistOpen(false) }, "关闭"),
+							React.createElement("button", { style: { ...btn, padding: "2px 8px" }, title: tr("关闭历史弹层"), onClick: () => setHistOpen(false) }, tr("关闭")),
 						),
 						React.createElement("div", { style: { display: "flex", flex: 1, minHeight: 0 } },
 							React.createElement("div", { style: { width: 250, flexShrink: 0, borderRight: "1px solid " + BORDER, overflow: "auto", padding: 4 } },
 								histVersions.length ? histVersions.map((v) => React.createElement("div", { key: v.time, style: { padding: "4px 8px", borderRadius: 6, cursor: "pointer", background: (histPreview && histPreview.time === v.time) ? GHOST : "transparent", display: "flex", alignItems: "center", gap: 6 }, onClick: () => previewHistory(v.time) },
 									React.createElement("span", { style: { flex: 1, minWidth: 0, fontSize: 12, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, fmtStamp(v.time)),
 									React.createElement("span", { style: { fontSize: 11, color: TXT3, flexShrink: 0 } }, fmtSize(v.size)),
-									React.createElement("button", { style: { ...btn, padding: "1px 8px", fontSize: 12 }, title: "恢复到该版本", onClick: (ev) => { ev.stopPropagation(); restoreHistory(v.time); } }, "恢复"),
-								)) : React.createElement("div", { style: { color: TXT2, fontSize: 12, padding: 12, textAlign: "center" } }, "暂无历史版本（每次保存自动备份）"),
+									React.createElement("button", { style: { ...btn, padding: "1px 8px", fontSize: 12 }, title: tr("恢复到该版本"), onClick: (ev) => { ev.stopPropagation(); restoreHistory(v.time); } }, tr("恢复")),
+								)) : React.createElement("div", { style: { color: TXT2, fontSize: 12, padding: 12, textAlign: "center" } }, tr("暂无历史版本（每次保存自动备份）")),
 							),
 							React.createElement("div", { style: { flex: 1, minWidth: 0, minHeight: 0, display: "flex", flexDirection: "column" } },
 								React.createElement("div", { style: { padding: "4px 10px", fontSize: 11, color: TXT3, borderBottom: "1px solid " + BORDER } }, histPreview ? "预览: " + fmtStamp(histPreview.time) : "点击左侧版本查看内容预览"),
@@ -4626,15 +4816,15 @@ const ICONS = {
 				cpOpen ? React.createElement("div", { style: { position: "absolute", inset: 0, background: "rgba(0,0,0,.4)", zIndex: 62, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 } },
 					React.createElement("div", { style: { width: 720, maxWidth: "100%", height: "82%", background: BG, border: "1px solid " + BORDER, borderRadius: 10, display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 10px 40px rgba(0,0,0,.35)" } },
 						React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderBottom: "1px solid " + BORDER, background: LAYER, flexWrap: "wrap" } },
-							React.createElement("span", { style: { fontWeight: 600, fontSize: 13 } }, "检查点修改"),
+							React.createElement("span", { style: { fontWeight: 600, fontSize: 13 } }, tr("检查点修改")),
 							React.createElement("select", { value: cpActive || "", onChange: (e) => pickCp(e.target.value), style: C.inp },
-								cpList.length ? cpList.map((c) => React.createElement("option", { key: c.id, value: c.id }, fmtStamp(c.id) + "（" + c.files + " 文件）")) : React.createElement("option", { value: "" }, "暂无检查点"),
+								cpList.length ? cpList.map((c) => React.createElement("option", { key: c.id, value: c.id }, fmtStamp(c.id) + "（" + c.files + " 文件）")) : React.createElement("option", { value: "" }, tr("暂无检查点")),
 							),
 							React.createElement("span", { style: { fontSize: 12, color: cpChanged ? ACCENT : TXT3 } }, cpChanged ? (cpDiff.summary.files + " 个文件，+" + cpDiff.summary.added + " -" + cpDiff.summary.removed) : "无修改"),
 							React.createElement("span", { style: { flex: 1 } }),
-							React.createElement("button", { style: { ...btn, padding: "2px 10px" }, title: "接受全部修改到基线", onClick: () => acceptCp(undefined), disabled: !cpChanged }, "全部通过"),
-							React.createElement("button", { style: { ...btn, padding: "2px 10px" }, title: "撤回全部修改", onClick: () => revertCp(undefined), disabled: !cpChanged }, "全部撤回"),
-							React.createElement("button", { style: { ...btn, padding: "2px 8px" }, title: "关闭修改面板", onClick: () => setCpOpen(false) }, "关闭"),
+							React.createElement("button", { style: { ...btn, padding: "2px 10px" }, title: tr("接受全部修改到基线"), onClick: () => acceptCp(undefined), disabled: !cpChanged }, tr("全部通过")),
+							React.createElement("button", { style: { ...btn, padding: "2px 10px" }, title: tr("撤回全部修改"), onClick: () => revertCp(undefined), disabled: !cpChanged }, tr("全部撤回")),
+							React.createElement("button", { style: { ...btn, padding: "2px 8px" }, title: tr("关闭修改面板"), onClick: () => setCpOpen(false) }, tr("关闭")),
 						),
 						React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", padding: 6 } },
 							cpDiff && cpDiff.files.length ? cpDiff.files.map((f) => {
@@ -4645,15 +4835,15 @@ const ICONS = {
 										React.createElement("span", { style: { flex: 1, minWidth: 0, fontSize: 12, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, f.rel),
 										React.createElement("span", { style: { fontSize: 11, color: SUCCESS, flexShrink: 0 } }, "+" + f.added),
 										React.createElement("span", { style: { fontSize: 11, color: ERRCOL, flexShrink: 0 } }, "-" + f.removed),
-										React.createElement("button", { style: { ...btn, padding: "1px 8px", fontSize: 12, flexShrink: 0 }, title: "接受该文件修改到基线", onClick: (ev) => { ev.stopPropagation(); acceptCp(f.rel); } }, "通过"),
-										React.createElement("button", { style: { ...btn, padding: "1px 8px", fontSize: 12, flexShrink: 0 }, title: "撤回该文件修改", onClick: (ev) => { ev.stopPropagation(); revertCp(f.rel); } }, "撤回"),
+										React.createElement("button", { style: { ...btn, padding: "1px 8px", fontSize: 12, flexShrink: 0 }, title: tr("接受该文件修改到基线"), onClick: (ev) => { ev.stopPropagation(); acceptCp(f.rel); } }, tr("通过")),
+										React.createElement("button", { style: { ...btn, padding: "1px 8px", fontSize: 12, flexShrink: 0 }, title: tr("撤回该文件修改"), onClick: (ev) => { ev.stopPropagation(); revertCp(f.rel); } }, tr("撤回")),
 									),
 									open ? React.createElement("div", { style: { borderTop: "1px solid " + BORDER, padding: "4px 6px 6px 22px" } },
 										(f.hunks || []).map((h, i) => React.createElement("div", { key: i, style: { display: "flex", alignItems: "center", gap: 8, padding: "3px 6px", borderRadius: 5, cursor: "pointer", fontSize: 12 }, onClick: () => jumpCpFile(f.rel, Math.max(1, h.newStart)) },
 											React.createElement("span", { style: { width: 14, fontSize: 10, color: h.type === "add" ? SUCCESS : h.type === "del" ? ERRCOL : "#569cd6" } }, h.type === "add" ? "+" : h.type === "del" ? "-" : "~"),
 											React.createElement("span", { style: { color: TXT2 } }, "L" + h.newStart + (h.newCount > 0 ? " (+" + h.newCount + ")" : "") + (h.oldCount > 0 ? " (-" + h.oldCount + ")" : "")),
 											React.createElement("span", { style: { flex: 1 } }),
-											React.createElement("span", { style: { fontSize: 11, color: TXT3 } }, "点击跳转"),
+											React.createElement("span", { style: { fontSize: 11, color: TXT3 } }, tr("点击跳转")),
 										)),
 									) : null,
 								);
@@ -4664,9 +4854,9 @@ const ICONS = {
 					) : null,
 					// ── 素材/字体预览浮窗（右下角/可拖动；点资源弹出、✕ 关闭） ──
 					(previewImg || previewAudio || previewFont) ? React.createElement("div", { ref: floatRef, style: { position: "absolute", ...(floatPos ? { left: floatPos.x, top: floatPos.y } : { right: 14, bottom: 34 }), width: previewFont ? 360 : 320, maxWidth: "80%", background: BG, border: "1px solid " + BORDER, borderRadius: 10, boxShadow: "0 8px 28px rgba(0,0,0,.35)", overflow: "hidden", zIndex: 55 } },
-						React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", borderBottom: "1px solid " + BORDER, background: LAYER, cursor: "grab", userSelect: "none" }, onMouseDown: onFloatDown, title: "拖动移动位置" },
+						React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", borderBottom: "1px solid " + BORDER, background: LAYER, cursor: "grab", userSelect: "none" }, onMouseDown: onFloatDown, title: tr("拖动移动位置") },
 							React.createElement("span", { style: { flex: 1, minWidth: 0, fontSize: 11, color: TXT3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, previewImg ? previewImg : previewAudio ? previewAudio : previewFont.rel),
-							React.createElement("span", { style: { fontSize: 12, color: TXT2, cursor: "pointer", flexShrink: 0 }, onClick: () => { setPreviewImg(null); setPreviewAudio(null); setPreviewFont(null); }, title: "关闭预览" }, React.createElement(Ico, { name: "close", size: 11 })),
+							React.createElement("span", { style: { fontSize: 12, color: TXT2, cursor: "pointer", flexShrink: 0 }, onClick: () => { setPreviewImg(null); setPreviewAudio(null); setPreviewFont(null); }, title: tr("关闭预览") }, React.createElement(Ico, { name: "close", size: 11 })),
 						),
 						previewImg ? React.createElement("img", { src: assetUrl(previewImg), style: { maxWidth: "100%", maxHeight: 260, display: "block", margin: "auto" } }) : null,
 						previewAudio ? React.createElement("div", { style: { padding: 8 } },
@@ -4675,13 +4865,13 @@ const ICONS = {
 						// 字体预览：真实字体渲染示例（FontFace 加载后生效）
 						previewFont ? React.createElement("div", { style: { padding: 10, display: "flex", flexDirection: "column", gap: 8 } },
 							React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: TXT2 } },
-								React.createElement("span", { style: { fontWeight: 600, color: TXT } }, "🔤 字体预览"),
+								React.createElement("span", { style: { fontWeight: 600, color: TXT } }, tr("🔤 字体预览")),
 								React.createElement("span", { style: { flex: 1 } }),
 								React.createElement("span", {}, fmtSize(previewFont.size || 0)),
 							),
 							React.createElement("div", { style: { background: "rgba(255,255,255,.04)", borderRadius: 6, padding: "12px 14px", lineHeight: 1.9, fontSize: 20 } },
-								React.createElement("div", { style: { fontFamily: "'" + ensureFont(previewFont.rel) + "', sans-serif" } }, "字体预览 Font Preview 0123456789"),
-								React.createElement("div", { style: { fontFamily: "'" + ensureFont(previewFont.rel) + "', sans-serif" } }, "你好，Ren'Py 文本样式预览"),
+								React.createElement("div", { style: { fontFamily: "'" + ensureFont(previewFont.rel) + "', sans-serif" } }, tr("字体预览 Font Preview 0123456789")),
+								React.createElement("div", { style: { fontFamily: "'" + ensureFont(previewFont.rel) + "', sans-serif" } }, tr("你好，Ren'Py 文本样式预览")),
 								React.createElement("div", { style: { fontFamily: "'" + ensureFont(previewFont.rel) + "', sans-serif", fontSize: 14, color: TXT2 } }, "The quick brown fox jumps over the lazy dog"),
 							),
 							React.createElement("div", { style: { fontSize: 11, color: TXT3, lineHeight: 1.6 } }, "引擎用法：`{font=" + previewFont.rel + "}…{/font}`（或 `{font=文件名}`）。字体文件位于项目 game/ 下，{font} 参数为相对 game/ 的路径或文件名；预览模式中 {font} 会自动真实渲染该字体。"),
@@ -4692,31 +4882,31 @@ const ICONS = {
 						React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", borderBottom: "1px solid " + BORDER, background: LAYER } },
 							React.createElement("span", { style: { flex: 1, minWidth: 0, fontSize: 12, fontWeight: 600, color: TXT } }, "⇄ Ren'Py → Python"),
 							React.createElement("span", { style: { fontSize: 11, color: TXT3 } }, "L" + pyConv.line),
-							React.createElement("span", { style: { fontSize: 12, color: TXT2, cursor: "pointer", flexShrink: 0 }, onClick: () => setPyConv(null), title: "关闭" }, React.createElement(Ico, { name: "close", size: 11 })),
+							React.createElement("span", { style: { fontSize: 12, color: TXT2, cursor: "pointer", flexShrink: 0 }, onClick: () => setPyConv(null), title: tr("关闭") }, React.createElement(Ico, { name: "close", size: 11 })),
 						),
 						React.createElement("div", { style: { padding: 8, display: "flex", flexDirection: "column", gap: 6 } },
 							React.createElement("div", { style: { fontSize: 10, color: TXT3, marginBottom: 1 } }, "Ren'Py"),
 							React.createElement("div", { style: { background: "rgba(86,156,214,.12)", borderRadius: 5, padding: "5px 8px", fontFamily: CODE, fontSize: 12, color: "#569cd6", whiteSpace: "pre-wrap", wordBreak: "break-word" } }, pyConv.rpy),
-							React.createElement("div", { style: { fontSize: 10, color: TXT3, marginBottom: 1 } }, "Python 等价"),
+							React.createElement("div", { style: { fontSize: 10, color: TXT3, marginBottom: 1 } }, tr("Python 等价")),
 							React.createElement("div", { style: { background: "rgba(212,172,200,.1)", borderRadius: 5, padding: "5px 8px", fontFamily: CODE, fontSize: 12, color: "#c586c0", whiteSpace: "pre-wrap", wordBreak: "break-word" } }, pyConv.py),
 							pyConv.note ? React.createElement("div", { style: { fontSize: 11, color: TXT2 } }, "💡 " + pyConv.note) : null,
 						),
 					) : null,
 					// ── 打字动画预览浮窗（出字速度/间隔：预览模式下点击 say 行播放；可拖标题栏） ──
 					(animLine !== null && animData) ? React.createElement("div", { ref: animRef, style: { position: "absolute", left: animPos ? animPos.x : undefined, top: animPos ? animPos.y : undefined, right: animPos ? undefined : 14, bottom: animPos ? undefined : 34, width: 430, maxWidth: "88%", background: BG, border: "1px solid " + BORDER, borderRadius: 10, boxShadow: "0 8px 28px rgba(0,0,0,.35)", overflow: "hidden", zIndex: 57 } },
-						React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", borderBottom: "1px solid " + BORDER, background: LAYER, cursor: "move", userSelect: "none" }, onMouseDown: onAnimDown, title: "拖动标题栏移动位置" },
+						React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", borderBottom: "1px solid " + BORDER, background: LAYER, cursor: "move", userSelect: "none" }, onMouseDown: onAnimDown, title: tr("拖动标题栏移动位置") },
 							React.createElement("span", { style: { flex: 1, minWidth: 0, fontSize: 12, fontWeight: 600, color: TXT } }, "▶ 打字动画预览 L" + animLine + " · 速度 " + animData.cps + " 字/秒（" + animData.src + "）"),
-							React.createElement("button", { style: { ...btn, padding: "1px 10px", fontSize: 12 }, onClick: () => setAnimSeq((s) => s + 1), title: "重新播放" }, "▶ 重播"),
-							React.createElement("span", { style: { fontSize: 12, color: TXT2, cursor: "pointer", flexShrink: 0 }, onMouseDown: (e) => e.stopPropagation(), onClick: () => { setAnimLine(null); setAnimProg(null); }, title: "关闭" }, React.createElement(Ico, { name: "close", size: 11 })),
+							React.createElement("button", { style: { ...btn, padding: "1px 10px", fontSize: 12 }, onClick: () => setAnimSeq((s) => s + 1), title: tr("重新播放") }, tr("▶ 重播")),
+							React.createElement("span", { style: { fontSize: 12, color: TXT2, cursor: "pointer", flexShrink: 0 }, onMouseDown: (e) => e.stopPropagation(), onClick: () => { setAnimLine(null); setAnimProg(null); }, title: tr("关闭") }, React.createElement(Ico, { name: "close", size: 11 })),
 						),
 						React.createElement("div", { style: { padding: 12, minHeight: 48, fontSize: 22, lineHeight: 1.7, background: "rgba(255,255,255,.04)", color: TXT, whiteSpace: "pre-wrap", wordBreak: "break-word" } },
 							animProg === null
-								? React.createElement("span", { style: { color: TXT3, fontSize: 13 } }, "▶ 准备播放…")
+								? React.createElement("span", { style: { color: TXT3, fontSize: 13 } }, tr("▶ 准备播放…"))
 								: animData.nodes.slice(0, animProg.ni).map((n, i) => playNodeEl(n, 9999, "f" + i)).concat(
 									animProg.ni < animData.nodes.length ? [playNodeEl(animData.nodes[animProg.ni], animProg.ci, "cur")] : []
 								).concat(
 									animProg.ni >= animData.nodes.length
-										? React.createElement("span", { key: "done", style: { color: SUCCESS, fontSize: 11, marginLeft: 6 } }, "✓ 播放完成")
+										? React.createElement("span", { key: "done", style: { color: SUCCESS, fontSize: 11, marginLeft: 6 } }, tr("✓ 播放完成"))
 										: React.createElement("span", { key: "caret", style: { display: "inline-block", width: 2, height: 22, background: "#e0e0e0", verticalAlign: "text-bottom", marginLeft: 1 } })
 								),
 						),
@@ -4727,33 +4917,33 @@ const ICONS = {
 					// ── GUI 主题定制面板（🎨 按钮打开；分辨率/主题色/字号/字体 → 写回 gui.rpy） ──
 					(guiOpen && guiVars) ? React.createElement("div", { style: { position: "absolute", right: 14, bottom: 34, width: 460, maxWidth: "90%", background: BG, border: "1px solid " + BORDER, borderRadius: 10, boxShadow: "0 8px 28px rgba(0,0,0,.35)", overflow: "hidden", zIndex: 58 } },
 						React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, padding: "7px 10px", borderBottom: "1px solid " + BORDER, background: LAYER } },
-							React.createElement("span", { style: { flex: 1, minWidth: 0, fontSize: 12, fontWeight: 600, color: TXT } }, "🎨 GUI 主题定制"),
+							React.createElement("span", { style: { flex: 1, minWidth: 0, fontSize: 12, fontWeight: 600, color: TXT } }, tr("🎨 GUI 主题定制")),
 							React.createElement("span", { style: { fontSize: 11, color: TXT3 } }, "gui.rpy"),
-							React.createElement("span", { style: { fontSize: 12, color: TXT2, cursor: "pointer", flexShrink: 0 }, onClick: () => setGuiOpen(false), title: "关闭" }, React.createElement(Ico, { name: "close", size: 11 })),
+							React.createElement("span", { style: { fontSize: 12, color: TXT2, cursor: "pointer", flexShrink: 0 }, onClick: () => setGuiOpen(false), title: tr("关闭") }, React.createElement(Ico, { name: "close", size: 11 })),
 						),
 						React.createElement("div", { style: { padding: 10, display: "flex", flexDirection: "column", gap: 8, maxHeight: 420, overflow: "auto" } },
 							React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, fontSize: 12 } },
-								React.createElement("span", { style: { width: 70, color: TXT2, flexShrink: 0 } }, "分辨率"),
+								React.createElement("span", { style: { width: 70, color: TXT2, flexShrink: 0 } }, tr("分辨率")),
 								React.createElement("input", { type: "number", value: guiVars.width || 1280, onChange: (e) => setGuiForm((f) => Object.assign({}, f, { width: parseInt(e.target.value, 10) || 0 })), style: { width: 70, ...C.inp } }),
 								React.createElement("span", { style: { color: TXT3 } }, "×"),
 								React.createElement("input", { type: "number", value: guiVars.height || 720, onChange: (e) => setGuiForm((f) => Object.assign({}, f, { height: parseInt(e.target.value, 10) || 0 })), style: { width: 70, ...C.inp } }),
-								React.createElement("span", { style: { fontSize: 10, color: TXT3 } }, "gui.init(宽, 高)"),
+								React.createElement("span", { style: { fontSize: 10, color: TXT3 } }, tr("gui.init(宽, 高)")),
 							),
-							React.createElement("div", { style: { fontSize: 10, color: TXT3, borderBottom: "1px solid " + BORDER, paddingBottom: 4 } }, "主题色（颜色框直接选；无定义项会追加）"),
+							React.createElement("div", { style: { fontSize: 10, color: TXT3, borderBottom: "1px solid " + BORDER, paddingBottom: 4 } }, tr("主题色（颜色框直接选；无定义项会追加）")),
 							[["accent_color", "强调色"], ["idle_color", "按钮空闲"], ["hover_color", "悬停"], ["selected_color", "选中"], ["insensitive_color", "禁用"], ["text_color", "对话文本"], ["interface_text_color", "界面文本"]].map(([name, label]) => React.createElement("div", { key: name, style: { display: "flex", alignItems: "center", gap: 8, fontSize: 12 } },
 								React.createElement("span", { style: { width: 70, color: TXT2, flexShrink: 0 } }, label),
 								React.createElement("input", { type: "color", value: (/^#[0-9a-fA-F]{6}/.exec(guiVars.vars["gui." + name] || "#888888") || [])[0] || "#888888", onChange: (e) => setGuiForm((f) => { const v = Object.assign({}, f.vars); v["gui." + name] = e.target.value; return Object.assign({}, f, { vars: v }); }), style: { width: 42, height: 26, border: "1px solid " + BORDER, borderRadius: 6, background: "transparent", padding: 0 } }),
 								React.createElement("span", { style: { fontSize: 10, color: TXT3, fontFamily: CODE, flex: 1, overflow: "hidden", textOverflow: "ellipsis" } }, "gui." + name + " = " + (guiVars.vars["gui." + name] || "（未定义）")),
 							)),
-							React.createElement("div", { style: { fontSize: 10, color: TXT3, borderBottom: "1px solid " + BORDER, paddingBottom: 4 } }, "字号（像素）"),
+							React.createElement("div", { style: { fontSize: 10, color: TXT3, borderBottom: "1px solid " + BORDER, paddingBottom: 4 } }, tr("字号（像素）")),
 							[["text_size", "对话"], ["name_text_size", "角色名"], ["interface_text_size", "界面"], ["title_text_size", "标题"]].map(([name, label]) => React.createElement("div", { key: name, style: { display: "flex", alignItems: "center", gap: 8, fontSize: 12 } },
 								React.createElement("span", { style: { width: 70, color: TXT2, flexShrink: 0 } }, label),
 								React.createElement("input", { type: "number", value: parseInt(guiVars.vars["gui." + name], 10) || 0, onChange: (e) => setGuiForm((f) => { const v = Object.assign({}, f.vars); v["gui." + name] = String(parseInt(e.target.value, 10) || 0); return Object.assign({}, f, { vars: v }); }), style: { width: 60, ...C.inp } }),
 								React.createElement("span", { style: { fontSize: 10, color: TXT3, fontFamily: CODE } }, "gui." + name),
 							)),
 							React.createElement("div", { style: { display: "flex", gap: 8, paddingTop: 4 } },
-								React.createElement("button", { style: { ...btnPrimary, flex: 1 }, title: "将 GUI 设置写回 gui.rpy", onClick: saveGuiChanges }, "保存到 gui.rpy"),
-								React.createElement("button", { style: { ...btn, flex: 1 }, onClick: () => { setGuiOpen(false); openFile("gui.rpy"); }, title: "关闭面板并打开 gui.rpy" }, "查看源码"),
+								React.createElement("button", { style: { ...btnPrimary, flex: 1 }, title: tr("将 GUI 设置写回 gui.rpy"), onClick: saveGuiChanges }, tr("保存到 gui.rpy")),
+								React.createElement("button", { style: { ...btn, flex: 1 }, onClick: () => { setGuiOpen(false); openFile("gui.rpy"); }, title: tr("关闭面板并打开 gui.rpy") }, tr("查看源码")),
 							),
 						),
 					) : null,
@@ -4762,33 +4952,33 @@ const ICONS = {
 						React.createElement("span", { style: { fontWeight: 600 } }, learnBusy ? "⏳ AI 生成中…" : "✅ 学习注释完成"),
 						React.createElement("span", { style: { color: TXT2 } }, learnBusy ? "正在逐行生成（每行一次 AI 调用，可能需要数十秒）" : ("已写入 " + (learnResult.added || 0) + " 条（" + learnResult.scopeLabel + "；失败 " + (learnResult.failed || 0) + " 条）")),
 						React.createElement("span", { style: { marginLeft: "auto" } }),
-						(!learnBusy && learnResult) ? React.createElement("button", { style: { ...btn, padding: "1px 10px", fontSize: 11 }, onClick: clearLearnAll, title: "清除当前文件（或工作区域内）全部学习注释" }, "🗑 清除全部") : null,
+						(!learnBusy && learnResult) ? React.createElement("button", { style: { ...btn, padding: "1px 10px", fontSize: 11 }, onClick: clearLearnAll, title: tr("清除当前文件（或工作区域内）全部学习注释") }, tr("🗑 清除全部")) : null,
 					) : null,
 					// ── 学习注释批量确认（消耗 AI 资源，需用户确认） ──
 					learnConfirm ? React.createElement("div", { style: { position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", zIndex: 80, background: BG, border: "1px solid " + BORDER, borderRadius: 10, boxShadow: "0 10px 34px rgba(0,0,0,.5)", padding: "14px 18px", maxWidth: 420, color: TXT } },
-						React.createElement("div", { style: { fontSize: 13, fontWeight: 600, marginBottom: 8 } }, "📖 批量生成 AI 学习注释？"),
+						React.createElement("div", { style: { fontSize: 13, fontWeight: 600, marginBottom: 8 } }, tr("📖 批量生成 AI 学习注释？")),
 						React.createElement("div", { style: { fontSize: 12, lineHeight: 1.6, color: TXT2, marginBottom: 4 } },
 							"将给「" + learnConfirm.scopeLabel + "」的 " + learnConfirm.targets.length + " 条语句生成「# 📖 学习:」注释块（每条基于对应 renpy-* skill 全文 + AI 讲解）。"),
 						React.createElement("div", { style: { fontSize: 12, color: "#e5c07b", marginBottom: 12 } }, "⚠ 每条注释调用一次 AI 模型（消耗 token 资源，" + learnConfirm.targets.length + " 条共约需数十秒）；写入后受工作区域限制，可在结果条点「清除全部」移除。"),
 						React.createElement("div", { style: { display: "flex", gap: 8, justifyContent: "flex-end" } },
-							React.createElement("button", { style: { ...btn, padding: "3px 14px" }, title: "取消（不消耗 AI 资源）", onClick: cancelTeach }, "取消"),
-							React.createElement("button", { style: { ...btnPrimary, padding: "3px 14px" }, title: "确认生成（消耗 token 资源）", onClick: confirmTeach }, "确认生成"),
+							React.createElement("button", { style: { ...btn, padding: "3px 14px" }, title: tr("取消（不消耗 AI 资源）"), onClick: cancelTeach }, tr("取消")),
+							React.createElement("button", { style: { ...btnPrimary, padding: "3px 14px" }, title: tr("确认生成（消耗 token 资源）"), onClick: confirmTeach }, tr("确认生成")),
 						),
 					) : null,
 					guardPrompt ? React.createElement("div", { style: { position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", zIndex: 81, background: BG, border: "1px solid " + BORDER, borderRadius: 10, boxShadow: "0 10px 34px rgba(0,0,0,.5)", padding: "14px 18px", maxWidth: 460, color: TXT } },
-						React.createElement("div", { style: { fontSize: 13, fontWeight: 600, marginBottom: 8 } }, "🛡 写守卫拦截了保存"),
+						React.createElement("div", { style: { fontSize: 13, fontWeight: 600, marginBottom: 8 } }, tr("🛡 写守卫拦截了保存")),
 						React.createElement("div", { style: { fontSize: 12, lineHeight: 1.6, color: TXT2, marginBottom: 8 } },
 							"检测到 " + guardPrompt.errors.length + " 个确定问题（会破坏脚本结构或运行报错）："),
 						React.createElement("div", { style: { maxHeight: 160, overflow: "auto", marginBottom: 10, border: "1px solid " + BORDER, borderRadius: 6, background: LAYER, padding: "6px 8px", fontSize: 11, lineHeight: 1.6, fontFamily: "monospace", color: "#e05c5c", whiteSpace: "pre-wrap" } },
 							guardPrompt.errors.map((e, i) => React.createElement("div", { key: i }, "L" + e.line + " [" + e.kind + "] " + e.msg))),
 						React.createElement("div", { style: { display: "flex", gap: 8, justifyContent: "flex-end" } },
-							React.createElement("button", { style: { ...btn, padding: "3px 14px" }, title: "返回编辑器修正后重新保存", onClick: () => setGuardPrompt(null) }, "取消（先修正）"),
-							React.createElement("button", { style: { ...btnDanger, padding: "3px 14px" }, title: "绕过写守卫强制保存（可能破坏脚本）", onClick: () => { setGuardPrompt(null); saveFile(true); } }, "仍要保存（强制）"),
+							React.createElement("button", { style: { ...btn, padding: "3px 14px" }, title: tr("返回编辑器修正后重新保存"), onClick: () => setGuardPrompt(null) }, tr("取消（先修正）")),
+							React.createElement("button", { style: { ...btnDanger, padding: "3px 14px" }, title: tr("绕过写守卫强制保存（可能破坏脚本）"), onClick: () => { setGuardPrompt(null); saveFile(true); } }, tr("仍要保存（强制）")),
 						),
 					) : null,
 					(panelLayout.bottom && panelLayout.bottom.panels.length) ? React.createElement("div", { style: { display: "flex", flexDirection: "column", flexShrink: 0, height: regionSize.bottom, minHeight: 0, borderTop: "1px solid " + BORDER, background: BG, position: "relative" } },
 						// 底部区高拖拽条（贴在区域上缘外侧，不遮挡面板标题栏；仅 4px hit 区）
-						React.createElement("div", { onMouseDown: (e) => startRegionResize("bottom", e), title: "拖动调整底部区高度", style: { position: "absolute", top: -4, left: 0, right: 0, height: 4, cursor: "row-resize", zIndex: 1 }, onMouseEnter: (e) => { e.currentTarget.style.background = "rgba(100,160,255,.35)"; }, onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; } }),
+						React.createElement("div", { onMouseDown: (e) => startRegionResize("bottom", e), title: tr("拖动调整底部区高度"), style: { position: "absolute", top: -4, left: 0, right: 0, height: 4, cursor: "row-resize", zIndex: 1 }, onMouseEnter: (e) => { e.currentTarget.style.background = "rgba(100,160,255,.35)"; }, onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; } }),
 						renderRegion("bottom"),
 					) : null,
 					// ── 状态栏（规范 §2：项目 | 运行状态 | 文件 | 行列 | 保存态） ──
@@ -4830,11 +5020,11 @@ const ICONS = {
 			const LAYER = tv("--dsw-alias-bg-layer-1");
 			const SIDEFILL = tv("--dsw-specific-sidebar-fill");
 			const chip = (act) => ({ padding: "2px 10px", fontSize: 12, cursor: "pointer", background: act ? "rgba(100,160,255,.25)" : "transparent", border: "1px solid " + (act ? ACCENT : BORDER), borderRadius: 4, color: TXT, whiteSpace: "nowrap" });
-			const sideEl = rs ? rs("conversation.view", { only: "chat" }) : React.createElement("div", { style: { color: TXT2, fontSize: 12, padding: 8 } }, "renderSlot 不可用");
+			const sideEl = rs ? rs("conversation.view", { only: "chat" }) : React.createElement("div", { style: { color: TXT2, fontSize: 12, padding: 8 } }, tr("renderSlot 不可用"));
 
 			return React.createElement("div", { style: { display: "flex", flexDirection: "column", height: "100%", minHeight: 0, background: BG, color: TXT } },
 				React.createElement("div", { style: { display: "flex", gap: 8, alignItems: "center", padding: "4px 10px", borderBottom: "1px solid " + BORDER, background: LAYER, flexWrap: "wrap" } },
-					React.createElement("span", { style: { color: TXT2, fontSize: 12 } }, "Ren'Py 开发工作区"),
+					React.createElement("span", { style: { color: TXT2, fontSize: 12 } }, tr("Ren'Py 开发工作区")),
 					React.createElement("span", { style: { flex: 1 } }),
 					React.createElement("span", { style: chip(sideOpen), onClick: () => setSideOpen(!sideOpen) }, sideOpen ? "收起侧栏" : "展开侧栏"),
 				),
@@ -4844,7 +5034,7 @@ const ICONS = {
 					),
 					sideOpen ? React.createElement("div", { style: { width: 360, borderLeft: "1px solid " + BORDER, background: SIDEFILL, display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0 } },
 						React.createElement("div", { style: { display: "flex", gap: 4, padding: "4px 8px", borderBottom: "1px solid " + BORDER } },
-							React.createElement("span", { style: chip(true) }, "对话"),
+							React.createElement("span", { style: chip(true) }, tr("对话")),
 						),
 						React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } },
 							React.createElement(ErrBoundary, null, sideEl),

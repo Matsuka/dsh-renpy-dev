@@ -48,11 +48,11 @@ const src = fs.readFileSync(require('./paths').CLIENT_SRC, 'utf8')
     const catFn = ids.filter((x) => x.cat === "功能").length
     const catCt = ids.filter((x) => x.cat === "控件").length
     ok(catFn + catCt === ids.length, '全部项有 category（功能/控件）', catFn + catCt + '/' + ids.length)
-    ok(catFn === 15, '功能 15 项（编辑行为5+补全4+显示5+亮暗1）', catFn)
+    ok(catFn === 16, '功能 16 项（编辑行为5+补全4+显示6+亮暗1）', catFn)
     ok(catCt === 33, '控件 33 项（字体5+布局3+颜色25）', catCt)
     ok(ids.filter((x) => x.group === "编辑行为").length === 5, '编辑行为组 5 项（缩进并入）', ids.filter((x) => x.group === "编辑行为").length)
     ok(ids.filter((x) => x.group === "补全").length === 4, '补全组 4 项')
-    ok(ids.filter((x) => x.group === "显示").length === 5, '显示组 5 项（行为开关；rulers/padding 移布局）', ids.filter((x) => x.group === "显示").length)
+    ok(ids.filter((x) => x.group === "显示").length === 6, '显示组 6 项（行为开关 + 界面语言；rulers/padding 移布局）', ids.filter((x) => x.group === "显示").length)
     ok(ids.filter((x) => x.group === "亮暗模式").length === 1, '亮暗模式组 1 项')
     ok(ids.filter((x) => x.group === "字体").length === 5, '字体组 5 项')
     ok(ids.filter((x) => x.group === "布局").length === 3, '布局组 3 项（rulers/padding）', ids.filter((x) => x.group === "布局").length)
