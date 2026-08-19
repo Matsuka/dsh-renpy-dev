@@ -34,57 +34,66 @@ window.__ModuleLoader__.load({
 
 		// ── 个性化配置注册表（设计借鉴 VSCode（MIT）：声明式 → 设置面板/校验/应用全由它驱动；
 		//    键名对齐 editor.* 命名，值语义与 VSCode 一致，支持未来配置互操作/导入） ──
-		// 字段：id / group / type（string|number|boolean|enum|number[]）/ default / enum / min / max / step / desc
-		// 本期 P0 范围：字体族 + 缩进 + 显示类（wordWrap 会破坏逐行对齐核心机制，P1 再议；导入导出 P1）
+		// 字段：id / category（功能|控件）/ group（子分组）/ type / default / enum / min / max / step / desc
+		// 分组原则：功能 = 行为开关与模式；控件 = 外观样式
 		const SETTINGS_SCHEMA = [
-			{ id: "editor.fontFamily", group: "字体", type: "string", default: "", desc: "编辑器代码字体（CSS font-family，可逗号分隔 fallback）；留空=跟随 DSH 主题 --ds-font-family-code" },
-			{ id: "editor.fontSize", group: "字体", type: "number", default: 13, min: 8, max: 32, desc: "编辑器字号（px）" },
-			{ id: "editor.fontWeight", group: "字体", type: "enum", default: "normal", enum: ["normal", "bold", "lighter"], desc: "代码字重" },
-			{ id: "editor.lineHeight", group: "字体", type: "number", default: 0, min: 0, max: 60, desc: "行高（px；0=自动，按字号×1.5 计算。与 VSCode 语义一致）" },
-			{ id: "editor.letterSpacing", group: "字体", type: "number", default: 0, min: -1, max: 4, step: 0.1, desc: "字间距（px）" },
-			{ id: "editor.tabSize", group: "缩进", type: "number", default: 4, min: 1, max: 8, desc: "制表符宽度（列数）；影响自动缩进与缩进线" },
-			{ id: "editor.insertSpaces", group: "缩进", type: "boolean", default: true, desc: "自动缩进使用空格（false=制表符 \\t）" },
-			{ id: "editor.lineNumbers", group: "显示", type: "enum", default: "on", enum: ["on", "relative", "off"], desc: "行号模式：绝对 / 相对当前行 / 关闭" },
-			{ id: "editor.renderLineHighlight", group: "显示", type: "enum", default: "line", enum: ["none", "line", "gutter", "all"], desc: "当前行高亮：关闭 / 仅行 / 仅槽位 / 全部（gutter 与 all 暂按 line 渲染）" },
-			{ id: "editor.renderWhitespace", group: "显示", type: "enum", default: "none", enum: ["none", "boundary", "trailing", "all"], desc: "空白显示：无 / 行首缩进+行尾空格 / 仅行尾空格 / 全部空格" },
-			{ id: "editor.rulers", group: "显示", type: "number[]", default: [], desc: "垂直标尺（列号数组，如 [80, 120]）" },
-			{ id: "editor.bracketPairColorization.enabled", group: "显示", type: "boolean", default: true, desc: "括号配对着色（光标处括号对金色高亮）" },
-			{ id: "editor.guides.indentation", group: "显示", type: "boolean", default: true, desc: "缩进向导线（缩进参考虚线）" },
-			{ id: "editor.quickSuggestions.other", group: "补全", type: "boolean", default: true, desc: "代码中输入时自动弹出补全" },
-			{ id: "editor.quickSuggestions.comments", group: "补全", type: "boolean", default: false, desc: "注释中自动弹出补全（默认关，对齐 VSCode）" },
-			{ id: "editor.quickSuggestions.strings", group: "补全", type: "boolean", default: false, desc: "字符串（对白文本）中自动弹出补全（默认关，对齐 VSCode）" },
-			{ id: "editor.suggestOnTriggerCharacters", group: "补全", type: "boolean", default: true, desc: "输入触发字符（_ 与 .）时自动弹出补全" },
-			{ id: "editor.padding.top", group: "显示", type: "number", default: 0, min: 0, max: 48, desc: "编辑器顶部内边距（px；overlay 定位同步偏移）" },
-			{ id: "editor.padding.bottom", group: "显示", type: "number", default: 0, min: 0, max: 48, desc: "编辑器底部内边距（px）" },
-			{ id: "editor.mouseWheelZoom", group: "编辑行为", type: "boolean", default: false, desc: "Ctrl+滚轮缩放字号（开启后编辑器内 Ctrl+滚轮不再缩放网页；默认关）" },
-			{ id: "editor.smoothScrolling", group: "编辑行为", type: "boolean", default: false, desc: "平滑滚动（滚轮滚动插值动画）" },
-			{ id: "editor.trimAutoWhitespace", group: "编辑行为", type: "boolean", default: true, desc: "保存时清理行尾空白" },
-			{ id: "editor.background", group: "颜色", type: "color", default: "", desc: "编辑器背景色（留空=默认 #1e1e1e 系）" },
-			{ id: "editor.foreground", group: "颜色", type: "color", default: "", desc: "编辑器前景色（代码文本；留空=默认）" },
-			{ id: "editor.selectionBackground", group: "颜色", type: "color", default: "", desc: "选中文本背景色（留空=默认）" },
-			{ id: "editor.lineHighlightBackground", group: "颜色", type: "color", default: "", desc: "当前行高亮背景色（留空=默认）" },
-			{ id: "editorLineNumber.foreground", group: "颜色", type: "color", default: "", desc: "行号颜色（留空=默认）" },
-			{ id: "editorCursor.foreground", group: "颜色", type: "color", default: "", desc: "光标颜色（留空=跟随前景色）" },
-			{ id: "editorGutter.background", group: "颜色", type: "color", default: "", desc: "行号槽背景色（留空=跟随编辑器背景）" },
-			{ id: "editorIndentGuide.background1", group: "颜色", type: "color", default: "", desc: "缩进向导线颜色（留空=默认）" },
-			{ id: "editorWhitespace.foreground", group: "颜色", type: "color", default: "", desc: "空白字符标记颜色（留空=默认）" },
-			{ id: "editorBracketMatch.background", group: "颜色", type: "color", default: "", desc: "括号匹配高亮颜色（留空=默认）" },
-			{ id: "editorFindMatchBackground", group: "颜色", type: "color", default: "", desc: "查找匹配高亮颜色（留空=默认）" },
-			{ id: "editorError.foreground", group: "颜色", type: "color", default: "", desc: "lint 错误下划线颜色（留空=默认）" },
-			{ id: "workbench.background", group: "界面", type: "color", default: "", desc: "工作台背景色（留空=跟随 DSH 主题）" },
-			{ id: "theme.mode", group: "界面", type: "enum", default: "dark", enum: ["light", "dark"], desc: "亮暗模式：亮色 / 暗色（手动切换整个 DSH 界面，编辑器随之适配）" },
-			{ id: "workbench.sideBar.background", group: "界面", type: "color", default: "", desc: "侧栏背景色（文件/导航/素材区）" },
-			{ id: "workbench.activityBar.background", group: "界面", type: "color", default: "", desc: "活动栏背景色（最左图标栏）" },
-			{ id: "workbench.panel.background", group: "界面", type: "color", default: "", desc: "面板背景色（对话/调试/设置等停靠面板）" },
-			{ id: "workbench.editorGroupHeader.tabsBackground", group: "界面", type: "color", default: "", desc: "标签栏背景色（编辑器标签页）" },
-			{ id: "workbench.statusBar.background", group: "界面", type: "color", default: "", desc: "状态栏背景色（底部）" },
-			{ id: "workbench.foreground", group: "界面", type: "color", default: "", desc: "工作台界面前景色（文本）" },
-			{ id: "workbench.border", group: "界面", type: "color", default: "", desc: "工作台分隔边框色" },
-			{ id: "button.background", group: "交互", type: "color", default: "", desc: "主按钮/激活/选中/聚焦强调色（全局强调色）" },
-			{ id: "button.foreground", group: "交互", type: "color", default: "", desc: "主按钮文字色（留空=跟随主题对比语义：暗色深字/亮色白字）" },
-			{ id: "list.hoverBackground", group: "交互", type: "color", default: "", desc: "列表/树/按钮 hover 底色" },
-			{ id: "input.background", group: "交互", type: "color", default: "", desc: "输入框/普通按钮底色" },
-			{ id: "input.border", group: "交互", type: "color", default: "", desc: "输入框/控件边框色" },
+			// ── 功能 · 编辑行为 ──
+			{ id: "editor.tabSize", category: "功能", group: "编辑行为", type: "number", default: 4, min: 1, max: 8, desc: "制表符宽度（列数）；影响自动缩进与缩进线" },
+			{ id: "editor.insertSpaces", category: "功能", group: "编辑行为", type: "boolean", default: true, desc: "自动缩进使用空格（false=制表符 \\t）" },
+			{ id: "editor.mouseWheelZoom", category: "功能", group: "编辑行为", type: "boolean", default: false, desc: "Ctrl+滚轮缩放字号（开启后编辑器内 Ctrl+滚轮不再缩放网页；默认关）" },
+			{ id: "editor.smoothScrolling", category: "功能", group: "编辑行为", type: "boolean", default: false, desc: "平滑滚动（滚轮滚动插值动画）" },
+			{ id: "editor.trimAutoWhitespace", category: "功能", group: "编辑行为", type: "boolean", default: true, desc: "保存时清理行尾空白" },
+			// ── 功能 · 补全 ──
+			{ id: "editor.quickSuggestions.other", category: "功能", group: "补全", type: "boolean", default: true, desc: "代码中输入时自动弹出补全" },
+			{ id: "editor.quickSuggestions.comments", category: "功能", group: "补全", type: "boolean", default: false, desc: "注释中自动弹出补全（默认关，对齐 VSCode）" },
+			{ id: "editor.quickSuggestions.strings", category: "功能", group: "补全", type: "boolean", default: false, desc: "字符串（对白文本）中自动弹出补全（默认关，对齐 VSCode）" },
+			{ id: "editor.suggestOnTriggerCharacters", category: "功能", group: "补全", type: "boolean", default: true, desc: "输入触发字符（_ 与 .）时自动弹出补全" },
+			// ── 功能 · 显示（行为开关与模式） ──
+			{ id: "editor.lineNumbers", category: "功能", group: "显示", type: "enum", default: "on", enum: ["on", "relative", "off"], desc: "行号模式：绝对 / 相对当前行 / 关闭" },
+			{ id: "editor.renderLineHighlight", category: "功能", group: "显示", type: "enum", default: "line", enum: ["none", "line", "gutter", "all"], desc: "当前行高亮：关闭 / 仅行 / 仅槽位 / 全部（gutter 与 all 暂按 line 渲染）" },
+			{ id: "editor.renderWhitespace", category: "功能", group: "显示", type: "enum", default: "none", enum: ["none", "boundary", "trailing", "all"], desc: "空白显示：无 / 行首缩进+行尾空格 / 仅行尾空格 / 全部空格" },
+			{ id: "editor.bracketPairColorization.enabled", category: "功能", group: "显示", type: "boolean", default: true, desc: "括号配对着色（光标处括号对金色高亮）" },
+			{ id: "editor.guides.indentation", category: "功能", group: "显示", type: "boolean", default: true, desc: "缩进向导线（缩进参考虚线）" },
+			// ── 功能 · 亮暗模式 ──
+			{ id: "theme.mode", category: "功能", group: "亮暗模式", type: "enum", default: "dark", enum: ["light", "dark"], desc: "亮暗模式：亮色 / 暗色（手动切换整个 DSH 界面，编辑器随之适配）" },
+			// ── 控件 · 字体 ──
+			{ id: "editor.fontFamily", category: "控件", group: "字体", type: "string", default: "", desc: "编辑器代码字体（CSS font-family，可逗号分隔 fallback）；留空=跟随 DSH 主题 --ds-font-family-code" },
+			{ id: "editor.fontSize", category: "控件", group: "字体", type: "number", default: 13, min: 8, max: 32, desc: "编辑器字号（px）" },
+			{ id: "editor.fontWeight", category: "控件", group: "字体", type: "enum", default: "normal", enum: ["normal", "bold", "lighter"], desc: "代码字重" },
+			{ id: "editor.lineHeight", category: "控件", group: "字体", type: "number", default: 0, min: 0, max: 60, desc: "行高（px；0=自动，按字号×1.5 计算。与 VSCode 语义一致）" },
+			{ id: "editor.letterSpacing", category: "控件", group: "字体", type: "number", default: 0, min: -1, max: 4, step: 0.1, desc: "字间距（px）" },
+			// ── 控件 · 布局 ──
+			{ id: "editor.rulers", category: "控件", group: "布局", type: "number[]", default: [], desc: "垂直标尺（列号数组，如 [80, 120]）" },
+			{ id: "editor.padding.top", category: "控件", group: "布局", type: "number", default: 0, min: 0, max: 48, desc: "编辑器顶部内边距（px；overlay 定位同步偏移）" },
+			{ id: "editor.padding.bottom", category: "控件", group: "布局", type: "number", default: 0, min: 0, max: 48, desc: "编辑器底部内边距（px）" },
+			// ── 控件 · 颜色·编辑器 ──
+			{ id: "editor.background", category: "控件", group: "颜色·编辑器", type: "color", default: "", desc: "编辑器背景色（留空=跟随 DSH 主题）" },
+			{ id: "editor.foreground", category: "控件", group: "颜色·编辑器", type: "color", default: "", desc: "编辑器前景色（代码文本；留空=跟随主题）" },
+			{ id: "editor.selectionBackground", category: "控件", group: "颜色·编辑器", type: "color", default: "", desc: "选中文本背景色（留空=默认）" },
+			{ id: "editor.lineHighlightBackground", category: "控件", group: "颜色·编辑器", type: "color", default: "", desc: "当前行高亮背景色（留空=默认）" },
+			{ id: "editorLineNumber.foreground", category: "控件", group: "颜色·编辑器", type: "color", default: "", desc: "行号颜色（留空=默认）" },
+			{ id: "editorCursor.foreground", category: "控件", group: "颜色·编辑器", type: "color", default: "", desc: "光标颜色（留空=跟随前景色）" },
+			{ id: "editorGutter.background", category: "控件", group: "颜色·编辑器", type: "color", default: "", desc: "行号槽背景色（留空=跟随编辑器背景）" },
+			{ id: "editorIndentGuide.background1", category: "控件", group: "颜色·编辑器", type: "color", default: "", desc: "缩进向导线颜色（留空=默认）" },
+			{ id: "editorWhitespace.foreground", category: "控件", group: "颜色·编辑器", type: "color", default: "", desc: "空白字符标记颜色（留空=默认）" },
+			{ id: "editorBracketMatch.background", category: "控件", group: "颜色·编辑器", type: "color", default: "", desc: "括号匹配高亮颜色（留空=默认）" },
+			{ id: "editorFindMatchBackground", category: "控件", group: "颜色·编辑器", type: "color", default: "", desc: "查找匹配高亮颜色（留空=默认）" },
+			{ id: "editorError.foreground", category: "控件", group: "颜色·编辑器", type: "color", default: "", desc: "lint 错误下划线颜色（留空=默认）" },
+			// ── 控件 · 颜色·界面 ──
+			{ id: "workbench.background", category: "控件", group: "颜色·界面", type: "color", default: "", desc: "工作台背景色（留空=跟随 DSH 主题）" },
+			{ id: "workbench.sideBar.background", category: "控件", group: "颜色·界面", type: "color", default: "", desc: "侧栏背景色（文件/导航/素材区）" },
+			{ id: "workbench.activityBar.background", category: "控件", group: "颜色·界面", type: "color", default: "", desc: "活动栏背景色（最左图标栏）" },
+			{ id: "workbench.panel.background", category: "控件", group: "颜色·界面", type: "color", default: "", desc: "面板背景色（对话/调试/设置等停靠面板）" },
+			{ id: "workbench.editorGroupHeader.tabsBackground", category: "控件", group: "颜色·界面", type: "color", default: "", desc: "标签栏背景色（编辑器标签页）" },
+			{ id: "workbench.statusBar.background", category: "控件", group: "颜色·界面", type: "color", default: "", desc: "状态栏背景色（底部）" },
+			{ id: "workbench.foreground", category: "控件", group: "颜色·界面", type: "color", default: "", desc: "工作台界面前景色（文本）" },
+			{ id: "workbench.border", category: "控件", group: "颜色·界面", type: "color", default: "", desc: "工作台分隔边框色" },
+			// ── 控件 · 颜色·交互 ──
+			{ id: "button.background", category: "控件", group: "颜色·交互", type: "color", default: "", desc: "主按钮/激活/选中/聚焦强调色（全局强调色）" },
+			{ id: "button.foreground", category: "控件", group: "颜色·交互", type: "color", default: "", desc: "主按钮文字色（留空=跟随主题对比语义：暗色深字/亮色白字）" },
+			{ id: "list.hoverBackground", category: "控件", group: "颜色·交互", type: "color", default: "", desc: "列表/树/按钮 hover 底色" },
+			{ id: "input.background", category: "控件", group: "颜色·交互", type: "color", default: "", desc: "输入框/普通按钮底色" },
+			{ id: "input.border", category: "控件", group: "颜色·交互", type: "color", default: "", desc: "输入框/控件边框色" },
 		];
 		const SETTINGS_DEFAULTS = (() => {
 			const d = {};
@@ -1417,7 +1426,7 @@ window.__ModuleLoader__.load({
 			const applyPreset = (name) => {
 				const preset = COLOR_PRESETS[name];
 				if (!preset) return;
-				const colorIds = SETTINGS_SCHEMA.filter((s) => s.group === "颜色" || s.group === "界面").map((s) => s.id);
+				const colorIds = SETTINGS_SCHEMA.filter((s) => s.type === "color").map((s) => s.id);
 				const next = { ...local };
 				for (const cid of colorIds) next[cid] = preset[cid] || "";
 				setLocal(next); localRef.current = next; persistLocal();
@@ -1466,32 +1475,46 @@ window.__ModuleLoader__.load({
 				);
 			};
 			const list = (shown || SETTINGS_SCHEMA).map(row);
-			const groupNames = Object.keys(groups);
-			// 分组列表：全屏时三组横排（每组一列），小面板时纵向堆叠
+			// 两级分组：category（功能/控件）→ group（子分组）；配色方案下拉放在第一个颜色组
+			const groupsByCat = {};
+			for (const s of SETTINGS_SCHEMA) {
+				const cat = s.category || "功能";
+				if (!groupsByCat[cat]) groupsByCat[cat] = {};
+				(groupsByCat[cat][s.group] = groupsByCat[cat][s.group] || []).push(s);
+			}
+			const CAT_ORDER = ["功能", "控件"];
+			const firstColorGroup = SETTINGS_SCHEMA.find((s) => s.type === "color").group;
+			const presetSelect = (small) => React.createElement("select", { defaultValue: "", onChange: (e) => { if (e.target.value) { applyPreset(e.target.value); e.target.value = ""; } }, title: "一键应用 VSCode 预制配色方案（写入当前层）", style: { marginLeft: "auto", height: small ? 20 : 22, fontSize: small ? 10 : 11, background: "var(--dsw-alias-bg-layer-2)", color: TXT, border: "1px solid " + BORDER, borderRadius: 6, padding: "0 3px", cursor: "pointer", outline: "none", fontFamily: "inherit" } },
+				React.createElement("option", { value: "" }, small ? "🎨 预制配色…" : "🎨 应用预制配色…"),
+				COLOR_PRESET_NAMES.map((n) => React.createElement("option", { key: n, value: n }, n)),
+			);
+			const groupCard = (g, items) => React.createElement("div", { key: g, style: { flex: "1 1 320px", minWidth: 320, border: "1px solid " + BORDER, borderRadius: 8, overflow: "hidden", background: "var(--dsw-alias-bg-base)" } },
+				React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: TXT2, background: LAYER, borderBottom: "1px solid " + BORDER } },
+					g,
+					(g === firstColorGroup) ? presetSelect(false) : null,
+				),
+				items.map(row),
+			);
+			const groupList = (g, items) => React.createElement("div", { key: g },
+				React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: TXT2, background: "rgba(128,128,128,.07)", borderBottom: "1px solid " + BORDER } },
+					g,
+					(g === firstColorGroup) ? presetSelect(true) : null,
+				),
+				items.map(row),
+			);
+			// 分组列表：全屏时按大区分区块（功能/控件）+ 区内卡片横排；小面板纵向堆叠
 			const body = query.trim()
 				? (list.length ? list : React.createElement("div", { style: { color: TXT3, fontSize: 12, padding: "16px 8px", textAlign: "center" } }, "无匹配的设置"))
 				: (full
-					? React.createElement("div", { style: { display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap", padding: "8px 4px" } },
-						groupNames.map((g) => React.createElement("div", { key: g, style: { flex: "1 1 320px", minWidth: 320, border: "1px solid " + BORDER, borderRadius: 8, overflow: "hidden", background: "var(--dsw-alias-bg-base)" } },
-							React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: TXT2, background: LAYER, borderBottom: "1px solid " + BORDER } },
-								g,
-								(g === "颜色") ? React.createElement("select", { defaultValue: "", onChange: (e) => { if (e.target.value) { applyPreset(e.target.value); e.target.value = ""; } }, title: "一键应用 VSCode 预制配色方案（写入当前层）", style: { marginLeft: "auto", height: 22, fontSize: 11, background: "var(--dsw-alias-bg-layer-2)", color: TXT, border: "1px solid " + BORDER, borderRadius: 6, padding: "0 4px", cursor: "pointer", outline: "none", fontFamily: "inherit" } },
-									React.createElement("option", { value: "" }, "🎨 应用预制配色…"),
-									COLOR_PRESET_NAMES.map((n) => React.createElement("option", { key: n, value: n }, n)),
-								) : null,
-							),
-							groups[g].map(row),
-						)),
-					)
-					: groupNames.map((g) => React.createElement("div", { key: g },
-						React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: TXT2, background: "rgba(128,128,128,.07)", borderBottom: "1px solid " + BORDER } },
-							g,
-							(g === "颜色") ? React.createElement("select", { defaultValue: "", onChange: (e) => { if (e.target.value) { applyPreset(e.target.value); e.target.value = ""; } }, title: "一键应用 VSCode 预制配色方案（写入当前层）", style: { marginLeft: "auto", height: 20, fontSize: 10, background: "var(--dsw-alias-bg-layer-2)", color: TXT, border: "1px solid " + BORDER, borderRadius: 6, padding: "0 3px", cursor: "pointer", outline: "none", fontFamily: "inherit" } },
-								React.createElement("option", { value: "" }, "🎨 预制配色…"),
-								COLOR_PRESET_NAMES.map((n) => React.createElement("option", { key: n, value: n }, n)),
-							) : null,
+					? CAT_ORDER.map((cat) => React.createElement("div", { key: cat, style: { marginBottom: 14 } },
+						React.createElement("div", { style: { fontSize: 13, fontWeight: 700, color: TXT, padding: "4px 2px 6px", borderBottom: "2px solid " + BORDER, marginBottom: 8 } }, cat === "功能" ? "⚙ 功能" : "🎨 控件"),
+						React.createElement("div", { style: { display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap" } },
+							Object.keys(groupsByCat[cat] || {}).map((g) => groupCard(g, groupsByCat[cat][g])),
 						),
-						groups[g].map(row),
+					))
+					: CAT_ORDER.map((cat) => React.createElement("div", { key: cat, style: { marginBottom: 10 } },
+						React.createElement("div", { style: { padding: "4px 10px", fontSize: 11, fontWeight: 700, color: TXT2, borderBottom: "1px solid " + BORDER, marginBottom: 4 } }, cat === "功能" ? "⚙ 功能" : "🎨 控件"),
+						Object.keys(groupsByCat[cat] || {}).map((g) => groupList(g, groupsByCat[cat][g])),
 					)));
 			return React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } },
 				React.createElement("div", { style: { flexShrink: 0, display: "flex", alignItems: "center", gap: 6, padding: full ? "8px 18px" : "4px 10px", background: LAYER, borderBottom: "1px solid " + BORDER, flexWrap: "wrap" } },

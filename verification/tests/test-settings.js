@@ -39,20 +39,27 @@ const src = fs.readFileSync(require('./paths').CLIENT_SRC, 'utf8')
   const m = /const SETTINGS_SCHEMA = \[([\s\S]*?)\];/.exec(src)
   ok(!!m, 'SETTINGS_SCHEMA 数组可提取', m && m[1].slice(0, 80))
   if (m) {
-    const ids = [...m[1].matchAll(/\{ id: "([^"]+)", group: "([^"]+)", type: "([^"]+)", default: ([^,]+),/g)].map((x) => ({ id: x[1], group: x[2], type: x[3], def: x[4] }))
-    const required = ["editor.fontFamily", "editor.fontSize", "editor.fontWeight", "editor.lineHeight", "editor.letterSpacing", "editor.tabSize", "editor.insertSpaces", "editor.lineNumbers", "editor.renderLineHighlight", "editor.renderWhitespace", "editor.rulers", "editor.bracketPairColorization.enabled", "editor.guides.indentation", "editor.quickSuggestions.other", "editor.quickSuggestions.comments", "editor.quickSuggestions.strings", "editor.suggestOnTriggerCharacters", "editor.padding.top", "editor.padding.bottom", "editor.mouseWheelZoom", "editor.smoothScrolling", "editor.trimAutoWhitespace", "editor.background", "editor.foreground", "editor.lineHighlightBackground", "editor.selectionBackground"]
+    const ids = [...m[1].matchAll(/\{ id: "([^"]+)", category: "([^"]+)", group: "([^"]+)", type: "([^"]+)", default: ([^,]+),/g)].map((x) => ({ id: x[1], cat: x[2], group: x[3], type: x[4], def: x[5] }))
+    const required = ["editor.fontFamily", "editor.fontSize", "editor.fontWeight", "editor.lineHeight", "editor.letterSpacing", "editor.tabSize", "editor.insertSpaces", "editor.lineNumbers", "editor.renderLineHighlight", "editor.renderWhitespace", "editor.rulers", "editor.bracketPairColorization.enabled", "editor.guides.indentation", "editor.quickSuggestions.other", "editor.quickSuggestions.comments", "editor.quickSuggestions.strings", "editor.suggestOnTriggerCharacters", "editor.padding.top", "editor.padding.bottom", "editor.mouseWheelZoom", "editor.smoothScrolling", "editor.trimAutoWhitespace", "editor.background", "editor.foreground", "editor.lineHighlightBackground", "editor.selectionBackground", "theme.mode", "button.background", "button.foreground", "input.border", "workbench.border"]
     for (const rid of required) ok(ids.some((x) => x.id === rid), 'schema 含 ' + rid)
     const dup = ids.length - new Set(ids.map((x) => x.id)).size
     ok(dup === 0, 'schema id 无重复', dup)
-    ok(ids.filter((x) => x.group === "字体").length === 5, '字体组 5 项', ids.filter((x) => x.group === "字体").length)
-    ok(ids.filter((x) => x.group === "缩进").length === 2, '缩进组 2 项')
-    ok(ids.filter((x) => x.group === "显示").length === 8, '显示组 8 项（+括号/缩进线/padding 2）', ids.filter((x) => x.group === "显示").length)
+    // 两大分类（功能/控件）+ 子分组
+    const catFn = ids.filter((x) => x.cat === "功能").length
+    const catCt = ids.filter((x) => x.cat === "控件").length
+    ok(catFn + catCt === ids.length, '全部项有 category（功能/控件）', catFn + catCt + '/' + ids.length)
+    ok(catFn === 15, '功能 15 项（编辑行为5+补全4+显示5+亮暗1）', catFn)
+    ok(catCt === 33, '控件 33 项（字体5+布局3+颜色25）', catCt)
+    ok(ids.filter((x) => x.group === "编辑行为").length === 5, '编辑行为组 5 项（缩进并入）', ids.filter((x) => x.group === "编辑行为").length)
     ok(ids.filter((x) => x.group === "补全").length === 4, '补全组 4 项')
-    ok(ids.filter((x) => x.group === "编辑行为").length === 3, '编辑行为组 3 项', ids.filter((x) => x.group === "编辑行为").length)
-    ok(ids.filter((x) => x.group === "颜色").length === 12, '颜色组 12 项（对齐 VSCode editor.* token）', ids.filter((x) => x.group === "颜色").length)
-    ok(ids.filter((x) => x.group === "界面").length === 9, '界面组 9 项（workbench.* + theme.mode）', ids.filter((x) => x.group === "界面").length)
-    ok(ids.filter((x) => x.group === "交互").length === 5, '交互组 5 项（button/list/input，含按钮文字色）', ids.filter((x) => x.group === "交互").length)
-    ok(ids.filter((x) => x.type === "color").length === 25, 'color 类型 25 项（编辑器 12 + 界面 8 + 交互 5）', ids.filter((x) => x.type === "color").length)
+    ok(ids.filter((x) => x.group === "显示").length === 5, '显示组 5 项（行为开关；rulers/padding 移布局）', ids.filter((x) => x.group === "显示").length)
+    ok(ids.filter((x) => x.group === "亮暗模式").length === 1, '亮暗模式组 1 项')
+    ok(ids.filter((x) => x.group === "字体").length === 5, '字体组 5 项')
+    ok(ids.filter((x) => x.group === "布局").length === 3, '布局组 3 项（rulers/padding）', ids.filter((x) => x.group === "布局").length)
+    ok(ids.filter((x) => x.group === "颜色·编辑器").length === 12, '颜色·编辑器 12 项', ids.filter((x) => x.group === "颜色·编辑器").length)
+    ok(ids.filter((x) => x.group === "颜色·界面").length === 8, '颜色·界面 8 项', ids.filter((x) => x.group === "颜色·界面").length)
+    ok(ids.filter((x) => x.group === "颜色·交互").length === 5, '颜色·交互 5 项', ids.filter((x) => x.group === "颜色·交互").length)
+    ok(ids.filter((x) => x.type === "color").length === 25, 'color 类型 25 项', ids.filter((x) => x.type === "color").length)
     ok(ids.some((x) => x.id === "theme.mode" && x.def === '"dark"' && /"light", "dark"/.test(m[1].slice(m[1].indexOf("theme.mode"), m[1].indexOf("theme.mode") + 200))), 'theme.mode 仅亮/暗两档（默认 dark，无 system）')
     const mwz = ids.find((x) => x.id === "editor.mouseWheelZoom")
     ok(mwz.def === "false", 'mouseWheelZoom 默认 false（不影响页面缩放，冲突可关）', mwz && mwz.def)
