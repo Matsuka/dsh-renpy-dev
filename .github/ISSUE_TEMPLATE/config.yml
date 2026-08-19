@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 部署 / 使用问题
+    url: https://github.com/deepseek-ai/dsh
+    about: 部署与使用问题先看 DEPLOY.md 与 TESTER-GUIDE.md；DSH 本身的问题请在 DSH 仓库提问
