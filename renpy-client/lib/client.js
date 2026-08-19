@@ -3449,13 +3449,7 @@ window.__ModuleLoader__.load({
 						}
 						return;
 					}
-					// 无任何拖拽 → 自动隐藏侧栏：按控件栏自身位置判定（不受原生侧栏宽度影响）——靠近展开，离开收起
-					const nav = navRef.current;
-					if (nav) {
-						const rect = nav.getBoundingClientRect();
-						if (e.clientX <= rect.right + 6) { if (navCollapsedRef.current) setNavCollapsed(false); }
-						else if (e.clientX > rect.right + 6) { if (!navCollapsedRef.current) setNavCollapsed(true); }
-					}
+					// 控件栏固定收缩外观（46px），不再按鼠标位置自动展开——hover 视觉指示 + 右侧 tooltip 见 abIcon
 				};
 				const onUp = (e) => {
 					if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
@@ -4271,12 +4265,26 @@ window.__ModuleLoader__.load({
 				return () => { try { document.head.removeChild(style); } catch (e) { /* ignore */ } };
 			}, []);
 
-			// 活动栏项（改良：图标+文字横排，直接可读；激活加粗+品牌色+左指示条；hideText 用于收起）
-			const abIcon = (icon, label, onClick, opts) => React.createElement("div", { key: label, title: (opts && opts.title) || label, onClick: onClick, style: { position: "relative", width: "100%", height: 32, marginBottom: 2, display: "flex", alignItems: "center", gap: 7, padding: "0 10px", cursor: "pointer", opacity: opts && opts.opacity } },
-				React.createElement("span", { style: { fontSize: 14, flexShrink: 0 } }, icon),
-				React.createElement("span", { style: { flex: 1, minWidth: 0, fontSize: 12, color: (opts && opts.color) || TXT2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontWeight: opts && opts.active ? 600 : 400, display: opts && opts.hideText ? "none" : undefined } }, label),
-				React.createElement("span", { style: { position: "absolute", left: 0, top: 5, bottom: 5, width: 2, borderRadius: 1, background: (opts && opts.active) ? ACCENT : "transparent" } }),
-			);
+			// 活动栏项（收缩外观 46px 图标栏；hover：高亮底色 + 右侧弹出文字说明 tooltip）
+			const [navHover, setNavHover] = React.useState(null); // { label, tip, top } | null
+			const abIcon = (icon, label, onClick, opts) => {
+				const onEnter = (e) => {
+					// 视觉指示：高亮底色
+					e.currentTarget.style.background = "var(--dsw-alias-interactive-bg-hover)";
+					// 右侧 tooltip：位置 = 图标项在控件栏内的纵向中心
+					try {
+						const r = e.currentTarget.getBoundingClientRect();
+						const cr = navRef.current ? navRef.current.getBoundingClientRect() : r;
+						setNavHover({ label, tip: (opts && opts.title) || label, top: r.top - cr.top + r.height / 2 });
+					} catch (err) { /* ignore */ }
+				};
+				const onLeave = (e) => { e.currentTarget.style.background = "transparent"; setNavHover(null); };
+				return React.createElement("div", { key: label, title: (opts && opts.title) || label, onClick: onClick, onMouseEnter: onEnter, onMouseLeave: onLeave, style: { position: "relative", width: "100%", height: 32, marginBottom: 2, display: "flex", alignItems: "center", gap: 7, padding: "0 10px", cursor: "pointer", opacity: opts && opts.opacity, borderRadius: 5 } },
+					React.createElement("span", { style: { fontSize: 14, flexShrink: 0 } }, icon),
+					React.createElement("span", { style: { flex: 1, minWidth: 0, fontSize: 12, color: (opts && opts.color) || TXT2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontWeight: opts && opts.active ? 600 : 400, display: opts && opts.hideText ? "none" : undefined } }, label),
+					React.createElement("span", { style: { position: "absolute", left: 0, top: 5, bottom: 5, width: 2, borderRadius: 1, background: (opts && opts.active) ? ACCENT : "transparent" } }),
+				);
+			};
 
 			return React.createElement("div", { ref: rootRef, style: { position: "relative", display: "flex", flexDirection: "column", flex: "1 1 0", minWidth: 0, minHeight: 0, maxWidth: "100%", overflow: "hidden", background: BG, color: TXT, fontFamily: UI, fontSize: 13, ...uiOverrides } },
 				// ── 路线图弹出窗口（Portal 到 body，可拖可缩放） ──
@@ -4342,8 +4350,13 @@ window.__ModuleLoader__.load({
 					busy ? React.createElement("span", { style: { color: TXT2 } }, "…") : null,
 				),
 				React.createElement("div", { style: { display: "flex", flex: 1, minHeight: 0, maxWidth: "100%", minWidth: 0 } },
-					// ── 控件总栏（点击打开面板/窗口；按键已统一到顶部；可收缩只显图标；自动隐藏基于自身位置） ──
-					React.createElement("div", { ref: navRef, style: { width: navCollapsed ? 46 : 172, flexShrink: 0, borderRight: "1px solid " + BORDER, background: LAYER, display: "flex", flexDirection: "column", paddingTop: 6, overflowY: "auto", overflowX: "hidden", transition: "width .15s" } },
+					// ── 控件总栏（固定收缩外观 46px 图标栏；hover 高亮 + 右侧 tooltip；可手动「«」展开） ──
+					React.createElement("div", { ref: navRef, style: { position: "relative", width: navCollapsed ? 46 : 172, flexShrink: 0, borderRight: "1px solid " + BORDER, background: LAYER, display: "flex", flexDirection: "column", paddingTop: 6, overflowY: "auto", overflowX: "hidden", transition: "width .15s" } },
+						// hover 右侧弹出文字说明（tooltip）
+						(navHover && navCollapsed) ? React.createElement("div", { style: { position: "absolute", left: 52, top: navHover.top, transform: "translateY(-50%)", zIndex: 30, pointerEvents: "none", whiteSpace: "nowrap", background: "var(--dsw-alias-bg-layer-3)", color: TXT, border: "1px solid " + BORDER, borderRadius: 8, padding: "5px 10px", fontSize: 12, lineHeight: 1.5, boxShadow: "0 6px 20px rgba(0,0,0,.35)", maxWidth: 280 } },
+							React.createElement("div", { style: { fontWeight: 600, color: ACCENT } }, navHover.label),
+							navHover.tip !== navHover.label ? React.createElement("div", { style: { color: TXT2, fontSize: 11, marginTop: 2 } }, navHover.tip) : null,
+						) : null,
 						// 调试控件（需运行游戏：桥接回报驱动；点击停靠为面板控件，可拖拽/吸附/浮动）
 						!navCollapsed ? React.createElement("div", { style: { width: "100%", padding: "1px 10px 5px", fontSize: 10, color: TXT3, fontWeight: 600 } }, "调试 · 需运行（停靠右侧栏）") : null,
 						abIcon("🗺", "分支路线图", () => movePanel("route", "right"), { opacity: project ? 1 : .4, hideText: navCollapsed, title: "路线图面板（右侧栏；状态机图，点击节点跳游戏需运行）" }),
