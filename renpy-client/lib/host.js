@@ -5,6 +5,7 @@
 'use strict'
 
 const { lineDiff, hasOpenToolCall, layoutRouteMap, computeRouteMeta, parseTraceback, parseLog, parseErrors, findDiagnostics, guardRpy, mergeSettings } = require('./renpy-core')
+const path = require('path')
 
 const name = 'renpy-dev'
 
@@ -203,6 +204,23 @@ init python:
     const r = { command: cmd, workdir: sdkPath, env: { RENPY_PATH_TO_SAVES: userDir }, timeoutMs: timeout || 180000, stdoutMaxBytes: 4 * 1024 * 1024 }
     if (policy !== undefined) r.sandboxPolicy = policy
     return ctx.shell.resolve(r)
+  }
+
+  // 文件夹选择（资源管理器对话框）：DSH shell 默认 pwsh 非交互 MTA，FolderBrowserDialog 需 STA——
+  // 脚本落盘后以 -STA 重入执行；用户取消时无输出（path 为 null）
+  const pickFolderCmd = async (startPath, session) => {
+    const ps1 = path.join(userDir, 'pick-folder.ps1')
+    const script = `$ErrorActionPreference = 'Stop'
+Add-Type -AssemblyName System.Windows.Forms | Out-Null
+$d = New-Object System.Windows.Forms.FolderBrowserDialog
+$d.Description = '选择 Ren'Py 工作区文件夹'
+$d.ShowNewFolderButton = $true
+$start = ${JSON.stringify(String(startPath || ''))}
+if ($start -and (Test-Path -LiteralPath $start)) { $d.SelectedPath = $start }
+if ($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { Write-Output $d.SelectedPath }`
+    await writeText(ps1, script, session)
+    const exe = `$e = Get-Command pwsh -ErrorAction SilentlyContinue; if (-not $e) { $e = Get-Command powershell -ErrorAction SilentlyContinue }; if (-not $e) { Write-Output 'ERR:NO_SHELL'; exit 1 }; & $e.Source -STA -NoProfile -File ${q(ps1)}; $c = $LASTEXITCODE; Remove-Item ${q(ps1)} -Force -ErrorAction SilentlyContinue; exit $c`
+    return exe
   }
 
   const readText = async (p) => ctx.fs.readText(await ctx.fs.resolve(p))
@@ -1270,6 +1288,18 @@ init python:
         if (p === '/renpy-dev/run') { respond(res, 200, await runGame(body.project, session)); return }
         if (p === '/renpy-dev/stop') { respond(res, 200, await stopGame(body.project)); return }
         if (p === '/renpy-dev/status') { respond(res, 200, await statusGame(body.project)); return }
+        if (p === '/renpy-dev/pick-folder') {
+          // 打开资源管理器选择工作区文件夹；取消时 path 为 null
+          try {
+            const r = await ctx.shell.run(specOf(await pickFolderCmd(body.startPath, session), 120000, session))
+            if (r.exitCode !== 0) { respond(res, 200, { error: 'pick-folder failed: ' + String(r.stderr.text) }); return }
+            const picked = String(r.stdout.text || '').trim().split(/\r?\n/).map((l) => l.trim()).filter((l) => l && !l.startsWith('ERR:')).pop() || ''
+            respond(res, 200, { path: picked || null })
+          } catch (e) {
+            respond(res, 200, { error: 'pick-folder: ' + String(e && e.message || e) })
+          }
+          return
+        }
         if (p === '/renpy-dev/screenshot') { respond(res, 200, await takeShot(session)); return }
         if (p === '/renpy-dev/index') { respond(res, 200, await runIndex(body.project, session)); return }
         if (p === '/renpy-dev/assets') { respond(res, 200, await listAssets(body.project)); return }
