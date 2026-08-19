@@ -19,6 +19,48 @@ DSH Ren'Py 开发工作台是一套装在 **DeepSeek Harness（DSH）** 里的 *
 
 一句话：**在浏览器里完成"看代码 → 改代码 → 验证 → 运行"的整个 Ren'Py 开发循环，AI 全程参与但你能看到每一步。**
 
+### 1.1 知识库（skill）清单
+
+> AI 写 Ren'Py 代码时**按需加载**对应知识库；全部经「源码核验 + lint 验证」生产。
+
+| skill | 覆盖内容 |
+|---|---|
+| `renpy-core` | 核心语句语法、语句 ↔ Python 等价、缩进与顺序约定（写 .rpy 必读） |
+| `renpy-text` | 对白与文本：say 变体、Character、`[var]` 插值、`{b}{size}{color}` 标签、转义 |
+| `renpy-atl` | ATL 动画：transform、插值、on/parallel/choice/repeat、位置缩放旋转 |
+| `renpy-transitions` | 转场：with dissolve/fade/move、Dissolve/Fade/CropMove/PushMove、按层转场 |
+| `renpy-screen` | screen 语言：布局、控件、样式前缀、action、show/hide/call screen、use |
+| `renpy-gui` | GUI 主题：gui.init、gui.* 颜色/字体/字号、style 覆盖层级 |
+| `renpy-api` | Python 层 API：renpy.*、persistent、renpy.music/sound、store 变量 |
+| `renpy-l10n` | 本地化：translate 语句、old/new、extract/merge 工作流 |
+| `renpy-save` | 存档：FileSave/Load/Page/Slot、自动存档 + Gallery/Music Room/Achievement |
+| `renpy-layeredimage` | 分层立绘：layeredimage、attribute/group、表情差分、auto 属性 |
+| `renpy-sprites` | 粒子（飘雪/落叶）、Drag & Drop、Movie 视频 |
+| `renpy-route` | 路线/分支设计：文档↔状态机↔代码转换、可达性分析 |
+| `renpy-test` | 自动化测试：testsuite/testcase、run/advance/click、until、xfail |
+| `renpy-build` | 构建发布：build.rpy classify/archive/package、平台标签 |
+| `renpy-practices` | 最佳实践总览：组织、资源管理、跨域坑清单 |
+
+### 1.2 Agent 工具清单
+
+> preset「RenPy Dev」注册给 AI 的 **13 个开发工具**（工作台按钮与这些工具同源，AI 可自主调用）。
+
+| 工具 | 说明 |
+|---|---|
+| `renpy_scaffold` | 创建新项目（目录结构 + gui 模板） |
+| `renpy_lint` | 官方 lint 检查 |
+| `renpy_index` | 生成/刷新结构索引（labels/defines/screens/transforms） |
+| `renpy_find` | 静态诊断（引用完整性秒级扫描） |
+| `renpy_guard` | 写守卫校验（缩进/保留名/重复 label/括号配对） |
+| `renpy_read_error` | 结构化读取报错文件（traceback/log/errors） |
+| `renpy_route_generate` | route-map.json 状态机 → .rpy 代码骨架 |
+| `renpy_run` | 启动游戏（真实窗口 + 调试桥接） |
+| `renpy_stop` | 停止游戏进程 |
+| `renpy_status` | 查询进程状态 + 最近输出 |
+| `renpy_test` | rpytest 自动化测试（headless） |
+| `renpy_compile` | 强制重编译脚本（.rpy → .rpyc） |
+| `renpy_screenshot` | 整屏截图（AI 查看游戏画面） |
+
 ---
 
 ## 2. 环境与启动

@@ -80,8 +80,51 @@
 | **运行调试** | 运行/停止合一、整屏截图、路线图（状态机 + 跳转）、实时画面（点击/推进/回滚）、运行时变量监控、报错诊断（traceback 结构化 + 根因定位） |
 | **协作** | 侧栏对话（Markdown/思考展开/编辑重发）、轨迹跳转、学习注释（AI 逐行讲解）、检查点时间线 |
 | **安全** | 工作范围锁定、写守卫（四层校验）、保存历史与检查点回滚 |
-| **定制** | 个性化设置（48 项：字体/缩进/显示/亮暗 + **25 个颜色 token** + 8 套预制配色 + 全局/项目分层）、GUI 主题可视化定制（gui.rpy） |
+| **定制** | 个性化设置（49 项：字体/缩进/显示/亮暗/界面语言 + **25 个颜色 token** + 8 套预制配色 + 全局/项目分层）、GUI 主题可视化定制（gui.rpy） |
 | **知识** | 15 个 Ren'Py 知识库 + 语句 ⇄ Python 等价对照 |
+
+### 1.5 知识库（skill）清单
+
+> AI 写 Ren'Py 代码时**按需加载**对应 skill；全部经「源码核验 + lint 验证」生产（见 `knowledge-pipeline.md`）。
+
+| skill | 说明（加载时机） |
+|---|---|
+| `renpy-core` | 核心语句语法速查、语句与 Python 等价互转、缩进与顺序约定。写 .rpy 时必读 |
+| `renpy-text` | 对白与文本：say 变体、Character 定义、`[var]` 插值、`{b}{size}{color}` 标签、转义换行 |
+| `renpy-atl` | ATL 动画与变换：transform 定义、插值、on/parallel/choice/repeat、位置缩放旋转 |
+| `renpy-transitions` | 转场效果：with dissolve/fade/move、Dissolve/Fade/CropMove/PushMove、按层 Dict 转场 |
+| `renpy-screen` | screen 语言：布局、控件、样式前缀、action、show/hide/call screen、use 嵌套 |
+| `renpy-gui` | GUI 主题定制：gui.init 分辨率、gui.* 颜色/字体/字号、style 覆盖层级 |
+| `renpy-api` | Python 层 API：renpy.* 函数、persistent、renpy.music/sound、store 变量 |
+| `renpy-l10n` | 本地化/翻译：translate 语句、字符串 old/new、extract/merge 工作流 |
+| `renpy-save` | 存档系统：FileSave/Load/Page/Slot、自动存档、回滚 + Gallery/Music Room/Achievement |
+| `renpy-layeredimage` | 分层立绘：layeredimage 语句、attribute/group、表情差分、auto 属性 |
+| `renpy-sprites` | 特殊显示对象：SpriteManager 粒子（飘雪/落叶）、Drag & Drop、Movie 视频 |
+| `renpy-route` | 路线/分支设计：设计文档↔状态机↔代码双向转换、route-map.json、可达性分析 |
+| `renpy-test` | 自动化测试：testsuite/testcase、run/advance/click、until、enabled/xfail |
+| `renpy-build` | 构建发布配置：build.rpy 的 classify/archive/package、平台标签 |
+| `renpy-practices` | 最佳实践总览：文件/角色/标签组织、资源管理、跨域坑清单 |
+| `workbench-ui` | 工作台界面样式设计规范（含 codicon 图标系统命名约定；维护界面时参考） |
+
+### 1.6 Agent 工具清单
+
+> preset「RenPy Dev」注册给 AI 的 **13 个开发工具**（AI 在对话中可自主调用；工作台按钮与这些工具同源）。
+
+| 工具 | 说明 |
+|---|---|
+| `renpy_scaffold` | 创建新 Ren'Py 项目（目录结构 + gui 模板生成） |
+| `renpy_lint` | 对项目运行官方 lint，返回退出码与完整输出 |
+| `renpy_index` | 生成/刷新项目结构索引（labels/defines/screens/transforms，含 file:line） |
+| `renpy_find` | 静态诊断（引用完整性秒级扫描，无需运行引擎） |
+| `renpy_guard` | 写守卫校验（缩进/保留名/重复 label/括号配对四层） |
+| `renpy_read_error` | 结构化读取报错落盘文件（traceback.txt/log.txt/errors.txt） |
+| `renpy_route_generate` | 把 route-map.json 状态机生成为 .rpy 代码骨架 |
+| `renpy_run` | 启动游戏（真实窗口；自动停旧进程；注入调试桥接） |
+| `renpy_stop` | 停止正在运行的游戏进程 |
+| `renpy_status` | 查询游戏进程状态 + 最近输出 |
+| `renpy_test` | 运行 rpytest 自动化测试（headless） |
+| `renpy_compile` | 强制重编译脚本（.rpy → .rpyc） |
+| `renpy_screenshot` | 整屏截图保存为 PNG（供人类和 AI 查看游戏画面） |
 
 ---
 
@@ -93,7 +136,7 @@
 |---|---|---|
 | **`README.md`** | 所有人 | 本文件：项目说明、文档目录、快速部署、验证、目录结构、运行时配置、部署与 DSH 原生元素 |
 | **`GUIDE.md`** / `GUIDE.en.md` | 使用者 | 用户指南：功能操作/预期/回归表 + 经验回传（面向使用者的精简版） |
-| **`TESTER-GUIDE.md`** | **测试用户** | **一站式功能手册**：环境启动 + 逐功能详解（用途/入口/行为/边界）+ 操作测试 + 23 条回归清单 + FAQ + 经验回传 |
+| **`TESTER-GUIDE.md`** / `TESTER-GUIDE.en.md` | **测试用户** | **一站式功能手册**：环境启动 + 逐功能详解（用途/入口/行为/边界）+ 操作测试 + 23 条回归清单 + FAQ + 经验回传 |单 + FAQ + 经验回传 |
 | **`DEPLOY.md`** / `DEPLOY.en.md` | 部署者 | 部署流程完整指南：两种模式/参数/故障排查/升级卸载 |
 | **`CONTRIBUTING.md`** | 贡献者 | 三层经验隔离 + 提交规范 |
 | **`knowledge-pipeline.md`** | 知识生产者 | 15 个 skill 怎么生产出来：提取→核验→引擎验证 |

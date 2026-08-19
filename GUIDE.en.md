@@ -15,9 +15,51 @@ Ren'Py Development Mode is a **Ren'Py game development workbench** built into **
 - The top toolbar provides **lint checking, running the game, screenshots, and automated tests**
 - Every save auto-**backs up history**; every conversation auto-creates a **checkpoint** — you can roll back anytime
 - You can chat with the AI to modify code; after the AI edits, you can **see the changes in real time** in the editor and review them
-- Built-in **14 Ren'Py knowledge bases (skills)** that the AI loads on demand when writing Ren'Py code, reducing invented syntax
+- Built-in **15 Ren'Py knowledge bases (skills)** that the AI loads on demand when writing Ren'Py code, reducing invented syntax
 
 In one sentence: **the whole Ren'Py development loop — "read code → edit code → verify → run" — happens in the browser, with the AI involved throughout while you can see every step.**
+
+### 1.1 Knowledge base (skill) list
+
+> When writing Ren'Py code, the AI **loads the matching knowledge base on demand**; all are produced through "source verification + lint validation".
+
+| skill | Coverage |
+|---|---|
+| `renpy-core` | Core statement syntax, statement ↔ Python equivalence, indentation & order conventions (must-read when writing .rpy) |
+| `renpy-text` | Dialogue & text: say variants, Character, `[var]` interpolation, `{b}{size}{color}` tags, escaping |
+| `renpy-atl` | ATL animation: transform, interpolation, on/parallel/choice/repeat, position/scale/rotation |
+| `renpy-transitions` | Transitions: with dissolve/fade/move, Dissolve/Fade/CropMove/PushMove, per-layer transitions |
+| `renpy-screen` | Screen language: layout, widgets, style prefixes, action, show/hide/call screen, use |
+| `renpy-gui` | GUI theme: gui.init, gui.* colors/fonts/sizes, style override hierarchy |
+| `renpy-api` | Python-layer API: renpy.*, persistent, renpy.music/sound, store variables |
+| `renpy-l10n` | Localization: translate statements, old/new, extract/merge workflow |
+| `renpy-save` | Saving: FileSave/Load/Page/Slot, autosave + Gallery / Music Room / Achievement |
+| `renpy-layeredimage` | Layered images: layeredimage, attribute/group, expression variants, auto attribute |
+| `renpy-sprites` | Particles (snow/falling leaves), Drag & Drop, Movie video |
+| `renpy-route` | Route/branch design: doc ↔ state machine ↔ code conversion, reachability analysis |
+| `renpy-test` | Automated testing: testsuite/testcase, run/advance/click, until, xfail |
+| `renpy-build` | Build & release: build.rpy classify/archive/package, platform tags |
+| `renpy-practices` | Best-practices overview: organization, asset management, cross-domain pitfall list |
+
+### 1.2 Agent tool list
+
+> The **13 development tools** that the "RenPy Dev" preset registers for the AI (the workbench buttons are wired to the same tools; the AI can call them on its own).
+
+| Tool | Description |
+|---|---|
+| `renpy_scaffold` | Create a new project (directory structure + gui template) |
+| `renpy_lint` | Official lint check |
+| `renpy_index` | Generate/refresh the structure index (labels/defines/screens/transforms) |
+| `renpy_find` | Static diagnostics (reference-integrity scan in seconds) |
+| `renpy_guard` | Write-guard validation (indentation / reserved names / duplicate labels / bracket matching) |
+| `renpy_read_error` | Structured read of error files (traceback / log / errors) |
+| `renpy_route_generate` | route-map.json state machine → .rpy code skeleton |
+| `renpy_run` | Launch the game (real window + debug bridge) |
+| `renpy_stop` | Stop the game process |
+| `renpy_status` | Query process status + recent output |
+| `renpy_test` | rpytest automated tests (headless) |
+| `renpy_compile` | Force recompilation of scripts (.rpy → .rpyc) |
+| `renpy_screenshot` | Full-screen screenshot (for the AI to view the game) |
 
 ---
 

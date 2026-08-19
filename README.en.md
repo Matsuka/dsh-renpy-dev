@@ -76,8 +76,51 @@ The tool itself is **self-bootstrapped on DSH's own architecture** — a complet
 | **Run & debug** | Combined run/stop, full-screen screenshot, route map (state machine + jumps), live view (click/advance/rollback), runtime variable monitoring, error diagnostics (structured traceback + root-cause localization) |
 | **Collaboration** | Sidebar chat (Markdown / collapsible thoughts / edit-resend), trace jumping, learning annotations (line-by-line AI explanations), checkpoint timeline |
 | **Safety** | Workspace lock, write guard (four-layer validation), save history + checkpoint rollback |
-| **Customization** | Personalization settings (48 items: font / indent / display / light-dark + **25 color tokens** + 8 preset themes + global/project layering), visual GUI theme customization (gui.rpy) |
+| **Customization** | Personalization settings (49 items: font / indent / display / light-dark / UI language + **25 color tokens** + 8 preset themes + global/project layering), visual GUI theme customization (gui.rpy) |
 | **Knowledge** | 15 Ren'Py knowledge bases + statement ⇄ Python equivalence reference |
+
+### 1.5 Knowledge base (skill) list
+
+> When writing Ren'Py code, the AI **loads the matching skill on demand**; every skill is produced through "source verification + lint validation" (see `knowledge-pipeline.md`).
+
+| skill | Description (when to load) |
+|---|---|
+| `renpy-core` | Core statement syntax cheat sheet, statement ↔ Python equivalence mapping, indentation & execution-order conventions. A must-read when writing .rpy |
+| `renpy-text` | Dialogue & text: say variants, Character definition, `[var]` interpolation, `{b}{size}{color}` tags, escaping & line breaks |
+| `renpy-atl` | ATL animation & transforms: transform definitions, interpolation, on/parallel/choice/repeat, position/scale/rotation |
+| `renpy-transitions` | Transition effects: with dissolve/fade/move, Dissolve/Fade/CropMove/PushMove, per-layer Dict transitions |
+| `renpy-screen` | Screen language: layout, widgets, style prefixes, action, show/hide/call screen, use nesting |
+| `renpy-gui` | GUI theme customization: gui.init resolution, gui.* colors/fonts/sizes, style override hierarchy |
+| `renpy-api` | Python-layer API: renpy.* functions, persistent, renpy.music/sound, store variables |
+| `renpy-l10n` | Localization/translation: translate statements, string old/new, extract/merge workflow |
+| `renpy-save` | Save system: FileSave/Load/Page/Slot, autosave, rollback + Gallery / Music Room / Achievement |
+| `renpy-layeredimage` | Layered images: layeredimage statement, attribute/group, expression variants, auto attribute |
+| `renpy-sprites` | Special displayables: SpriteManager particles (snow/falling leaves), Drag & Drop, Movie video |
+| `renpy-route` | Route/branch design: design doc ↔ state machine ↔ code bidirectional conversion, route-map.json, reachability analysis |
+| `renpy-test` | Automated testing: testsuite/testcase, run/advance/click, until, enabled/xfail |
+| `renpy-build` | Build & release configuration: build.rpy classify/archive/package, platform tags |
+| `renpy-practices` | Best-practices overview: file/character/label organization, asset management, cross-domain pitfall list |
+| `workbench-ui` | Workbench UI style design spec (incl. codicon icon system naming conventions; consult when maintaining the UI) |
+
+### 1.6 Agent tool list
+
+> The **13 development tools** that the "RenPy Dev" preset registers for the AI (the AI can call them on its own during chat; the workbench buttons are wired to the same tools).
+
+| Tool | Description |
+|---|---|
+| `renpy_scaffold` | Create a new Ren'Py project (directory structure + gui template generation) |
+| `renpy_lint` | Run the official lint on the project, returning the exit code and full output |
+| `renpy_index` | Generate/refresh the project structure index (labels/defines/screens/transforms, incl. file:line) |
+| `renpy_find` | Static diagnostics (reference-integrity scan in seconds, no engine run required) |
+| `renpy_guard` | Write-guard validation (four layers: indentation / reserved names / duplicate labels / bracket matching) |
+| `renpy_read_error` | Structured read of error dump files (traceback.txt / log.txt / errors.txt) |
+| `renpy_route_generate` | Generate the .rpy code skeleton from a route-map.json state machine |
+| `renpy_run` | Launch the game (real window; auto-stops old processes; injects the debug bridge) |
+| `renpy_stop` | Stop the running game process |
+| `renpy_status` | Query the game process status + recent output |
+| `renpy_test` | Run rpytest automated tests (headless) |
+| `renpy_compile` | Force recompilation of scripts (.rpy → .rpyc) |
+| `renpy_screenshot` | Full-screen screenshot saved as PNG (for humans and the AI to view the game) |
 
 ---
 
@@ -89,7 +132,7 @@ The tool itself is **self-bootstrapped on DSH's own architecture** — a complet
 |---|---|---|
 | **`README.md`** | Everyone | This file: project overview, documentation index, quick deployment, verification, directory structure, runtime configuration, deployment & DSH native elements |
 | **`GUIDE.md`** / `GUIDE.en.md` | Users | User guide: feature operations / expected results / regression table + experience feedback (streamlined for users) |
-| **`TESTER-GUIDE.md`** | **Test users** | **All-in-one feature handbook**: environment setup + per-feature walkthrough (purpose / entry / behavior / edge cases) + operation tests + 23-item regression checklist + FAQ + experience feedback |
+| **`TESTER-GUIDE.md`** / `TESTER-GUIDE.en.md` | **Test users** | **All-in-one feature handbook**: environment setup + per-feature walkthrough (purpose / entry / behavior / edge cases) + operation tests + 23-item regression checklist + FAQ + experience feedback |
 | **`DEPLOY.md`** / `DEPLOY.en.md` | Deployers | Full deployment guide: both modes / parameters / troubleshooting / upgrade & uninstall |
 | **`CONTRIBUTING.md`** | Contributors | Three-tier experience isolation + submission conventions |
 | **`knowledge-pipeline.md`** | Knowledge producers | How the 15 skills are produced: extract → verify → engine-validate |
