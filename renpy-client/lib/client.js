@@ -1678,6 +1678,7 @@ window.__ModuleLoader__.load({
 			const [varWin, setVarWin] = React.useState(panelState.varWin || { open: false, x: 180, y: 110, w: 460, h: 420 }); // 变量监控窗口 {open,x,y,w,h}
 			const [varFocus, setVarFocus] = React.useState(null); // 变量监控联动：当前关注的变量名（路线图高亮关联节点）
 			const [routeStatus, setRouteStatus] = React.useState(null); // 调试位置回报（桥接 status.json 轮询）{running,label,file,line}
+			const [gameRunning, setGameRunning] = React.useState(false); // 运行/停止合一按钮：游戏是否在运行（host status 轮询 + 乐观更新）
 			const [labels, setLabels] = React.useState(panelState.labels);
 			const [chars, setChars] = React.useState(panelState.chars || []);
 			const [trans, setTrans] = React.useState(panelState.trans || []);
@@ -3100,7 +3101,7 @@ window.__ModuleLoader__.load({
 				}).catch((e) => { setBusy(false); addLog("test error: " + String(e)); });
 			};
 
-			const doRun = () => api("run", {}, { project }).then((r) => addLog("run: " + String(r.started ? "started" : "?"))).catch((e) => addLog("run error: " + String(e)));
+			const doRun = () => api("run", {}, { project }).then((r) => { addLog("run: " + String(r.started ? "started" : "?")); if (r && r.started) setGameRunning(true); }).catch((e) => addLog("run error: " + String(e)));
 
 			const sendMsg = () => {
 				const text = msg.trim();
@@ -3123,7 +3124,7 @@ window.__ModuleLoader__.load({
 					doSend();
 				}
 			};
-			const doStop = () => api("stop", {}, { project }).then((r) => addLog("stop: " + String(r.stopped ? "stopped" : "none"))).catch((e) => addLog("stop error: " + String(e)));
+			const doStop = () => api("stop", {}, { project }).then((r) => { addLog("stop: " + String(r.stopped ? "stopped" : "none")); if (r && r.stopped) setGameRunning(false); }).catch((e) => addLog("stop error: " + String(e)));
 			const doShot = () => {
 				setBusy(true);
 				api("screenshot", {}, {}).then((r) => { setBusy(false); if (r.error) { addLog(r.error); return; } setShot(r.dataBase64 || null); addLog("screenshot -> " + String(r.file)); }).catch((e) => { setBusy(false); addLog("shot error: " + String(e)); });
@@ -4279,6 +4280,16 @@ window.__ModuleLoader__.load({
 				return () => clearInterval(t);
 			}, [panelLayout, floating, project]);
 
+			// 游戏运行状态轮询（运行/停止合一按钮的权威状态；2s；依赖已提交工程，避免输入框打字抖动）
+			React.useEffect(() => {
+				const p = panelState.project || project;
+				if (!p) { setGameRunning(false); return; }
+				const poll = () => api("status", {}, { project: p }).then((r) => setGameRunning(!!(r && r.running))).catch(() => { /* 网络异常保持现状 */ });
+				poll();
+				const t = setInterval(poll, 2000);
+				return () => clearInterval(t);
+			}, [panelState.project]);
+
 			// 隐藏 DSH 原生对话输入框（data-composer-seat；本面板自带输入区，避免双输入框；卸载时恢复）
 			React.useEffect(() => {
 				if (typeof document === "undefined") return;
@@ -4348,7 +4359,6 @@ window.__ModuleLoader__.load({
 					React.createElement("span", { style: { color: TXT2, fontSize: 13, flexShrink: 0 } }, "项目"),
 					React.createElement("input", { style: { flex: 1, minWidth: 120, maxWidth: 340, fontFamily: CODE, ...C.inp }, value: project, onChange: (e) => setProject(e.target.value), onBlur: commitProject, onKeyDown: (e) => { if (e.key === "Enter") { e.target.blur(); commitProject(); } }, placeholder: "项目目录绝对路径" }),
 					React.createElement("button", { title: "切到 host 配置的默认工程（renpy.config.json defaultProject）", style: { ...iconBtnText, fontSize: 12 }, onClick: () => { api("info").then((r) => { const d = r && r.defaultProject; if (!d) { addLog("host 未配置默认工程"); return; } setProject(d); try { if (typeof localStorage !== "undefined") localStorage.setItem("renpy-project", d); } catch (e) { /* ignore */ } commitProject(d); addLog("已切换到默认工程: " + d); }).catch((e) => addLog("读取默认工程失败: " + String(e))); } }, "⟳ 默认工程"),
-					React.createElement("div", { style: { flex: 1 } }),
 					// ── 工作范围（强调：单独放大） ──
 					React.createElement("button", { style: wsBtn, onClick: lockWorkspace, disabled: !active, title: "用编辑器选区/光标行设定工作范围（区域外只读，agent 越界会先询问）" },
 						React.createElement("span", { style: { fontSize: 17 } }, "🎯"),
@@ -4359,9 +4369,10 @@ window.__ModuleLoader__.load({
 						React.createElement("span", {}, "清除"),
 					) : null,
 					React.createElement("div", { style: { width: 1, height: 22, background: BORDER, flexShrink: 0 } }),
-					// 全局主操作（常驻可见）：运行 / 停止
-					React.createElement("button", { style: { ...iconBtnText, background: ACCENT, color: "var(--dsw-alias-label-primary-foreground)", borderRadius: 6, padding: "4px 12px" }, onClick: doRun, title: "运行游戏（调试桥接自动注入）" }, React.createElement("span", { style: { fontSize: 13 } }, "▶"), React.createElement("span", {}, "运行游戏")),
-					React.createElement("button", { style: iconBtnText, onClick: doStop, title: "停止游戏" }, React.createElement("span", { style: { fontSize: 13 } }, "■"), React.createElement("span", {}, "停止游戏")),
+					// 全局主操作（常驻可见）：运行/停止合一（点击切换；状态来自 host status 轮询 + doRun/doStop 乐观更新）
+					React.createElement("button", { style: gameRunning ? { ...iconBtnText, ...btnDanger, borderRadius: 6, padding: "4px 12px", fontWeight: 600 } : { ...iconBtnText, background: ACCENT, color: "var(--dsw-alias-label-primary-foreground)", borderRadius: 6, padding: "4px 12px" }, onClick: gameRunning ? doStop : doRun, title: gameRunning ? "停止游戏（点击停止当前运行的实例）" : "运行游戏（调试桥接自动注入；点击后切换为停止）" },
+						React.createElement("span", { style: { fontSize: 13 } }, gameRunning ? "■" : "▶"),
+						React.createElement("span", {}, gameRunning ? "停止游戏" : "运行游戏")),
 					React.createElement("div", { style: { width: 1, height: 22, background: BORDER, flexShrink: 0 } }),
 					// ── 按键（点击立即起效；统一顶部，控件在左导航） ──
 					React.createElement("button", { style: iconBtnText, onClick: doLint, title: "Ren'Py 语法检查（lint）" }, React.createElement("span", {}, "⚠"), React.createElement("span", {}, "检查")),
