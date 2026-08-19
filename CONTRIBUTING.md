@@ -9,11 +9,12 @@
 
 ```
 dsh-renpy-dev/
-├── agent-presets/renpy/     # agent preset（persona 约束 + 9 个开发工具）
+├── agent-presets/renpy/     # agent preset（persona 约束 + 13 个开发工具）
 ├── renpy-client/            # web 插件（编辑器 UI + /renpy-dev 宿主服务）
-├── skills/                  # 14 个 renpy-* 知识库（核心资产）
+├── skills/                  # 15 个 renpy-* 知识库 + 界面规范（核心资产）
 ├── verification/            # 验证资产（提取脚本/引擎验证项目/单测）
-└── docs/                    # 方法论文档（知识流水线等）
+├── knowledge-pipeline.md    # 知识生产方法论（提取→核验→引擎验证）
+└── glossary.md              # 中英术语对照表
 ```
 
 ## 2. 知识贡献：三层经验隔离
@@ -69,7 +70,7 @@ dsh-renpy-dev/
 - `projects/`：17 个引擎验证项目（demo-script）+ Python 等价验证（eq-test）
 - `tests/`：15 个单测（274 断言）
 
-复跑需要先安装 Ren'Py SDK（`deploy.ps1` 会引导），详见 `docs/knowledge-pipeline.md`。
+复跑需要先安装 Ren'Py SDK（`deploy.ps1` 会引导），详见 `knowledge-pipeline.md`。
 
 ## 5. 提交规范
 

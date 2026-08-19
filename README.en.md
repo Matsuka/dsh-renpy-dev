@@ -1,4 +1,4 @@
-# Ren'Py Development Mode (dsh-renpy-dev) v1.0.0
+# Ren'Py Development Mode (dsh-renpy-dev) v1.1.0
 
 > A validation of DSH's core idea: a self-bootstrapped Ren'Py development workbench with deep integration of agent preset + skills + web plugin.
 
@@ -10,10 +10,10 @@ This repository is the **open-source edition** (for developers/contributors), in
 > - **中文版** → **`README.md`**
 > - **Deployment guide** (full: both modes / parameters / troubleshooting / upgrade & uninstall) → **`DEPLOY.md`**
 > - **User guide** (features / operations / expected results / regression table + **how to feed your experience back to developers**) → **`GUIDE.md`**
-> - **Tester guide** (all-in-one: environment setup + per-feature details + operation/testing + FAQ + experience feedback: where → how → expected → what to test + full regression checklist) → **`docs/TESTER-GUIDE.md`**
-> - **Knowledge pipeline** (how the 15 skills are produced: extraction → verification → engine validation) → **`docs/knowledge-pipeline.md`**
+> - **Tester guide** (all-in-one: environment setup + per-feature details + operation/testing + FAQ + experience feedback: where → how → expected → what to test + full regression checklist) → **`TESTER-GUIDE.md`**
+> - **Knowledge pipeline** (how the 15 skills are produced: extraction → verification → engine validation) → **`knowledge-pipeline.md`**
 > - **Contribution guide** (three-tier experience isolation + submission conventions) → **`CONTRIBUTING.md`**
-> - **Terminology** (EN↔ZH glossary for Ren'Py terms) → **`docs/glossary.md`**
+> - **Terminology** (EN↔ZH glossary for Ren'Py terms) → **`glossary.md`**
 > - Quick start → below.
 
 ## License
@@ -22,7 +22,87 @@ This repository is the **open-source edition** (for developers/contributors), in
 
 ---
 
-## 1. Quick Deployment (for users)
+## 1. Project overview
+
+### 1.1 What is this
+
+**dsh-renpy-dev** is a **Ren'Py game development workbench** built into DeepSeek Harness (DSH): it turns an ordinary AI coding chat into a browser panel backed by a full development toolchain, closing the entire Ren'Py loop — "read code → edit code → verify → run" — inside the browser, with the AI involved at every step yet every step auditable and rollback-able.
+
+At its core it is **deep integration of three shapes: agent preset + skills + web plugin**:
+
+| Shape | Role |
+|---|---|
+| **agent preset** (RenPy Dev) | Registers the 13 dev tools (lint/index/scaffold/run/...) with the AI for autonomous use |
+| **skills knowledge base** (15 `renpy-*`) | Loads engine facts on demand while the AI writes Ren'Py code, cutting down on invented syntax |
+| **web plugin** (renpy-dev-client) | Full workbench UI in the browser + 39 local service endpoints |
+
+The tool itself is **self-bootstrapped on DSH's own architecture** — a complete validation of DSH's core idea (composing preset + skills + plugins into a purpose-built dev environment).
+
+### 1.2 Design philosophy
+
+- **VSCode-like workbench + Adobe-like panels**: four-zone layout (activity bar / sidebar / editor / panels); panels can dock, drag, float, maximize, and persist their layout.
+- **Engine facts first**: every knowledge base is produced through "source verification + lint validation" (see `knowledge-pipeline.md`), so the AI's Ren'Py knowledge has solid ground.
+- **Transparent and auditable**: every AI change is visible live (diff panel + gutter markers), every save is auto-backed up, every turn gets an auto checkpoint — any step can be rolled back.
+- **Safety, doubly enforced**: a **workspace lock** (edits and AI modifications confined to a region) plus a **write guard** (four-layer structural validation before saving) keep both humans and the AI from breaking scripts.
+- **Zero-intrusion deployment**: the few visual tweaks to the DSH host (hiding the native input, branding the logo color) are runtime CSS injections — no DSH installation files are touched.
+
+### 1.3 Architecture (four layers + a shared core)
+
+```
+┌───────────────────────────────────────────────────────────────────────────────────────────┐
+│ UI layer        renpy-client/lib/client.js browser panel (editor/panels/settings)         │
+│ Host layer      renpy-client/lib/host.js   39 /renpy-dev/* endpoints                      │
+│ Shared core     renpy-core.js              pure functions (diagnostics/guard/parse/merge) │
+│ Knowledge layer skills/renpy-*.md          15 knowledge bases + UI spec                   │
+│ Tools layer     agent-presets/renpy/       13 AI tools + indexer                          │
+└───────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+**How it works at a glance**:
+
+| Mechanism | Description |
+|---|---|
+| Editor | textarea + syntax-highlighting overlay (RPY statements + **Python blocks** in a four-tier palette), lint-error underlines, bracket matching, autocomplete, find & replace |
+| Debug bridge | On run, `_debug_bridge.rpy` is injected automatically → command files (jump/screenshot/click/advance) and report files (label/variables/screenshot polling) communicate in both directions |
+| Persistence | Settings are layered (global + project), panel layout in localStorage, backups/checkpoints in the DSH user directory (never written into the project directory) |
+| Status polling | Game run state polled every 2 s (drives the combined run/stop button); debug panel polled every 2 s (variables / view / route-map progress) |
+
+### 1.4 Feature overview
+
+| Category | Features |
+|---|---|
+| **Editing** | Syntax highlighting (RPY + Python blocks), autocomplete, find & replace, bracket matching, multiple tabs, unsaved-changes prompt, external-change sync, line-number mode / guides |
+| **Verification** | Lint checks (engine-level), automated tests (rpytest), static diagnostics (five-category reference-integrity scans) |
+| **Run & debug** | Combined run/stop, full-screen screenshot, route map (state machine + jumps), live view (click/advance/rollback), runtime variable monitoring, error diagnostics (structured traceback + root-cause localization) |
+| **Collaboration** | Sidebar chat (Markdown / collapsible thoughts / edit-resend), trace jumping, learning annotations (line-by-line AI explanations), checkpoint timeline |
+| **Safety** | Workspace lock, write guard (four-layer validation), save history + checkpoint rollback |
+| **Customization** | Personalization settings (48 items: font / indent / display / light-dark + **25 color tokens** + 8 preset themes + global/project layering), visual GUI theme customization (gui.rpy) |
+| **Knowledge** | 15 Ren'Py knowledge bases + statement ⇄ Python equivalence reference |
+
+---
+
+## 2. Documentation index
+
+> The complete index of all documentation. Test users only need **`TESTER-GUIDE.md`** (all-in-one); developers/contributors read the rest.
+
+| Document | Audience | Content |
+|---|---|---|
+| **`README.md`** | Everyone | This file: project overview, documentation index, quick deployment, verification, directory structure, runtime configuration, deployment & DSH native elements |
+| **`GUIDE.md`** / `GUIDE.en.md` | Users | User guide: feature operations / expected results / regression table + experience feedback (streamlined for users) |
+| **`TESTER-GUIDE.md`** | **Test users** | **All-in-one feature handbook**: environment setup + per-feature walkthrough (purpose / entry / behavior / edge cases) + operation tests + 23-item regression checklist + FAQ + experience feedback |
+| **`DEPLOY.md`** / `DEPLOY.en.md` | Deployers | Full deployment guide: both modes / parameters / troubleshooting / upgrade & uninstall |
+| **`CONTRIBUTING.md`** | Contributors | Three-tier experience isolation + submission conventions |
+| **`knowledge-pipeline.md`** | Knowledge producers | How the 15 skills are produced: extract → verify → engine-validate |
+| **`glossary.md`** | Translators / learners | EN↔ZH terminology glossary for Ren'Py |
+| **`skills/renpy-*.md`** (15) | AI (loaded on demand) | Ren'Py knowledge bases: api / atl / build / core / gui / l10n / layeredimage / practices / route / save / screen / sprites / test / text / transitions |
+| **`skills/workbench-ui.md`** | UI maintainers | Workbench UI style design spec (incl. codicon icon system naming conventions) |
+| **`.research/`** | Developers (internal) | Research archives: ecosystem research / editor-config research / route-map schema, etc. |
+
+> All documents keep evolving with each version; English versions live in the corresponding `.en.md` files.
+
+---
+
+## 3. Quick Deployment (for users)
 
 ### Prerequisites
 
@@ -68,7 +148,7 @@ cd D:\dsh-renpy-dev
 
 ---
 
-## 2. Post-deployment verification
+## 4. Post-deployment verification
 
 1. Restart dsh, **create a new session**, and select the **RenPy Dev** preset.
 2. Find and open the **Ren'Py** tab in the session.
@@ -83,7 +163,7 @@ See `GUIDE.md` for the detailed test checklist.
 
 ---
 
-## 3. Directory structure
+## 5. Directory structure
 
 ```
 dsh-renpy-dev/
@@ -91,6 +171,9 @@ dsh-renpy-dev/
 ├── README.md                         # This file (quick start)
 ├── DEPLOY.md                         # Full deployment guide (modes/parameters/troubleshooting/upgrade-uninstall)
 ├── GUIDE.md                        # User guide (features/operations/expected results/regression table)
+├── TESTER-GUIDE.md                   # Tester guide (all-in-one: feature details + testing + FAQ)
+├── knowledge-pipeline.md             # Knowledge production methodology (extract → verify → engine-validate)
+├── glossary.md                       # EN↔ZH terminology glossary
 ├── CONTRIBUTING.md                   # Contribution guide (three-tier experience isolation + submission conventions)
 ├── LICENSE                           # MIT License
 ├── NOTICE                            # Third-party license notices (Ren'Py / DSH)
@@ -104,10 +187,6 @@ dsh-renpy-dev/
 ├── skills/
 │   ├── renpy-*.md                    # 15 Ren'Py knowledge bases + workbench-ui UI spec (loaded on demand)
 │   └── workbench-ui.md               # Workbench UI style design spec (incl. icon system)
-├── docs/
-│   ├── TESTER-GUIDE.md               # Tester guide (feature-by-feature operations + regression checklist)
-│   ├── knowledge-pipeline.md         # Knowledge production methodology (extract → verify → engine-validate)
-│   └── glossary.md                   # EN↔ZH terminology glossary
 ├── verification/                     # Verification assets (open-source edition only)
 │   ├── scripts/                      # Extraction/verification scripts (extract-*.js, verify-text.py)
 │   ├── extracts/                     # Structured extraction outputs (*-extract.json)
@@ -140,7 +219,7 @@ dsh-renpy-dev/
 
 ---
 
-## 4. Runtime path configuration
+## 6. Runtime path configuration
 
 The deployment script generates `~/.dsh/renpy.config.json`. The plugin resolves paths at runtime with the following priority (no code changes needed):
 
@@ -153,7 +232,7 @@ After reinstall or moving to another machine, just re-run `deploy.ps1`; the conf
 
 ---
 
-## 6. Deployment and DSH native elements (as of v1.1)
+## 7. Deployment and DSH native elements (as of v1.1)
 
 The plugin applies a few **runtime visual adjustments** to the DSH host UI:
 
@@ -171,7 +250,7 @@ The plugin applies a few **runtime visual adjustments** to the DSH host UI:
 
 ---
 
-## 7. Version notes
+## 8. Version notes
 
 - Targets **Ren'Py 8.5.x** (local SDK pinned to 8.5.3).
 - Packaging (distribute) is not supported yet: SDK packaging lives inside the launcher; this plugin only covers `build.rpy` configuration knowledge (the `renpy-build` skill).
