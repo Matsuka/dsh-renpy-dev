@@ -54,6 +54,7 @@ function genEnding(s) {
 function genState(s) {
   const out = []
   out.push('')
+  if (s.description) out.push('# ' + String(s.description).split('\n').join('\n# '))
   out.push('label ' + s.name + ':')
   out.push(...genEntryActions(s))
 

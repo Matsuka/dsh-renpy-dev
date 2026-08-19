@@ -14,7 +14,11 @@ if (!dshPkg) {
 }
 const root = path.join(dshPkg, 'node_modules');
 const react = require(path.join(root, 'react'));
+const reactDOM = require(path.join(root, 'react-dom'));
 const { renderToString } = require(path.join(root, 'react-dom/server'));
+
+// client bundle 依赖代理：react + react-dom（ReactDOM.createPortal 用于浮动窗/面板渲染）
+const depProxy = (id) => { if (id === 'react') return react; if (id === 'react-dom') return reactDOM; if (id === 'react-dom') return reactDOM; throw new Error('unexpected require: ' + id); };
 
 let captured = null;
 global.window = {};
@@ -54,7 +58,7 @@ const srcTrail = srcWithData.replace('React.useState(panelState.sideTab || "chat
 let captured2 = null;
 global.window.__ModuleLoader__.load = (m) => { captured2 = m.factory; };
 require('vm').runInThisContext(srcTrail, { filename: 'client-trail.js' });
-const modTrail = captured2((id) => { if (id === 'react') return react; throw new Error('unexpected require: ' + id); });
+const modTrail = captured2((id) => { if (id === 'react') return react; if (id === 'react-dom') return reactDOM; if (id === 'react-dom') return reactDOM; throw new Error('unexpected require: ' + id); });
 let reg2 = null;
 const slots2 = { inject: (n, fn) => { reg2 = fn; }, register: (o, c) => ({ opts: o, comp: c }) };
 modTrail.apply({ get: (n) => (n === 'slots' ? slots2 : undefined) });
@@ -64,7 +68,7 @@ console.log('轨迹页签: lint 卡片', htmlTrail.indexOf('lint') >= 0, '| ✓ 
 console.log('轨迹编辑条目: ✎ 标记', htmlTrail.indexOf('✎') >= 0, '| 文件', htmlTrail.indexOf('game/script.rpy') >= 0);
 
 const mod = captured((id) => {
-  if (id === 'react') return react;
+  if (id === 'react') return react; if (id === 'react-dom') return reactDOM;
   throw new Error('unexpected require: ' + id);
 });
 
@@ -99,7 +103,7 @@ const srcAsset = srcWithData.replace('const [activeView, setActiveView] = React.
 let captured8 = null;
 global.window.__ModuleLoader__.load = (m) => { captured8 = m.factory; };
 require('vm').runInThisContext(srcAsset, { filename: 'client-asset.js' });
-const modAsset = captured8((id) => { if (id === 'react') return react; throw new Error('unexpected require: ' + id); });
+const modAsset = captured8((id) => { if (id === 'react') return react; if (id === 'react-dom') return reactDOM; if (id === 'react-dom') return reactDOM; throw new Error('unexpected require: ' + id); });
 let reg8 = null;
 const slots8 = { inject: (n, fn) => { reg8 = fn; }, register: (o, c) => ({ opts: o, comp: c }) };
 modAsset.apply({ get: (n) => (n === 'slots' ? slots8 : undefined) });
@@ -117,7 +121,7 @@ const srcExp = srcWithData
 let captured3 = null;
 global.window.__ModuleLoader__.load = (m) => { captured3 = m.factory; };
 require('vm').runInThisContext(srcExp, { filename: 'client-exp.js' });
-const modExp = captured3((id) => { if (id === 'react') return react; throw new Error('unexpected require: ' + id); });
+const modExp = captured3((id) => { if (id === 'react') return react; if (id === 'react-dom') return reactDOM; if (id === 'react-dom') return reactDOM; throw new Error('unexpected require: ' + id); });
 let reg3 = null;
 const slots3 = { inject: (n, fn) => { reg3 = fn; }, register: (o, c) => ({ opts: o, comp: c }) };
 modExp.apply({ get: (n) => (n === 'slots' ? slots3 : undefined) });
@@ -132,7 +136,7 @@ const srcHist = srcWithData
 let captured4 = null;
 global.window.__ModuleLoader__.load = (m) => { captured4 = m.factory; };
 require('vm').runInThisContext(srcHist, { filename: 'client-hist.js' });
-const modHist = captured4((id) => { if (id === 'react') return react; throw new Error('unexpected require: ' + id); });
+const modHist = captured4((id) => { if (id === 'react') return react; if (id === 'react-dom') return reactDOM; if (id === 'react-dom') return reactDOM; throw new Error('unexpected require: ' + id); });
 let reg4 = null;
 const slots4 = { inject: (n, fn) => { reg4 = fn; }, register: (o, c) => ({ opts: o, comp: c }) };
 modHist.apply({ get: (n) => (n === 'slots' ? slots4 : undefined) });
@@ -160,7 +164,7 @@ srcCp = srcCp
 let captured5 = null;
 global.window.__ModuleLoader__.load = (m) => { captured5 = m.factory; };
 require('vm').runInThisContext(srcCp, { filename: 'client-cp.js' });
-const modCp = captured5((id) => { if (id === 'react') return react; throw new Error('unexpected require: ' + id); });
+const modCp = captured5((id) => { if (id === 'react') return react; if (id === 'react-dom') return reactDOM; if (id === 'react-dom') return reactDOM; throw new Error('unexpected require: ' + id); });
 let reg5 = null;
 const slots5 = { inject: (n, fn) => { reg5 = fn; }, register: (o, c) => ({ opts: o, comp: c }) };
 modCp.apply({ get: (n) => (n === 'slots' ? slots5 : undefined) });
@@ -179,7 +183,7 @@ const srcBar = srcWithData
 let captured7 = null;
 global.window.__ModuleLoader__.load = (m) => { captured7 = m.factory; };
 require('vm').runInThisContext(srcBar, { filename: 'client-bar.js' });
-const modBar = captured7((id) => { if (id === 'react') return react; throw new Error('unexpected require: ' + id); });
+const modBar = captured7((id) => { if (id === 'react') return react; if (id === 'react-dom') return reactDOM; if (id === 'react-dom') return reactDOM; throw new Error('unexpected require: ' + id); });
 let reg7 = null;
 const slots7 = { inject: (n, fn) => { reg7 = fn; }, register: (o, c) => ({ opts: o, comp: c }) };
 modBar.apply({ get: (n) => (n === 'slots' ? slots7 : undefined) });
@@ -202,7 +206,7 @@ const srcEd = srcWithData
 let captured6 = null;
 global.window.__ModuleLoader__.load = (m) => { captured6 = m.factory; };
 require('vm').runInThisContext(srcEd, { filename: 'client-ed.js' });
-const modEd = captured6((id) => { if (id === 'react') return react; throw new Error('unexpected require: ' + id); });
+const modEd = captured6((id) => { if (id === 'react') return react; if (id === 'react-dom') return reactDOM; if (id === 'react-dom') return reactDOM; throw new Error('unexpected require: ' + id); });
 let reg6 = null;
 const slots6 = { inject: (n, fn) => { reg6 = fn; }, register: (o, c) => ({ opts: o, comp: c }) };
 modEd.apply({ get: (n) => (n === 'slots' ? slots6 : undefined) });
@@ -221,7 +225,7 @@ const srcPrev = srcWithData
 let captured9 = null;
 global.window.__ModuleLoader__.load = (m) => { captured9 = m.factory; };
 require('vm').runInThisContext(srcPrev, { filename: 'client-prev.js' });
-const modPrev = captured9((id) => { if (id === 'react') return react; throw new Error('unexpected require: ' + id); });
+const modPrev = captured9((id) => { if (id === 'react') return react; if (id === 'react-dom') return reactDOM; if (id === 'react-dom') return reactDOM; throw new Error('unexpected require: ' + id); });
 let reg9 = null;
 const slots9 = { inject: (n, fn) => { reg9 = fn; }, register: (o, c) => ({ opts: o, comp: c }) };
 modPrev.apply({ get: (n) => (n === 'slots' ? slots9 : undefined) });
@@ -241,7 +245,7 @@ const srcAnim = srcWithData
 let capturedB = null;
 global.window.__ModuleLoader__.load = (m) => { capturedB = m.factory; };
 require('vm').runInThisContext(srcAnim, { filename: 'client-anim.js' });
-const modAnim = capturedB((id) => { if (id === 'react') return react; throw new Error('unexpected require: ' + id); });
+const modAnim = capturedB((id) => { if (id === 'react') return react; if (id === 'react-dom') return reactDOM; if (id === 'react-dom') return reactDOM; throw new Error('unexpected require: ' + id); });
 let regB = null;
 const slotsB = { inject: (n, fn) => { regB = fn; }, register: (o, c) => ({ opts: o, comp: c }) };
 modAnim.apply({ get: (n) => (n === 'slots' ? slotsB : undefined) });
@@ -256,7 +260,7 @@ const srcFonts = srcWithData
 let capturedA = null;
 global.window.__ModuleLoader__.load = (m) => { capturedA = m.factory; };
 require('vm').runInThisContext(srcFonts, { filename: 'client-fonts.js' });
-const modFonts = capturedA((id) => { if (id === 'react') return react; throw new Error('unexpected require: ' + id); });
+const modFonts = capturedA((id) => { if (id === 'react') return react; if (id === 'react-dom') return reactDOM; if (id === 'react-dom') return reactDOM; throw new Error('unexpected require: ' + id); });
 let regA = null;
 const slotsA = { inject: (n, fn) => { regA = fn; }, register: (o, c) => ({ opts: o, comp: c }) };
 modFonts.apply({ get: (n) => (n === 'slots' ? slotsA : undefined) });
@@ -271,7 +275,7 @@ const srcGui = srcWithData
 let capturedG = null;
 global.window.__ModuleLoader__.load = (m) => { capturedG = m.factory; };
 require('vm').runInThisContext(srcGui, { filename: 'client-gui.js' });
-const modGui = capturedG((id) => { if (id === 'react') return react; throw new Error('unexpected require: ' + id); });
+const modGui = capturedG((id) => { if (id === 'react') return react; if (id === 'react-dom') return reactDOM; if (id === 'react-dom') return reactDOM; throw new Error('unexpected require: ' + id); });
 let regG = null;
 const slotsG = { inject: (n, fn) => { regG = fn; }, register: (o, c) => ({ opts: o, comp: c }) };
 modGui.apply({ get: (n) => (n === 'slots' ? slotsG : undefined) });
@@ -285,7 +289,7 @@ const srcLearn = srcWithData
 let capturedL = null;
 global.window.__ModuleLoader__.load = (m) => { capturedL = m.factory; };
 require('vm').runInThisContext(srcLearn, { filename: 'client-learn.js' });
-const modLearn = capturedL((id) => { if (id === 'react') return react; throw new Error('unexpected require: ' + id); });
+const modLearn = capturedL((id) => { if (id === 'react') return react; if (id === 'react-dom') return reactDOM; if (id === 'react-dom') return reactDOM; throw new Error('unexpected require: ' + id); });
 let regL = null;
 const slotsL = { inject: (n, fn) => { regL = fn; }, register: (o, c) => ({ opts: o, comp: c }) };
 modLearn.apply({ get: (n) => (n === 'slots' ? slotsL : undefined) });
@@ -300,7 +304,7 @@ const srcConfirm = srcWithData
 let capturedC = null;
 global.window.__ModuleLoader__.load = (m) => { capturedC = m.factory; };
 require('vm').runInThisContext(srcConfirm, { filename: 'client-confirm.js' });
-const modConfirm = capturedC((id) => { if (id === 'react') return react; throw new Error('unexpected require: ' + id); });
+const modConfirm = capturedC((id) => { if (id === 'react') return react; if (id === 'react-dom') return reactDOM; if (id === 'react-dom') return reactDOM; throw new Error('unexpected require: ' + id); });
 let regC = null;
 const slotsC = { inject: (n, fn) => { regC = fn; }, register: (o, c) => ({ opts: o, comp: c }) };
 modConfirm.apply({ get: (n) => (n === 'slots' ? slotsC : undefined) });
@@ -314,12 +318,60 @@ const srcTeach = srcWithData
 let capturedT = null;
 global.window.__ModuleLoader__.load = (m) => { capturedT = m.factory; };
 require('vm').runInThisContext(srcTeach, { filename: 'client-teach.js' });
-const modTeach = capturedT((id) => { if (id === 'react') return react; throw new Error('unexpected require: ' + id); });
+const modTeach = capturedT((id) => { if (id === 'react') return react; if (id === 'react-dom') return reactDOM; if (id === 'react-dom') return reactDOM; throw new Error('unexpected require: ' + id); });
 let regT = null;
 const slotsT = { inject: (n, fn) => { regT = fn; }, register: (o, c) => ({ opts: o, comp: c }) };
 modTeach.apply({ get: (n) => (n === 'slots' ? slotsT : undefined) });
 const htmlTeach = renderToString(regT().comp({ sessionId: 's15', inputActions: undefined }));
 console.log('teach 标签: markdown 粗体', htmlTeach.indexOf('<strong>') >= 0 || htmlTeach.indexOf('<b>') >= 0, '| 列表', htmlTeach.indexOf('•') >= 0, '| 代码块', htmlTeach.indexOf('markdown-code-block') >= 0, '| 无 textarea', htmlTeach.indexOf('<textarea') < 0, '| 无 overlay', htmlTeach.indexOf('indentGuides') < 0);
+
+// 报错诊断面板（ErrWindow）：右侧栏加入 err 面板 + 注入结构化报错数据
+const srcErr = srcWithData
+  .replace('const LAYOUT_DEFAULT = { left: { panels: ["files", "nav", "assets", "edits"] }, right: { panels: ["chat"] }, bottom: { panels: ["log"] } };',
+    'const LAYOUT_DEFAULT = { left: { panels: ["files", "nav", "assets", "edits"] }, right: { panels: ["chat", "err"] }, bottom: { panels: ["log"] } };')
+  .replace('const [data, setData] = React.useState(null);',
+    'const [data, setData] = React.useState({ files: { traceback: true, errors: true, log: true }, traceback: { exception: { type: "ZeroDivisionError", message: "division by zero" }, rootFrame: { file: "game/script.rpy", line: 20, source: "x = 1 / 0" }, whileRunning: { file: "game/script.rpy", line: 21 }, frames: [ { file: "game/script.rpy", line: 21 }, { file: "renpy/ast.py", line: 1726 } ], version: "8.5.3.26051504" }, errors: { errors: [ { message: "label start 定义两次", file: "game/script.rpy", line: 5 } ] }, log: { errors: [ { kind: "Exception", message: "config 变量不存在", frames: [] } ] } });');
+let capturedE = null;
+global.window.__ModuleLoader__.load = (m) => { capturedE = m.factory; };
+require('vm').runInThisContext(srcErr, { filename: 'client-err.js' });
+const modErr = capturedE((id) => { if (id === 'react') return react; if (id === 'react-dom') return reactDOM; if (id === 'react-dom') return reactDOM; throw new Error('unexpected require: ' + id); });
+let regE = null;
+const slotsE = { inject: (n, fn) => { regE = fn; }, register: (o, c) => ({ opts: o, comp: c }) };
+modErr.apply({ get: (n) => (n === 'slots' ? slotsE : undefined) });
+const htmlErr = renderToString(regE().comp({ sessionId: 's17', inputActions: undefined }));
+console.log('报错面板: 标题', htmlErr.indexOf('报错诊断') >= 0, '| 崩溃', htmlErr.indexOf('崩溃 traceback') >= 0, '| 异常类型', htmlErr.indexOf('ZeroDivisionError') >= 0, '| 根因', htmlErr.indexOf('根因') >= 0, '| lint 错误', htmlErr.indexOf('lint 错误 1 条') >= 0, '| log 内嵌', htmlErr.indexOf('log 内嵌错误 1 段') >= 0, '| 空状态无残留', htmlErr.indexOf('暂无报错文件') < 0);
+console.log('报错面板: 文件计数', htmlErr.indexOf('3/3 文件') >= 0, '| 刷新按钮', htmlErr.indexOf('重新读取报错文件') >= 0, '| 活动栏入口', htmlErr.indexOf('报错诊断面板') >= 0);
+
+// 静态诊断面板（DiagWindow）：右侧栏加入 diag 面板 + 注入诊断数据
+const srcDiag = srcWithData
+  .replace('const LAYOUT_DEFAULT = { left: { panels: ["files", "nav", "assets", "edits"] }, right: { panels: ["chat"] }, bottom: { panels: ["log"] } };',
+    'const LAYOUT_DEFAULT = { left: { panels: ["files", "nav", "assets", "edits"] }, right: { panels: ["chat", "diag"] }, bottom: { panels: ["log"] } };')
+  .replace('const [data, setData] = React.useState(null);\n\t\t\tconst [busy, setBusy] = React.useState(false);\n\t\t\tconst load = React.useCallback(() => {\n\t\t\t\tif (!project) return;\n\t\t\t\tsetBusy(true);\n\t\t\t\tapi("diagnostics", {}, { project })',
+    'const [data, setData] = React.useState({ files: 2, items: [ { kind: "invalid_jump", level: "error", file: "game/script.rpy", line: 9, target: "missing_label", msg: "jump 目标 label 未定义" }, { kind: "missing_asset", level: "warn", file: "game/script.rpy", line: 12, target: "bg castle", msg: "图像未定义且 images/ 无同名文件" } ] });\n\t\t\tconst [busy, setBusy] = React.useState(false);\n\t\t\tconst load = React.useCallback(() => {\n\t\t\t\tif (!project) return;\n\t\t\t\tsetBusy(true);\n\t\t\t\tapi("diagnostics", {}, { project })');
+let capturedD = null;
+global.window.__ModuleLoader__.load = (m) => { capturedD = m.factory; };
+require('vm').runInThisContext(srcDiag, { filename: 'client-diag.js' });
+const modDiag = capturedD((id) => { if (id === 'react') return react; if (id === 'react-dom') return reactDOM; throw new Error('unexpected require: ' + id); });
+let regD = null;
+const slotsD = { inject: (n, fn) => { regD = fn; }, register: (o, c) => ({ opts: o, comp: c }) };
+modDiag.apply({ get: (n) => (n === 'slots' ? slotsD : undefined) });
+const htmlDiag = renderToString(regD().comp({ sessionId: 's18', inputActions: undefined }));
+console.log('诊断面板: 标题', htmlDiag.indexOf('静态诊断') >= 0, '| 无效跳转', htmlDiag.indexOf('无效跳转') >= 0, '| 缺失资源', htmlDiag.indexOf('缺失资源') >= 0, '| 错误计数', htmlDiag.indexOf('错误 1') >= 0, '| 警告计数', htmlDiag.indexOf('警告 1') >= 0, '| 跳转目标', htmlDiag.indexOf('missing_label') >= 0, '| 空状态无残留', htmlDiag.indexOf('无诊断问题') < 0);
+console.log('诊断面板: 扫描文件数', htmlDiag.indexOf('扫描 2 个文件') >= 0, '| 活动栏入口', htmlDiag.indexOf('静态诊断面板') >= 0);
+
+// 写守卫确认弹层（guardPrompt：保存被守卫拦截 → 强制/取消）
+const srcGuard = srcWithData
+  .replace('const [guardPrompt, setGuardPrompt] = React.useState(null); // { errors: [{line,kind,msg}] }',
+    'const [guardPrompt, setGuardPrompt] = React.useState({ errors: [ { line: 2, kind: "indent", msg: "label 块内语句未缩进" }, { line: 5, kind: "label_dup", msg: "label 重名" } ] });');
+let capturedG2 = null;
+global.window.__ModuleLoader__.load = (m) => { capturedG2 = m.factory; };
+require('vm').runInThisContext(srcGuard, { filename: 'client-guard.js' });
+const modGuard = capturedG2((id) => { if (id === 'react') return react; if (id === 'react-dom') return reactDOM; throw new Error('unexpected require: ' + id); });
+let regG2 = null;
+const slotsG2 = { inject: (n, fn) => { regG2 = fn; }, register: (o, c) => ({ opts: o, comp: c }) };
+modGuard.apply({ get: (n) => (n === 'slots' ? slotsG2 : undefined) });
+const htmlGuard = renderToString(regG2().comp({ sessionId: 's19', inputActions: undefined }));
+console.log('守卫弹层: 标题', htmlGuard.indexOf('写守卫拦截了保存') >= 0, '| 错误数', htmlGuard.indexOf('2 个确定问题') >= 0, '| 错误行', htmlGuard.indexOf('L2 [indent]') >= 0, '| 强制按钮', htmlGuard.indexOf('仍要保存（强制）') >= 0, '| 取消按钮', htmlGuard.indexOf('取消（先修正）') >= 0);
 
 // 渲染 hideSidebar 变体
 const el2 = comp({ sessionId: 's2', inputActions: undefined, hideSidebar: true });

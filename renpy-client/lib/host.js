@@ -4,7 +4,7 @@
 // 沙箱：按会话解析 sandboxPolicy（query 带 session id）。
 'use strict'
 
-const { lineDiff, hasOpenToolCall, layoutRouteMap, computeRouteMeta } = require('./renpy-core')
+const { lineDiff, hasOpenToolCall, layoutRouteMap, computeRouteMeta, parseTraceback, parseLog, parseErrors, findDiagnostics, guardRpy } = require('./renpy-core')
 
 const name = 'renpy-dev'
 
@@ -211,6 +211,30 @@ init python:
     const target = await ctx.fs.resolve(p)
     if (policy !== undefined) return ctx.fs.writeText(target, c, undefined, undefined, policy)
     return ctx.fs.writeText(target, c)
+  }
+
+  // 收集项目 game/ 下其他文件的 label 名（排除 excludeRel，供写守卫跨文件冲突检测）
+  const labelsOfProject = async (project, excludeRel) => {
+    const labels = []
+    const walk = async (dir, prefix) => {
+      let entries
+      try { entries = await ctx.fs.listDir(await ctx.fs.resolve(dir)) } catch (e) { return }
+      for (const e of entries) {
+        if (e.type === 'directory') { await walk(dir + '/' + e.name, prefix + e.name + '/'); continue }
+        if (!e.name.endsWith('.rpy')) continue
+        const rel = prefix + e.name
+        if (rel === excludeRel) continue
+        try {
+          const content = await readText(dir + '/' + e.name)
+          for (const line of content.split(/\r?\n/)) {
+            const m = /^label\s+([A-Za-z_]\w*)/.exec(line.trim())
+            if (m) labels.push(m[1])
+          }
+        } catch (err) { /* ignore */ }
+      }
+    }
+    await walk(project.replace(/[\\/]+$/, '') + '/game', '')
+    return labels
   }
 
   // ── 保存历史备份：write-file 前把旧版本存入 userDir/backups/<projectKey>/<rel>/<ts>.bak ──
@@ -1150,6 +1174,14 @@ init python:
         const body = await readBody(req)
         if (p === '/renpy-dev/write-file') {
           const rel = (/\/game\/(.+)$/.exec(body.path || '') || [])[1]
+          // 写守卫：保存前强制校验（缩进/保留名/标签唯一/对白转义）；失败默认拒写，force 可绕过
+          if (rel && !body.force && String(body.path || '').endsWith('.rpy')) {
+            const guard = guardRpy(body.content || '', { labels: await labelsOfProject(String(body.path || '').replace(/[\\/]game[\\/].*$/, ''), rel) })
+            if (!guard.ok) {
+              respond(res, 200, { ok: false, guarded: true, errors: guard.errors })
+              return
+            }
+          }
           if (rel) await backupOf(body.path, rel, session) // 先备份旧版本，再写入
           await writeText(body.path, body.content || '', session)
           respond(res, 200, { ok: true })
@@ -1168,6 +1200,49 @@ init python:
         if (p === '/renpy-dev/workspace-clear') { respond(res, 200, await workspaceClear(body.project, sessionId)); return }
         if (p === '/renpy-dev/workspace-inject') { respond(res, 200, await workspaceInject(body.project, sessionId)); return }
         if (p === '/renpy-dev/lint') { respond(res, 200, await runLint(body.project, session)); return }
+        if (p === '/renpy-dev/errors') {
+          // 报错落盘文件结构化读取（traceback.txt / log.txt / errors.txt，项目根目录）
+          const proj = String(body.project || '').trim()
+          if (!proj) { respond(res, 400, { error: 'missing project' }); return }
+          const base = proj.replace(/[\\/]+$/, '')
+          const read = async (name) => { try { return await readText(base + '/' + name) } catch (e) { return null } }
+          const [tb, lg, er] = await Promise.all([read('traceback.txt'), read('log.txt'), read('errors.txt')])
+          respond(res, 200, {
+            project: proj,
+            files: { traceback: !!tb, log: !!lg, errors: !!er },
+            traceback: tb ? parseTraceback(tb) : null,
+            log: lg ? parseLog(lg) : null,
+            errors: er ? parseErrors(er) : null,
+          })
+          return
+        }
+        if (p === '/renpy-dev/diagnostics') {
+          // 静态诊断（find_*：引用完整性扫描，秒级快速通道；递归收集 game/ 下 .rpy）
+          const proj = String(body.project || '').trim()
+          if (!proj) { respond(res, 400, { error: 'missing project' }); return }
+          const base = proj.replace(/[\\/]+$/, '')
+          const rpyFiles = []
+          const walkRpy = async (dir, prefix) => {
+            let entries
+            try { entries = await ctx.fs.listDir(await ctx.fs.resolve(dir)) } catch (e) { return }
+            for (const e of entries) {
+              if (e.type === 'directory') { await walkRpy(dir + '/' + e.name, prefix + e.name + '/'); continue }
+              if (!e.name.endsWith('.rpy')) continue
+              let content = ''
+              try { content = await readText(dir + '/' + e.name) } catch (err) { /* ignore */ }
+              rpyFiles.push({ rel: prefix + e.name, content })
+            }
+          }
+          await walkRpy(base + '/game', '')
+          const assets = await listAssets(proj)
+          const diag = findDiagnostics(rpyFiles, {
+            images: assets.image.map((a) => a.rel),
+            audio: assets.audio.map((a) => a.rel),
+            fonts: assets.font.map((a) => a.rel),
+          })
+          respond(res, 200, { project: proj, files: rpyFiles.length, ...diag })
+          return
+        }
         if (p === '/renpy-dev/test') { respond(res, 200, await runTest(body.project, body.suite, session)); return }
         if (p === '/renpy-dev/doc' && req.method === 'GET') { const u2 = new URL(req.url, 'http://x'); respond(res, 200, await readDoc(u2.searchParams.get('page') || '')); return }
         if (p === '/renpy-dev/teach') { respond(res, 200, await teachOne(body)); return }

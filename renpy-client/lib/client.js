@@ -600,6 +600,8 @@ window.__ModuleLoader__.load({
 			shot: { title: "实时画面", icon: "🎬" },
 			vars: { title: "运行时变量", icon: "📊" },
 			cp: { title: "修改面板", icon: "✎" },
+			err: { title: "报错诊断", icon: "🐞" },
+			diag: { title: "静态诊断", icon: "🔍" },
 		};
 		// 默认布局（Win11 式：区域内多面板平铺平分；持久化到 localStorage.renpy-panel-layout）
 		const LAYOUT_DEFAULT = { left: { panels: ["files", "nav", "assets", "edits"] }, right: { panels: ["chat"] }, bottom: { panels: ["log"] } };
@@ -1152,6 +1154,125 @@ window.__ModuleLoader__.load({
 				React.createElement("div", { onMouseDown: onResizeDown, title: "拖拽缩放", style: { position: "absolute", right: 0, bottom: 0, width: 18, height: 18, cursor: "nwse-resize", background: "linear-gradient(135deg, transparent 50%, rgba(128,128,128,.55) 50%)", borderBottomRightRadius: 10 } }),
 			);
 			return ReactDOM.createPortal(body, document.body);
+		}
+
+		// ── 报错诊断面板（traceback/log/errors 结构化读取；根因帧/lint 错误可点击跳转编辑器） ──
+		function ErrWindow(props) {
+			const { project, api, sessionId, TXT, TXT2, TXT3, ACCENT, BORDER, LAYER, onJump } = props;
+			const [data, setData] = React.useState(null);
+			const [busy, setBusy] = React.useState(false);
+			const load = React.useCallback(() => {
+				if (!project) return;
+				setBusy(true);
+				api("errors", {}, { project }).then((r) => { setData(r || null); setBusy(false); }).catch(() => { setData(null); setBusy(false); });
+			}, [project, api]);
+			React.useEffect(() => { load(); }, [load]);
+			// 跳转：file 形如 "game/x.rpy"（或绝对路径含 game/）→ 剥前缀交给编辑器 openFile
+			const jump = (file, line) => {
+				if (!file || !onJump) return;
+				const rel = String(file).replace(/^[\\/]*[^\\/]*[\\/]*game[\\/]/, "").replace(/^[\\/]*game[\\/]/, "");
+				onJump(rel, Number(line) || 1);
+			};
+			const hasTrace = !!(data && data.traceback && data.traceback.frames && data.traceback.frames.length);
+			const hasErrList = !!(data && data.errors && data.errors.errors && data.errors.errors.length);
+			const hasLogErr = !!(data && data.log && data.log.errors && data.log.errors.length);
+			const none = !data || (!hasTrace && !hasErrList && !hasLogErr);
+			const t = data && data.traceback;
+			const frameEls = [];
+			if (t && t.frames) t.frames.forEach((f, i) => {
+				frameEls.push(React.createElement("span", { key: "f" + i, style: { cursor: "pointer", color: TXT2 }, onClick: () => jump(f.file, f.line), title: "点击跳转" }, f.file + ":" + f.line));
+				if (i < t.frames.length - 1) frameEls.push(React.createElement("span", { key: "a" + i, style: { color: TXT3 } }, " → "));
+			});
+			return React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } },
+				React.createElement("div", { style: { flexShrink: 0, display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", background: LAYER, borderBottom: "1px solid " + BORDER } },
+					React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: TXT } }, "🐞 报错诊断"),
+					React.createElement("span", { style: { fontSize: 11, color: TXT3 } }, data ? (["traceback", "log", "errors"].filter((k) => data.files && data.files[k]).length + "/3 文件") : "…"),
+					React.createElement("button", { onClick: load, disabled: busy, title: "重新读取报错文件", style: { ...C.iconBtn, marginLeft: "auto" } }, "⟳"),
+				),
+				React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", padding: "6px 8px" } },
+					none ? React.createElement("div", { style: { color: TXT3, fontSize: 12, padding: "18px 8px", textAlign: "center", lineHeight: 1.8, whiteSpace: "pre-line" } },
+						"暂无报错文件\n（项目根目录 traceback.txt / log.txt / errors.txt）\n运行崩溃或 lint 失败后自动生成，点 ⟳ 刷新")
+					: React.createElement(React.Fragment, null,
+						hasTrace ? React.createElement("div", { style: { marginBottom: 8, border: "1px solid " + BORDER, borderRadius: 8, overflow: "hidden", background: "rgba(224,92,92,.05)" } },
+							React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, padding: "5px 8px", background: "rgba(224,92,92,.12)", borderBottom: "1px solid " + BORDER, fontSize: 11, color: "#e05c5c", fontWeight: 600 } },
+								"💥 崩溃 traceback", t.version ? React.createElement("span", { style: { marginLeft: "auto", color: TXT3, fontWeight: 400 } }, t.version) : null),
+							React.createElement("div", { style: { padding: "6px 8px", fontSize: 12, lineHeight: 1.6, color: TXT } },
+								React.createElement("div", { style: { marginBottom: 4, wordBreak: "break-all" } },
+									t.exception ? React.createElement(React.Fragment, null,
+										React.createElement("span", { style: { color: "#e05c5c", fontWeight: 700, fontFamily: "monospace" } }, t.exception.type),
+										React.createElement("span", { style: { color: TXT2 } }, ": " + t.exception.message)) : "异常信息未知"),
+								t.rootFrame ? React.createElement("div", { style: { cursor: "pointer", color: ACCENT, textDecoration: "underline", wordBreak: "break-all" }, onClick: () => jump(t.rootFrame.file, t.rootFrame.line), title: "点击跳转编辑器" },
+									"◆ 根因: " + t.rootFrame.file + ":" + t.rootFrame.line + (t.rootFrame.source ? "  " + t.rootFrame.source : "")) : null,
+								t.whileRunning ? React.createElement("div", { style: { fontSize: 11, color: TXT3, marginTop: 2, wordBreak: "break-all" } }, "运行位置: " + t.whileRunning.file + ":" + t.whileRunning.line) : null,
+								frameEls.length ? React.createElement("div", { style: { marginTop: 4, fontSize: 10, color: TXT3, lineHeight: 1.5, wordBreak: "break-all" } }, "栈帧: ", frameEls) : null,
+							),
+						) : null,
+						hasErrList ? React.createElement("div", { style: { marginBottom: 8, border: "1px solid " + BORDER, borderRadius: 8, overflow: "hidden" } },
+							React.createElement("div", { style: { padding: "5px 8px", background: LAYER, borderBottom: "1px solid " + BORDER, fontSize: 11, color: TXT2, fontWeight: 600 } }, "⚠ lint 错误 " + data.errors.errors.length + " 条（点击跳转）"),
+							data.errors.errors.map((e, i) => React.createElement("div", { key: "e" + i, onClick: () => jump(e.file, e.line), title: "点击跳转", style: { ...C.listRow(false), gap: 6, fontSize: 11 }, onMouseEnter: (ev) => { ev.currentTarget.style.background = "var(--dsw-alias-interactive-bg-hover)"; }, onMouseLeave: (ev) => { ev.currentTarget.style.background = "transparent"; } },
+								React.createElement("span", { style: { color: "#e05c5c", fontFamily: "monospace", flexShrink: 0 } }, e.file + ":" + e.line),
+								React.createElement("span", { style: { color: TXT2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, e.message),
+							)),
+						) : null,
+						hasLogErr ? React.createElement("div", { style: { marginBottom: 8, border: "1px solid " + BORDER, borderRadius: 8, overflow: "hidden" } },
+							React.createElement("div", { style: { padding: "5px 8px", background: LAYER, borderBottom: "1px solid " + BORDER, fontSize: 11, color: TXT2, fontWeight: 600 } }, "📋 log 内嵌错误 " + data.log.errors.length + " 段"),
+							data.log.errors.map((e, i) => React.createElement("div", { key: "l" + i, style: { padding: "4px 8px", fontSize: 11, color: TXT2, borderBottom: i < data.log.errors.length - 1 ? "1px solid " + BORDER : "none", wordBreak: "break-all" } },
+								React.createElement("span", { style: { color: "#e05c5c", fontFamily: "monospace" } }, e.kind + ": "), e.message)),
+						) : null,
+						React.createElement("div", { style: { fontSize: 10, color: TXT3, lineHeight: 1.6 } },
+							"点击 file:line 跳转编辑器；根因帧 = 最深的 game/ 脚本帧（启发式）。" + (data && data.files && !data.files.traceback ? "" : "")),
+					),
+				),
+			);
+		}
+
+		// ── 静态诊断面板（find_*：invalid_jump/undefined_screen/undefined_character/missing_asset/unreachable_label） ──
+		function DiagWindow(props) {
+			const { project, api, sessionId, TXT, TXT2, TXT3, ACCENT, BORDER, LAYER, onJump } = props;
+			const [data, setData] = React.useState(null);
+			const [busy, setBusy] = React.useState(false);
+			const load = React.useCallback(() => {
+				if (!project) return;
+				setBusy(true);
+				api("diagnostics", {}, { project }).then((r) => { setData(r || null); setBusy(false); }).catch(() => { setData(null); setBusy(false); });
+			}, [project, api]);
+			React.useEffect(() => { load(); }, [load]);
+			const jump = (file, line) => {
+				if (!file || !onJump) return;
+				const rel = String(file).replace(/^[\\/]*[^\\/]*[\\/]*game[\\/]/, "").replace(/^[\\/]*game[\\/]/, "");
+				onJump(rel, Number(line) || 1);
+			};
+			const items = (data && data.items) || [];
+			const levelColor = (lv) => lv === "error" ? "#e05c5c" : lv === "warn" ? "#e5c07b" : TXT3;
+			const KIND_LABEL = { invalid_jump: "无效跳转", undefined_screen: "未定义 screen", undefined_character: "未定义角色", missing_asset: "缺失资源", unreachable_label: "不可达 label" };
+			const groups = {};
+			for (const it of items) (groups[it.kind] = groups[it.kind] || []).push(it);
+			const kindOrder = ["invalid_jump", "undefined_screen", "undefined_character", "missing_asset", "unreachable_label"].filter((k) => groups[k]);
+			const errN = items.filter((it) => it.level === "error").length;
+			const warnN = items.filter((it) => it.level === "warn").length;
+			return React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } },
+				React.createElement("div", { style: { flexShrink: 0, display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", background: LAYER, borderBottom: "1px solid " + BORDER } },
+					React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: TXT } }, "🔍 静态诊断"),
+					React.createElement("span", { style: { fontSize: 11, color: TXT3 } }, data ? ("扫描 " + data.files + " 个文件") : "…"),
+					errN > 0 ? React.createElement("span", { style: { fontSize: 11, color: "#e05c5c" } }, "错误 " + errN) : null,
+					warnN > 0 ? React.createElement("span", { style: { fontSize: 11, color: "#e5c07b" } }, "警告 " + warnN) : null,
+					React.createElement("button", { onClick: load, disabled: busy, title: "重新扫描", style: { ...C.iconBtn, marginLeft: "auto" } }, "⟳"),
+				),
+				React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", padding: "6px 8px" } },
+					items.length === 0 ? React.createElement("div", { style: { color: TXT3, fontSize: 12, padding: "18px 8px", textAlign: "center", lineHeight: 1.8, whiteSpace: "pre-line" } },
+						"无诊断问题 ✓\n（invalid_jump / undefined_screen / undefined_character / missing_asset / unreachable_label）\n动态特性（jump expression、renpy.jump() 等）无法静态确认，不报告")
+					: kindOrder.map((kind) => React.createElement("div", { key: kind, style: { marginBottom: 8, border: "1px solid " + BORDER, borderRadius: 8, overflow: "hidden" } },
+						React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, padding: "5px 8px", background: LAYER, borderBottom: "1px solid " + BORDER, fontSize: 11, color: TXT2, fontWeight: 600 } },
+							(KIND_LABEL[kind] || kind) + " " + groups[kind].length + " 条",
+							React.createElement("span", { style: { marginLeft: "auto", color: levelColor(groups[kind][0].level), fontWeight: 400 } }, groups[kind][0].level === "error" ? "error" : groups[kind][0].level === "warn" ? "warn" : "info")),
+						groups[kind].map((it, i) => React.createElement("div", { key: i, onClick: () => jump(it.file, it.line), title: "点击跳转编辑器", style: { ...C.listRow(false), gap: 6, fontSize: 11, alignItems: "flex-start", flexWrap: "wrap", padding: "3px 8px" }, onMouseEnter: (ev) => { ev.currentTarget.style.background = "var(--dsw-alias-interactive-bg-hover)"; }, onMouseLeave: (ev) => { ev.currentTarget.style.background = "transparent"; } },
+							React.createElement("span", { style: { color: levelColor(it.level), fontFamily: "monospace", flexShrink: 0 } }, it.file + ":" + it.line),
+							React.createElement("span", { style: { color: ACCENT, fontFamily: "monospace", flexShrink: 0 } }, it.target || ""),
+							React.createElement("span", { style: { color: TXT2, minWidth: 0 } }, it.msg),
+						)),
+					)),
+				),
+			);
 		}
 
 		// ── 浮动面板（P2：长按手柄拖出的可缩放浮动窗；拖到左/下视口边缘松手吸附回区域） ──
@@ -2383,13 +2504,21 @@ window.__ModuleLoader__.load({
 				scheduleCompletions(v); // 输入/删除/粘贴后按最新文本触发补全
 			};
 
-			const saveFile = () => {
+			// 写守卫拦截提示（保存时守卫发现确定错误 → 确认是否强制写入）
+			const [guardPrompt, setGuardPrompt] = React.useState(null); // { errors: [{line,kind,msg}] }
+			const saveFile = (force) => {
 				if (!active || isViewTab) return; // teach:/doc: 只读视图标签不可保存
 				setBusy(true);
 				setSavedSnap({ name: active.name, content: content }); // 保存前快照：可回退到保存前
-				api("write-file", {}, { path: project + "/game/" + active.name, content: content }).then((r) => {					setBusy(false);
+				api("write-file", {}, { path: project + "/game/" + active.name, content: content, force: !!force }).then((r) => {
+					if (r && r.guarded && !force) {
+						setBusy(false);
+						setGuardPrompt({ errors: r.errors || [] });
+						return;
+					}
+					setBusy(false);
 					setTabs((old) => old.map((t) => (t.name === activeName ? { ...t, dirty: false } : t)));
-					addLog("saved " + active.name);
+					addLog("saved " + active.name + (force ? "（强制）" : ""));
 					autoCp("手动保存"); // 手动修改后自动更新检查点基线
 					// 保存后防抖重新索引（连续保存合并为一次）
 					if (reindexTimerRef.current) clearTimeout(reindexTimerRef.current);
@@ -3239,6 +3368,8 @@ window.__ModuleLoader__.load({
 				if (id === "route") return React.createElement(RouteWindow, { map: routeMap, onNodeClick: jumpToState, currentId: routeCurrentId, focusNodes: varNodes, TXT, TXT2, TXT3, ACCENT, BORDER, BG, GHOST, LAYER, embedded: true });
 				if (id === "shot") return React.createElement(ShotWindow, { project, api, TXT, TXT2, TXT3, BORDER, BG, LAYER, sessionId, embedded: true });
 				if (id === "vars") return React.createElement(VarWindow, { vars: (routeStatus && routeStatus.vars) || {}, routeVars: (routeMap && routeMap.variables) || [], onVarJump: jumpToVarDef, onVarFocus: setVarFocus, TXT, TXT2, TXT3, ACCENT, BORDER, BG, LAYER, embedded: true });
+				if (id === "err") return React.createElement(ErrWindow, { project, api, sessionId, TXT, TXT2, TXT3, ACCENT, BORDER, LAYER, onJump: (rel, line) => { openFile(rel, () => flashJumpToLine(line)); } });
+				if (id === "diag") return React.createElement(DiagWindow, { project, api, sessionId, TXT, TXT2, TXT3, ACCENT, BORDER, LAYER, onJump: (rel, line) => { openFile(rel, () => flashJumpToLine(line)); } });
 				return renderSidePanel(id);
 			};
 			// ── 类 VSCode 布局：活动视图切换 + 光标位置（状态栏） ──
@@ -3501,6 +3632,7 @@ window.__ModuleLoader__.load({
 			// 控件常量 = 规范库 C 的本地引用（token 变量同名覆盖；所有 {...btn} 使用处自动继承规范 §5）
 			const btn = { ...C.btn };
 			const btnPrimary = { ...C.btnPrimary };
+			const btnDanger = { ...C.btnDanger };
 			const iconBtn = { ...C.iconBtn };
 			const iconBtnAct = { ...iconBtn, background: GHOST, color: ACCENT, border: "1px solid " + BORDER };
 			// 图标 + 简短文字
@@ -3770,6 +3902,8 @@ window.__ModuleLoader__.load({
 						abIcon("🗺", "分支路线图", () => movePanel("route", "right"), { opacity: project ? 1 : .4, hideText: navCollapsed, title: "路线图面板（右侧栏；状态机图，点击节点跳游戏需运行）" }),
 						abIcon("🎬", "实时画面", () => movePanel("shot", "right"), { opacity: project ? 1 : .4, hideText: navCollapsed, title: "实时画面面板（右侧栏；截图 + 点击/推进/回滚）" }),
 						abIcon("📊", "运行时变量", () => movePanel("vars", "right"), { opacity: project ? 1 : .4, hideText: navCollapsed, title: "变量监控面板（右侧栏；变化高亮）" }),
+						abIcon("🐞", "报错诊断", () => movePanel("err", "right"), { opacity: project ? 1 : .4, hideText: navCollapsed, title: "报错诊断面板（右侧栏；traceback/log/errors 结构化 + 跳转）" }),
+						abIcon("🔍", "静态诊断", () => movePanel("diag", "right"), { opacity: project ? 1 : .4, hideText: navCollapsed, title: "静态诊断面板（右侧栏；无效跳转/未定义 screen/角色/缺失资源/不可达 label）" }),
 						React.createElement("div", { style: { width: 148, height: 1, background: BORDER, margin: "4px 0 6px", alignSelf: "center" } }),
 						// 视图控件（停靠左栏）
 						[["files", "📄", "项目文件"], ["nav", "🧭", "导航"], ["assets", "🖼", "项目素材"], ["edits", "✎", "基线更改"]].map(([k, icon, label]) => { const inLeft = (panelLayout.left.panels || []).includes(k); return React.createElement("div", { key: k, title: label, onClick: () => movePanel(k, "left"), style: { position: "relative", width: "100%", height: 32, marginBottom: 2, display: "flex", alignItems: "center", gap: 7, padding: "0 10px", cursor: "pointer" } },
@@ -4087,7 +4221,17 @@ window.__ModuleLoader__.load({
 							React.createElement("button", { style: { ...btnPrimary, padding: "3px 14px" }, onClick: confirmTeach }, "确认生成"),
 						),
 					) : null,
-					// ── 底部面板区（P2：多面板水平平分，标题栏拖拽/吸附；顶部拖拽条调高） ──
+					guardPrompt ? React.createElement("div", { style: { position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", zIndex: 81, background: BG, border: "1px solid " + BORDER, borderRadius: 10, boxShadow: "0 10px 34px rgba(0,0,0,.5)", padding: "14px 18px", maxWidth: 460, color: TXT } },
+						React.createElement("div", { style: { fontSize: 13, fontWeight: 600, marginBottom: 8 } }, "🛡 写守卫拦截了保存"),
+						React.createElement("div", { style: { fontSize: 12, lineHeight: 1.6, color: TXT2, marginBottom: 8 } },
+							"检测到 " + guardPrompt.errors.length + " 个确定问题（会破坏脚本结构或运行报错）："),
+						React.createElement("div", { style: { maxHeight: 160, overflow: "auto", marginBottom: 10, border: "1px solid " + BORDER, borderRadius: 6, background: LAYER, padding: "6px 8px", fontSize: 11, lineHeight: 1.6, fontFamily: "monospace", color: "#e05c5c", whiteSpace: "pre-wrap" } },
+							guardPrompt.errors.map((e, i) => React.createElement("div", { key: i }, "L" + e.line + " [" + e.kind + "] " + e.msg))),
+						React.createElement("div", { style: { display: "flex", gap: 8, justifyContent: "flex-end" } },
+							React.createElement("button", { style: { ...btn, padding: "3px 14px" }, onClick: () => setGuardPrompt(null) }, "取消（先修正）"),
+							React.createElement("button", { style: { ...btnDanger, padding: "3px 14px" }, onClick: () => { setGuardPrompt(null); saveFile(true); } }, "仍要保存（强制）"),
+						),
+					) : null,
 					(panelLayout.bottom && panelLayout.bottom.panels.length) ? React.createElement("div", { style: { display: "flex", flexDirection: "column", flexShrink: 0, height: regionSize.bottom, minHeight: 0, borderTop: "1px solid " + BORDER, background: BG, position: "relative" } },
 						// 底部区高拖拽条（贴在区域上缘外侧，不遮挡面板标题栏；仅 4px hit 区）
 						React.createElement("div", { onMouseDown: (e) => startRegionResize("bottom", e), title: "拖动调整底部区高度", style: { position: "absolute", top: -4, left: 0, right: 0, height: 4, cursor: "row-resize", zIndex: 1 }, onMouseEnter: (e) => { e.currentTarget.style.background = "rgba(100,160,255,.35)"; }, onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; } }),
