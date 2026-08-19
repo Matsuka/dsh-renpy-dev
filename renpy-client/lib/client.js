@@ -1313,27 +1313,34 @@ window.__ModuleLoader__.load({
 		}
 
 		// ── 个性化设置面板（⚙：搜索 + 分组 + 控件 + 默认值标注 + 重置；全局/项目两层切换。
-		//    由 SETTINGS_SCHEMA 注册表驱动——新增配置项无需改面板代码） ──
 		// ── 个性化设置面板（⚙：搜索 + 分组 + 控件 + 默认值标注 + 重置；全局/项目两层切换。
 		//    由 SETTINGS_SCHEMA 注册表驱动——新增配置项无需改面板代码） ──
-		// 跨挂载保留的 UI 状态：DSH 宿主周期性重渲染可能导致面板实例重建（内部 state 全丢），
-		// query/scope 存模块级，组件初始化时恢复，避免"输入瞬间回滚"
-		let _settingsUI = {};
+		// 状态持久到 localStorage：DSH 宿主可能重载整个 client bundle（组件/模块级状态全丢），
+		// localStorage 跨重载存活——query/scope/各层控件编辑值持久化，杜绝"输入瞬间回滚"
+		const SETTINGS_UI_KEY = "renpy-settings-ui";
+		let _settingsUI = (() => { try { return JSON.parse(window.localStorage.getItem(SETTINGS_UI_KEY)) || {} } catch (e) { return {} } })();
+		const _saveSettingsUI = () => { try { window.localStorage.setItem(SETTINGS_UI_KEY, JSON.stringify(_settingsUI)) } catch (e) { /* 存储不可用时静默 */ } };
 		let _settingsMountCount = 0;
 		function SettingsWindow(props) {
 			const { project, api, sessionId, settings, onChange, TXT, TXT2, TXT3, ACCENT, BORDER, LAYER, full } = props;
 			_settingsMountCount++;
-			if (typeof window !== "undefined" && window.console) console.log("[settings] mount #" + _settingsMountCount);
+			if (typeof window !== "undefined" && window.console) console.log("[settings] mount #" + _settingsMountCount + " query=" + JSON.stringify(_settingsUI.query || ""));
 			const [query, setQuery] = React.useState(_settingsUI.query || "");
 			const [scope, setScope] = React.useState(_settingsUI.scope || "global");
-			const onQuery = (v) => { _settingsUI.query = v; setQuery(v); };
-			const onScope = (v) => { _settingsUI.scope = v; setScope(v); };
-			// 本地镜像：控件立即响应（防止受控回滚）；父级 settings 变化或切换层级时同步
+			const onQuery = (v) => { setQuery(v); _settingsUI.query = v; _saveSettingsUI(); };
+			// 本地镜像（控件立即响应）：初始 = 父级层值 + 持久化的未保存编辑；持久 local 按 scope 分键
 			const editing = (scope === "global" ? (settings && settings.global) : (settings && settings.project)) || {};
-			const [local, setLocal] = React.useState(editing);
-			React.useEffect(() => { setLocal(editing); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [scope, settings && settings.global, settings && settings.project]);
-			const setVal = (id, val) => { const next = { ...local, [id]: val }; setLocal(next); onChange(scope, next); };
-			const resetVal = (id) => { const s = SETTINGS_SCHEMA.find((x) => x.id === id); const next = { ...local, [id]: s ? s.default : undefined }; setLocal(next); onChange(scope, next); };
+			const [local, setLocal] = React.useState(() => ({ ...editing, ...((_settingsUI.local || {})[scope] || {}) }));
+			const localRef = React.useRef(local); localRef.current = local;
+			const persistLocal = () => { _settingsUI.local = _settingsUI.local || {}; _settingsUI.local[scope] = localRef.current; _saveSettingsUI(); };
+			const onScope = (v) => {
+				_settingsUI.scope = v; _saveSettingsUI(); setScope(v);
+				const base = v === "global" ? (settings && settings.global) : (settings && settings.project) || {};
+				const next = { ...base, ...((_settingsUI.local || {})[v] || {}) };
+				setLocal(next); localRef.current = next;
+			};
+			const setVal = (id, val) => { const next = { ...local, [id]: val }; setLocal(next); localRef.current = next; persistLocal(); onChange(scope, next); };
+			const resetVal = (id) => { const s = SETTINGS_SCHEMA.find((x) => x.id === id); const next = { ...local, [id]: s ? s.default : undefined }; setLocal(next); localRef.current = next; persistLocal(); onChange(scope, next); };
 			const groups = {};
 			for (const s of SETTINGS_SCHEMA) (groups[s.group] = groups[s.group] || []).push(s);
 			const shown = query.trim() ? SETTINGS_SCHEMA.filter((s) => s.id.indexOf(query) >= 0 || s.desc.indexOf(query) >= 0) : null;
