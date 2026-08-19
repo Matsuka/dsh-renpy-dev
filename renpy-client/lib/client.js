@@ -1411,6 +1411,29 @@ window.__ModuleLoader__.load({
 			);
 		}
 
+		// ── 最大化面板覆盖层（占满工作区；标题栏：图标+标题+操作+✕ 关闭；Esc 键可关闭） ──
+		function MaximizedOverlay(props) {
+			const { id, onClose, PANEL_META, renderPanelOps, renderPanel, TXT, TXT2, TXT3, ACCENT, BORDER, LAYER, BG } = props;
+			React.useEffect(() => {
+				if (!id) return;
+				const onKey = (e) => { if (e.key === "Escape") onClose(); };
+				window.addEventListener("keydown", onKey);
+				return () => window.removeEventListener("keydown", onKey);
+			}, [id, onClose]);
+			const meta = PANEL_META[id] || { title: id, icon: "📦" };
+			return React.createElement("div", { style: { position: "absolute", inset: 0, zIndex: 9000, display: "flex", flexDirection: "column", background: BG } },
+				React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, padding: "5px 10px", background: LAYER, borderBottom: "1px solid " + BORDER, flexShrink: 0, flexWrap: "wrap" } },
+					React.createElement("span", { style: { fontSize: 13 } }, meta.icon),
+					React.createElement("span", { style: { fontSize: 13, fontWeight: 600, color: TXT } }, meta.title),
+					React.createElement("span", { style: { fontSize: 11, color: TXT3, whiteSpace: "nowrap" } }, "（Esc 关闭）"),
+					React.createElement("span", { style: { flex: 1 } }),
+					renderPanelOps(id),
+					React.createElement("button", { onClick: onClose, title: "关闭（Esc）", style: { display: "inline-flex", alignItems: "center", gap: 5, height: 26, padding: "0 14px", cursor: "pointer", background: "transparent", color: "#e05c5c", border: "1px solid #e05c5c", borderRadius: 6, fontSize: 12, lineHeight: 1, whiteSpace: "nowrap", boxShadow: "0 1px 2px rgba(0,0,0,.18)" }, onMouseEnter: (e) => { e.currentTarget.style.background = "rgba(224,92,92,.12)"; }, onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; } }, "✕ 关闭"),
+				),
+				React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", display: "flex", flexDirection: "column" } }, renderPanel(id)),
+			);
+		}
+
 		// ── 浮动面板（P2：长按手柄拖出的可缩放浮动窗；拖到左/下视口边缘松手吸附回区域） ──
 		function FloatingPanel(props) {
 			const { meta, win, rootRef, onChange, onDock, onClose, children, TXT, TXT2, TXT3, BORDER, BG, LAYER } = props;
@@ -4447,17 +4470,8 @@ window.__ModuleLoader__.load({
 						active ? React.createElement("span", { style: { color: active.dirty ? ERRCOL : SUCCESS } }, active.dirty ? "● 未保存" : "✓ 已保存") : null,
 						React.createElement("span", {}, ".rpy"),
 					),
-					// ── 最大化面板覆盖层（占满整个工作区；标题栏带还原） ──
-					maximized ? React.createElement("div", { style: { position: "absolute", inset: 0, zIndex: 9000, display: "flex", flexDirection: "column", background: BG } },
-						React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, padding: "3px 8px", background: LAYER, borderBottom: "1px solid " + BORDER, flexShrink: 0, flexWrap: "wrap" } },
-							React.createElement("span", { style: { fontSize: 11 } }, (PANEL_META[maximized] || {}).icon || "📦"),
-							React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: TXT } }, (PANEL_META[maximized] || {}).title || maximized),
-							React.createElement("span", { style: { flex: 1 } }),
-							renderPanelOps(maximized),
-							React.createElement("span", { title: "还原", style: { fontSize: 12, color: TXT2, cursor: "pointer", padding: "1px 6px" }, onClick: () => setMaximized(null) }, "🗗 还原"),
-						),
-						React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", display: "flex", flexDirection: "column" } }, renderPanel(maximized)),
-					) : null,
+					// ── 最大化面板覆盖层（占满整个工作区；标题栏带明显的关闭按钮 + Esc 可关） ──
+					maximized ? React.createElement(MaximizedOverlay, { id: maximized, onClose: () => setMaximized(null), PANEL_META, renderPanelOps: renderPanelOps, renderPanel: renderPanel, TXT, TXT2, TXT3, ACCENT, BORDER, LAYER, BG }) : null,
 			);
 		}
 
