@@ -1324,8 +1324,8 @@ window.__ModuleLoader__.load({
 			const groups = {};
 			for (const s of SETTINGS_SCHEMA) (groups[s.group] = groups[s.group] || []).push(s);
 			const shown = query.trim() ? SETTINGS_SCHEMA.filter((s) => s.id.indexOf(query) >= 0 || s.desc.indexOf(query) >= 0) : null;
-			// 控件宽度：最大化视图更宽松
-			const wStr = full ? 260 : 160, wNum = full ? 90 : 70, wEnum = full ? 180 : 110, wArr = full ? 180 : 120, hCtl = full ? 28 : 24;
+			// 控件宽度（收敛：避免行内元素总宽超过卡片宽把描述文本挤成竖排；窄时靠 row 换行兜底）
+			const wStr = 170, wNum = 80, wEnum = 150, wArr = 150, hCtl = full ? 28 : 24;
 			// 值控件（按 type 分发）
 			const control = (s) => {
 				const val = editing[s.id] !== undefined ? editing[s.id] : s.default;
@@ -1348,8 +1348,9 @@ window.__ModuleLoader__.load({
 			};
 			const row = (s) => {
 				const modified = editing[s.id] !== undefined && editing[s.id] !== s.default;
-				return React.createElement("div", { key: s.id, style: { display: "flex", alignItems: "center", gap: 8, padding: full ? "6px 10px" : "4px 8px", minHeight: full ? 34 : 28, borderBottom: "1px solid " + BORDER } },
-					React.createElement("div", { style: { flex: 1, minWidth: 0 } },
+				return React.createElement("div", { key: s.id, style: { display: "flex", alignItems: "center", gap: 8, padding: full ? "6px 10px" : "4px 8px", minHeight: full ? 34 : 28, borderBottom: "1px solid " + BORDER, flexWrap: "wrap" } },
+					// 描述区：flex 收缩但有下限（防控件挤压把描述文本变成逐字竖排）
+					React.createElement("div", { style: { flex: "1 1 110px", minWidth: 110 } },
 						React.createElement("div", { style: { fontSize: full ? 13 : 12, color: TXT, fontFamily: "monospace", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, s.id),
 						React.createElement("div", { style: { fontSize: full ? 11.5 : 11, color: TXT3, lineHeight: 1.4 } }, s.desc),
 					),
@@ -1365,7 +1366,7 @@ window.__ModuleLoader__.load({
 				? (list.length ? list : React.createElement("div", { style: { color: TXT3, fontSize: 12, padding: "16px 8px", textAlign: "center" } }, "无匹配的设置"))
 				: (full
 					? React.createElement("div", { style: { display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap", padding: "8px 4px" } },
-						groupNames.map((g) => React.createElement("div", { key: g, style: { flex: "1 1 280px", minWidth: 280, border: "1px solid " + BORDER, borderRadius: 8, overflow: "hidden", background: "var(--dsw-alias-bg-base)" } },
+						groupNames.map((g) => React.createElement("div", { key: g, style: { flex: "1 1 320px", minWidth: 320, border: "1px solid " + BORDER, borderRadius: 8, overflow: "hidden", background: "var(--dsw-alias-bg-base)" } },
 							React.createElement("div", { style: { padding: "6px 12px", fontSize: 12, fontWeight: 600, color: TXT2, background: LAYER, borderBottom: "1px solid " + BORDER } }, g),
 							groups[g].map(row),
 						)),
