@@ -3550,11 +3550,20 @@ window.__ModuleLoader__.load({
 			const [stylePreview, setStylePreview] = React.useState(false);
 			// ── 个性化配置（分层：全局 userDir/settings.json + 项目级 userDir/settings/<key>.json；
 			//    merged 供编辑器应用；对齐 VSCode User→Workspace 思路） ──
-			const [settings, setSettings] = React.useState({ global: {}, project: {}, merged: {} });
+			// 运行时权威存 localStorage（SETTINGS_STORE_KEY）：DSH 宿主可能重载整个 client bundle，
+			// 父级 state 会随之重置——localStorage 跨重载存活，重载后配置立即恢复并生效。
+			// 磁盘（settings.json）作为跨会话备份：仅在无 localStorage（首次/清缓存）时用 settings-get 初始化。
+			const SETTINGS_STORE_KEY = "renpy-settings-store";
+			const settingsStoreInit = (() => {
+				try { const raw = window.localStorage.getItem(SETTINGS_STORE_KEY); if (raw) { const j = JSON.parse(raw); if (j && typeof j === "object" && j.merged) return j; } } catch (e) { /* ignore */ }
+				return null;
+			})();
+			const persistSettingsStore = (s) => { try { window.localStorage.setItem(SETTINGS_STORE_KEY, JSON.stringify(s)) } catch (e) { /* ignore */ } };
+			const [settings, setSettings] = React.useState(settingsStoreInit || { global: {}, project: {}, merged: {} });
 			const settingsSaveTimerRef = React.useRef(null);
 			React.useEffect(() => {
-				if (!project) return;
-				api("settings-get", {}, { project }).then((r) => { if (r) setSettings({ global: r.global || {}, project: r.project || {}, merged: r.merged || {} }); }).catch(() => { /* 配置读取失败用默认 */ });
+				if (!project || settingsStoreInit) return; // 已有 localStorage 权威值，磁盘仅作备份
+				api("settings-get", {}, { project }).then((r) => { if (r) { const s = { global: r.global || {}, project: r.project || {}, merged: r.merged || {} }; setSettings(s); persistSettingsStore(s); } }).catch(() => { /* 配置读取失败用默认 */ });
 			}, [project, api]);
 			// 生效配置 = schema 默认兜底 + 两层合并（merged 已是 global←project 键级合并）
 			const cfg = mergeSettings(SETTINGS_DEFAULTS, settings.merged || {});
@@ -3562,7 +3571,9 @@ window.__ModuleLoader__.load({
 				setSettings((prev) => {
 					const global = scope === "global" ? next : (prev.global || {});
 					const project = scope === "project" ? next : (prev.project || {});
-					return { global, project, merged: mergeSettings(global, project) };
+					const s = { global, project, merged: mergeSettings(global, project) };
+					persistSettingsStore(s);
+					return s;
 				});
 				if (settingsSaveTimerRef.current) clearTimeout(settingsSaveTimerRef.current);
 				settingsSaveTimerRef.current = setTimeout(() => {

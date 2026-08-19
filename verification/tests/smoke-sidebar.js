@@ -377,8 +377,8 @@ console.log('守卫弹层: 标题', htmlGuard.indexOf('写守卫拦截了保存'
 const srcSettings = srcWithData
   .replace('const LAYOUT_DEFAULT = { left: { panels: ["files", "nav", "assets", "edits"] }, right: { panels: ["chat"] }, bottom: { panels: ["log"] } };',
     'const LAYOUT_DEFAULT = { left: { panels: ["files", "nav", "assets", "edits"] }, right: { panels: ["chat", "settings"] }, bottom: { panels: ["log"] } };')
-  .replace('const [settings, setSettings] = React.useState({ global: {}, project: {}, merged: {} });',
-    'const [settings, setSettings] = React.useState({ global: { "editor.fontSize": 16 }, project: {}, merged: { "editor.fontSize": 16, "editor.lineNumbers": "relative" } });')
+  .replace('const [settings, setSettings] = React.useState(settingsStoreInit || { global: {}, project: {}, merged: {} });',
+    'const [settings, setSettings] = React.useState(settingsStoreInit || { global: { "editor.fontSize": 16 }, project: {}, merged: { "editor.fontSize": 16, "editor.lineNumbers": "relative" } });')
   .replace('const [tabs, setTabs] = React.useState(panelState.tabs);',
     'const [tabs, setTabs] = React.useState([{ name: "script.rpy", content: "label start:\\n    e \\"hi\\"\\n", dirty: false }]);')
   .replace('const [activeName, setActiveName] = React.useState(panelState.activeName);',
