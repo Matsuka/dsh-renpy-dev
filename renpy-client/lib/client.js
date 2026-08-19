@@ -61,8 +61,16 @@ window.__ModuleLoader__.load({
 			{ id: "editor.trimAutoWhitespace", group: "编辑行为", type: "boolean", default: true, desc: "保存时清理行尾空白" },
 			{ id: "editor.background", group: "颜色", type: "color", default: "", desc: "编辑器背景色（留空=默认 #1e1e1e 系）" },
 			{ id: "editor.foreground", group: "颜色", type: "color", default: "", desc: "编辑器前景色（代码文本；留空=默认）" },
-			{ id: "editor.lineHighlightBackground", group: "颜色", type: "color", default: "", desc: "当前行高亮背景色（留空=默认）" },
 			{ id: "editor.selectionBackground", group: "颜色", type: "color", default: "", desc: "选中文本背景色（留空=默认）" },
+			{ id: "editor.lineHighlightBackground", group: "颜色", type: "color", default: "", desc: "当前行高亮背景色（留空=默认）" },
+			{ id: "editorLineNumber.foreground", group: "颜色", type: "color", default: "", desc: "行号颜色（留空=默认）" },
+			{ id: "editorCursor.foreground", group: "颜色", type: "color", default: "", desc: "光标颜色（留空=跟随前景色）" },
+			{ id: "editorGutter.background", group: "颜色", type: "color", default: "", desc: "行号槽背景色（留空=跟随编辑器背景）" },
+			{ id: "editorIndentGuide.background1", group: "颜色", type: "color", default: "", desc: "缩进向导线颜色（留空=默认）" },
+			{ id: "editorWhitespace.foreground", group: "颜色", type: "color", default: "", desc: "空白字符标记颜色（留空=默认）" },
+			{ id: "editorBracketMatch.background", group: "颜色", type: "color", default: "", desc: "括号匹配高亮颜色（留空=默认）" },
+			{ id: "editorFindMatchBackground", group: "颜色", type: "color", default: "", desc: "查找匹配高亮颜色（留空=默认）" },
+			{ id: "editorError.foreground", group: "颜色", type: "color", default: "", desc: "lint 错误下划线颜色（留空=默认）" },
 		];
 		const SETTINGS_DEFAULTS = (() => {
 			const d = {};
@@ -92,6 +100,21 @@ window.__ModuleLoader__.load({
 			if (line.lastIndexOf("#") >= 0) return "comments";
 			return (line.match(/"/g) || []).length % 2 === 1 ? "strings" : "other";
 		};
+
+		// 预制配色方案（对齐 VSCode colorCustomizations 语义；色值来源：本机 VSCode 1.133.0
+		// extensions/theme-defaults/themes/*.json 实测提取（含 include 链合并）+ web 文档补全。
+		// 缺失 token 省略 = 跟随默认；应用方案时未列的 token 清空回默认）
+		const COLOR_PRESETS = {
+			"2026 Dark": { "editor.background": "#121314", "editor.foreground": "#BBBEBF", "editor.selectionBackground": "#276782DD", "editor.lineHighlightBackground": "#242526", "editorLineNumber.foreground": "#858889", "editorCursor.foreground": "#BBBEBF", "editorIndentGuide.background1": "#404040", "editorWhitespace.foreground": "#8C8C8C4D", "editorBracketMatch.background": "#3994BC55", "editorGutter.background": "#121314" },
+			"2026 Light": { "editor.background": "#FFFFFF", "editor.foreground": "#202020", "editor.selectionBackground": "#0069CC40", "editor.lineHighlightBackground": "#EAEAEA40", "editorLineNumber.foreground": "#606060", "editorCursor.foreground": "#202020", "editorIndentGuide.background1": "#D3D3D3", "editorWhitespace.foreground": "#60606040", "editorBracketMatch.background": "#0069CC40", "editorGutter.background": "#FFFFFF" },
+			"Dark Modern": { "editor.background": "#1F1F1F", "editor.foreground": "#CCCCCC", "editor.selectionBackground": "#264F78", "editor.lineHighlightBackground": "#2A2D2E", "editorLineNumber.foreground": "#6E7681", "editorCursor.foreground": "#AEAFAD", "editorIndentGuide.background1": "#404040", "editorWhitespace.foreground": "#E3E4E229", "editorBracketMatch.background": "#0064001A", "editorFindMatchBackground": "#9E6A03", "editorError.foreground": "#F14C4C", "editorGutter.background": "#1F1F1F" },
+			"Dark+": { "editor.background": "#1E1E1E", "editor.foreground": "#D4D4D4", "editor.selectionBackground": "#264F78", "editor.lineHighlightBackground": "#2B2B2B", "editorLineNumber.foreground": "#858585", "editorCursor.foreground": "#AEAFAD", "editorIndentGuide.background1": "#404040", "editorWhitespace.foreground": "#3B3B3B", "editorBracketMatch.background": "#0064001A", "editorFindMatchBackground": "#515C6A", "editorError.foreground": "#F48771", "editorGutter.background": "#1E1E1E" },
+			"Light Modern": { "editor.background": "#FFFFFF", "editor.foreground": "#3B3B3B", "editor.selectionBackground": "#ADD6FF", "editor.lineHighlightBackground": "#E8F0FE", "editorLineNumber.foreground": "#6E7681", "editorCursor.foreground": "#000000", "editorIndentGuide.background1": "#D3D3D3", "editorWhitespace.foreground": "#33333333", "editorBracketMatch.background": "#0064001A", "editorFindMatchBackground": "#A8AC94", "editorError.foreground": "#E51400", "editorGutter.background": "#FFFFFF" },
+			"Light+": { "editor.background": "#FFFFFF", "editor.foreground": "#000000", "editor.selectionBackground": "#ADD6FF", "editor.lineHighlightBackground": "#E8F0FE", "editorLineNumber.foreground": "#237893", "editorCursor.foreground": "#000000", "editorIndentGuide.background1": "#D3D3D3", "editorWhitespace.foreground": "#333333", "editorBracketMatch.background": "#D9E9FF", "editorFindMatchBackground": "#A8AC94", "editorError.foreground": "#CD3131", "editorGutter.background": "#F7F7F7" },
+			"Dark High Contrast": { "editor.background": "#000000", "editor.foreground": "#FFFFFF", "editor.selectionBackground": "#FFFFFF", "editor.lineHighlightBackground": "#000000", "editorLineNumber.foreground": "#FFFFFF", "editorCursor.foreground": "#FFFFFF", "editorIndentGuide.background1": "#FFFFFF", "editorWhitespace.foreground": "#7C7C7C", "editorBracketMatch.background": "#0064001A", "editorError.foreground": "#F48771", "editorGutter.background": "#000000" },
+			"Light High Contrast": { "editor.background": "#FFFFFF", "editor.foreground": "#292929", "editor.selectionBackground": "#0F4A85", "editor.lineHighlightBackground": "#FFFFFF", "editorLineNumber.foreground": "#292929", "editorCursor.foreground": "#0F4A85", "editorIndentGuide.background1": "#CCCCCC", "editorWhitespace.foreground": "#CCCCCC", "editorBracketMatch.background": "#0000", "editorError.foreground": "#B5200D", "editorGutter.background": "#FFFFFF" },
+		};
+		const COLOR_PRESET_NAMES = Object.keys(COLOR_PRESETS);
 
 		// 文件目录树（game/ 下 .rpy 相对路径 → {dirs, files} 树；files 存完整 rel，显示 basename）
 		const buildFileTree = (items) => {
@@ -1366,6 +1389,16 @@ window.__ModuleLoader__.load({
 			};
 			const setVal = (id, val) => { const next = { ...local, [id]: val }; setLocal(next); localRef.current = next; persistLocal(); onChange(scope, next); };
 			const resetVal = (id) => { const s = SETTINGS_SCHEMA.find((x) => x.id === id); const next = { ...local, [id]: s ? s.default : undefined }; setLocal(next); localRef.current = next; persistLocal(); onChange(scope, next); };
+			// 配色方案：选择 COLOR_PRESETS 一键应用——方案 token 写入当前层，未列的清空回默认
+			const applyPreset = (name) => {
+				const preset = COLOR_PRESETS[name];
+				if (!preset) return;
+				const colorIds = SETTINGS_SCHEMA.filter((s) => s.group === "颜色").map((s) => s.id);
+				const next = { ...local };
+				for (const cid of colorIds) next[cid] = preset[cid] || "";
+				setLocal(next); localRef.current = next; persistLocal();
+				onChange(scope, next);
+			};
 			const groups = {};
 			for (const s of SETTINGS_SCHEMA) (groups[s.group] = groups[s.group] || []).push(s);
 			const shown = query.trim() ? SETTINGS_SCHEMA.filter((s) => s.id.indexOf(query) >= 0 || s.desc.indexOf(query) >= 0) : null;
@@ -1416,12 +1449,24 @@ window.__ModuleLoader__.load({
 				: (full
 					? React.createElement("div", { style: { display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap", padding: "8px 4px" } },
 						groupNames.map((g) => React.createElement("div", { key: g, style: { flex: "1 1 320px", minWidth: 320, border: "1px solid " + BORDER, borderRadius: 8, overflow: "hidden", background: "var(--dsw-alias-bg-base)" } },
-							React.createElement("div", { style: { padding: "6px 12px", fontSize: 12, fontWeight: 600, color: TXT2, background: LAYER, borderBottom: "1px solid " + BORDER } }, g),
+							React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: TXT2, background: LAYER, borderBottom: "1px solid " + BORDER } },
+								g,
+								(g === "颜色") ? React.createElement("select", { defaultValue: "", onChange: (e) => { if (e.target.value) { applyPreset(e.target.value); e.target.value = ""; } }, title: "一键应用 VSCode 预制配色方案（写入当前层）", style: { marginLeft: "auto", height: 22, fontSize: 11, background: "var(--dsw-alias-bg-layer-2)", color: TXT, border: "1px solid " + BORDER, borderRadius: 6, padding: "0 4px", cursor: "pointer", outline: "none", fontFamily: "inherit" } },
+									React.createElement("option", { value: "" }, "🎨 应用预制配色…"),
+									COLOR_PRESET_NAMES.map((n) => React.createElement("option", { key: n, value: n }, n)),
+								) : null,
+							),
 							groups[g].map(row),
 						)),
 					)
 					: groupNames.map((g) => React.createElement("div", { key: g },
-						React.createElement("div", { style: { padding: "4px 10px", fontSize: 11, fontWeight: 600, color: TXT2, background: "rgba(128,128,128,.07)", borderBottom: "1px solid " + BORDER } }, g),
+						React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: TXT2, background: "rgba(128,128,128,.07)", borderBottom: "1px solid " + BORDER } },
+							g,
+							(g === "颜色") ? React.createElement("select", { defaultValue: "", onChange: (e) => { if (e.target.value) { applyPreset(e.target.value); e.target.value = ""; } }, title: "一键应用 VSCode 预制配色方案（写入当前层）", style: { marginLeft: "auto", height: 20, fontSize: 10, background: "var(--dsw-alias-bg-layer-2)", color: TXT, border: "1px solid " + BORDER, borderRadius: 6, padding: "0 3px", cursor: "pointer", outline: "none", fontFamily: "inherit" } },
+								React.createElement("option", { value: "" }, "🎨 预制配色…"),
+								COLOR_PRESET_NAMES.map((n) => React.createElement("option", { key: n, value: n }, n)),
+							) : null,
+						),
 						groups[g].map(row),
 					)));
 			return React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } },
@@ -3663,10 +3708,18 @@ window.__ModuleLoader__.load({
 			const editorRemountKey = String(cfg["editor.fontSize"]) + "|" + (cfg["editor.fontFamily"] || "") + "|" + cfg["editor.lineHeight"];
 			// 字体相关（空 fontFamily 回退 DSH 主题代码字体）
 			const codeFont = (cfg["editor.fontFamily"] && cfg["editor.fontFamily"].trim()) ? cfg["editor.fontFamily"] : CODE;
-			// 颜色覆写（workbench.colorCustomizations 式：editor.background/foreground/lineHighlightBackground 等）
+			// 颜色覆写（workbench.colorCustomizations 式：editor.* 家族，对齐 VSCode token 命名）
 			const edBg = (cfg["editor.background"] && cfg["editor.background"].trim()) ? cfg["editor.background"] : "#1e1e1e";
 			const edFg = (cfg["editor.foreground"] && cfg["editor.foreground"].trim()) ? cfg["editor.foreground"] : "#d4d4d4";
 			const edLine = (cfg["editor.lineHighlightBackground"] && cfg["editor.lineHighlightBackground"].trim()) ? cfg["editor.lineHighlightBackground"] : "rgba(255,255,255,.035)";
+			const edLineNum = (cfg["editorLineNumber.foreground"] && cfg["editorLineNumber.foreground"].trim()) ? cfg["editorLineNumber.foreground"] : "rgba(128,128,128,.65)";
+			const edCursor = (cfg["editorCursor.foreground"] && cfg["editorCursor.foreground"].trim()) ? cfg["editorCursor.foreground"] : edFg;
+			const edGutterBg = (cfg["editorGutter.background"] && cfg["editorGutter.background"].trim()) ? cfg["editorGutter.background"] : edBg;
+			const edIndent = (cfg["editorIndentGuide.background1"] && cfg["editorIndentGuide.background1"].trim()) ? cfg["editorIndentGuide.background1"] : "rgba(255,255,255,.07)";
+			const edWs = (cfg["editorWhitespace.foreground"] && cfg["editorWhitespace.foreground"].trim()) ? cfg["editorWhitespace.foreground"] : "rgba(255,255,255,.14)";
+			const edBracket = (cfg["editorBracketMatch.background"] && cfg["editorBracketMatch.background"].trim()) ? cfg["editorBracketMatch.background"] : "rgba(229,192,123,.45)";
+			const edFind = (cfg["editorFindMatchBackground"] && cfg["editorFindMatchBackground"].trim()) ? cfg["editorFindMatchBackground"] : "rgba(229,192,123,.3)";
+			const edErr = (cfg["editorError.foreground"] && cfg["editorError.foreground"].trim()) ? cfg["editorError.foreground"] : "rgba(224,92,92,.9)";
 			// 编辑器上下内边距（editor.padding.top/bottom）：三处样式同步 + overlay 容器偏移 + 补全浮窗偏移
 			const padTop = Number(cfg["editor.padding.top"]) || 0;
 			const padBottom = Number(cfg["editor.padding.bottom"]) || 0;
@@ -3989,9 +4042,9 @@ window.__ModuleLoader__.load({
 				}
 				return Object.keys(guide).map((k) => ({ x: parseInt(k, 10) * CHAR_W, top: guide[k].first * LINE_H(), h: (guide[k].last - guide[k].first + 1) * LINE_H() }));
 			}, [content, charW, stylePreview, cfg["editor.tabSize"]]);
-			const gutterStyle = { position: "relative", width: 44, flexShrink: 0, overflow: "hidden", paddingTop: 4 + padTop, paddingBottom: 4 + padBottom, paddingLeft: 4, paddingRight: 6, textAlign: "right", fontFamily: codeFont, fontSize: cfg["editor.fontSize"], lineHeight: ED_LH + "px", letterSpacing: cfg["editor.letterSpacing"] + "px", color: "rgba(128,128,128,.65)", userSelect: "none", background: edBg };
+			const gutterStyle = { position: "relative", width: 44, flexShrink: 0, overflow: "hidden", paddingTop: 4 + padTop, paddingBottom: 4 + padBottom, paddingLeft: 4, paddingRight: 6, textAlign: "right", fontFamily: codeFont, fontSize: cfg["editor.fontSize"], lineHeight: ED_LH + "px", letterSpacing: cfg["editor.letterSpacing"] + "px", color: edLineNum, userSelect: "none", background: edGutterBg };
 			const preStyle = { position: "absolute", inset: 0, margin: 0, paddingTop: 4 + padTop, paddingBottom: 4 + padBottom, paddingLeft: 4, paddingRight: 4, fontFamily: codeFont, fontSize: cfg["editor.fontSize"], lineHeight: ED_LH + "px", letterSpacing: cfg["editor.letterSpacing"] + "px", fontWeight: cfg["editor.fontWeight"], whiteSpace: "pre", overflow: "hidden", color: edFg, pointerEvents: "none" };
-			const taStyle = { position: "absolute", inset: 0, margin: 0, paddingTop: 4 + padTop, paddingBottom: 4 + padBottom, paddingLeft: 4, paddingRight: 4, fontFamily: codeFont, fontSize: cfg["editor.fontSize"], lineHeight: ED_LH + "px", letterSpacing: cfg["editor.letterSpacing"] + "px", fontWeight: cfg["editor.fontWeight"], whiteSpace: "pre", overflow: "auto", background: "transparent", color: "transparent", caretColor: edFg, outline: "none", border: "none", resize: "none" };
+			const taStyle = { position: "absolute", inset: 0, margin: 0, paddingTop: 4 + padTop, paddingBottom: 4 + padBottom, paddingLeft: 4, paddingRight: 4, fontFamily: codeFont, fontSize: cfg["editor.fontSize"], lineHeight: ED_LH + "px", letterSpacing: cfg["editor.letterSpacing"] + "px", fontWeight: cfg["editor.fontWeight"], whiteSpace: "pre", overflow: "auto", background: "transparent", color: "transparent", caretColor: edCursor, outline: "none", border: "none", resize: "none" };
 			const editorBox = { position: "relative", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" };
 			const tabBar = { display: "flex", gap: 2, padding: "4px 8px", overflowX: "auto", borderBottom: "1px solid " + BORDER, minHeight: 30, alignItems: "center", background: LAYER };
 			const tabStyle = (act) => ({ padding: "3px 10px", cursor: "pointer", background: act ? GHOST : "transparent", border: "1px solid " + (act ? BORDER : "transparent"), borderRadius: 6, fontSize: 13, whiteSpace: "nowrap", color: act ? ACCENT : TXT, fontFamily: "inherit" });
@@ -4308,26 +4361,26 @@ window.__ModuleLoader__.load({
 								!isViewTab ? React.createElement("div", { style: { position: "absolute", top: padTop, left: 0, right: 0, bottom: 0, overflow: "hidden", pointerEvents: "none", zIndex: 1 } },
 									React.createElement("div", { ref: overlayRef, style: { position: "absolute", top: 0, left: 0, width: 1, height: 1, transform: "translate(0,0)" } },
 										// 缩进线（最底：垂直虚线，随缩进档位；editor.guides.indentation 配置控制）
-										(cfg["editor.guides.indentation"] !== false) ? indentGuides.map((g) => React.createElement("div", { key: "ig" + g.x, style: { position: "absolute", top: g.top, left: g.x, width: 1, height: g.h, background: "rgba(255,255,255,.07)", boxShadow: "inset 1px 0 0 rgba(255,255,255,.03)" } })) : null,
+										(cfg["editor.guides.indentation"] !== false) ? indentGuides.map((g) => React.createElement("div", { key: "ig" + g.x, style: { position: "absolute", top: g.top, left: g.x, width: 1, height: g.h, background: edIndent, boxShadow: "inset 1px 0 0 rgba(255,255,255,.03)" } })) : null,
 										// 当前行高亮（光标所在行整行浅背景；renderLineHighlight 配置控制；gutter/all 暂按 line 渲染）
 										(active && cursorPos.line >= 1 && cfg["editor.renderLineHighlight"] !== "none") ? React.createElement("div", { key: "curline", style: { position: "absolute", top: (cursorPos.line - 1) * LINE_H(), left: 0, width: 4000, height: LINE_H(), background: edLine } }) : null,
 										// 垂直标尺（editor.rulers 列号数组 → 竖线）
 										(cfg["editor.rulers"] || []).map((r, ri) => React.createElement("div", { key: "rl" + ri, title: "标尺列 " + r, style: { position: "absolute", top: 0, left: Number(r) * CHAR_W, width: 1, height: "100%", background: "rgba(255,255,255,.14)" } })),
 										// 空白显示（renderWhitespace：boundary=行首缩进+行尾空格；trailing=仅行尾；all=全部空格）
-										(cfg["editor.renderWhitespace"] && cfg["editor.renderWhitespace"] !== "none") ? whitespaceMarks.map((wm) => React.createElement("div", { key: "ws" + wm.line + "-" + wm.col, style: { position: "absolute", top: (wm.line - 1) * LINE_H() + (LINE_H() - 4) / 2, left: wm.left, width: wm.len * CHAR_W, height: 2, background: wm.boundary ? "rgba(224,92,92,.55)" : "rgba(255,255,255,.14)", borderRadius: 1 } })) : null,
+										(cfg["editor.renderWhitespace"] && cfg["editor.renderWhitespace"] !== "none") ? whitespaceMarks.map((wm) => React.createElement("div", { key: "ws" + wm.line + "-" + wm.col, style: { position: "absolute", top: (wm.line - 1) * LINE_H() + (LINE_H() - 4) / 2, left: wm.left, width: wm.len * CHAR_W, height: 2, background: wm.boundary ? "rgba(224,92,92,.55)" : edWs, borderRadius: 1 } })) : null,
 										// 跳转落点闪烁高亮（路线图节点 / lint / 定义跳转；仅当前文件，2.2s 后消失）
 										(jumpFlash && jumpFlash.file === activeName) ? React.createElement("div", { key: "jf" + jumpFlash.key, title: "跳转落点", style: { position: "absolute", top: (jumpFlash.line - 1) * LINE_H(), left: 0, width: 4000, height: LINE_H(), background: "rgba(86,156,214,.22)", boxShadow: "inset 3px 0 0 rgba(86,156,214,.85)" } }) : null,
 										// 括号匹配高亮（配对括号字符块；editor.bracketPairColorization.enabled 配置控制）
 										(bracketRects && cfg["editor.bracketPairColorization.enabled"] !== false) ? React.createElement(React.Fragment, null,
-											bracketRects.open ? React.createElement("div", { key: "bo", title: "匹配括号", style: { position: "absolute", top: (bracketRects.open.line - 1) * LINE_H() + 2, left: bracketRects.open.left, width: CHAR_W, height: LINE_H() - 4, background: "rgba(229,192,123,.45)", borderRadius: 2 } }) : null,
-											bracketRects.close ? React.createElement("div", { key: "bc", title: "匹配括号", style: { position: "absolute", top: (bracketRects.close.line - 1) * LINE_H() + 2, left: bracketRects.close.left, width: CHAR_W, height: LINE_H() - 4, background: "rgba(229,192,123,.45)", borderRadius: 2 } }) : null,
+											bracketRects.open ? React.createElement("div", { key: "bo", title: "匹配括号", style: { position: "absolute", top: (bracketRects.open.line - 1) * LINE_H() + 2, left: bracketRects.open.left, width: CHAR_W, height: LINE_H() - 4, background: edBracket, borderRadius: 2 } }) : null,
+											bracketRects.close ? React.createElement("div", { key: "bc", title: "匹配括号", style: { position: "absolute", top: (bracketRects.close.line - 1) * LINE_H() + 2, left: bracketRects.close.left, width: CHAR_W, height: LINE_H() - 4, background: edBracket, borderRadius: 2 } }) : null,
 										) : null,
 										(wsLock && wsLock.file === activeName) ? React.createElement("div", { key: "ws", title: "工作范围（范围内修改、范围外不动）", style: { position: "absolute", top: (wsLock.startLine - 1) * LINE_H(), left: 0, width: 4000, height: (wsLock.endLine - wsLock.startLine + 1) * LINE_H() - 1, background: "rgba(76,175,80,.07)", borderTop: "1px solid rgba(76,175,80,.55)", borderBottom: "1px solid rgba(76,175,80,.55)" } }) : null,
 										matchRects.map((r) => {
 											const isCur = r.i === Math.min(findIdx, matchRects.length - 1);
-											return React.createElement("div", { key: "m" + r.i, style: { position: "absolute", top: (r.line - 1) * LINE_H() + 1, left: r.left, width: r.width, height: 17, background: isCur ? "rgba(229,192,123,.5)" : "rgba(229,192,123,.25)", borderRadius: 2 } });
+											return React.createElement("div", { key: "m" + r.i, style: { position: "absolute", top: (r.line - 1) * LINE_H() + 1, left: r.left, width: r.width, height: 17, background: isCur ? edFind : edFind, borderRadius: 2, boxShadow: isCur ? "inset 0 0 0 1px rgba(255,255,255,.25)" : "none" } });
 										}),
-										curLintLines.map((ln) => React.createElement("div", { key: "l" + ln, title: "lint 错误", style: { position: "absolute", top: (ln - 1) * LINE_H() + 17, left: 4, width: 4000, height: 2, background: "rgba(224,92,92,.9)", borderRadius: 1 } })),
+										curLintLines.map((ln) => React.createElement("div", { key: "l" + ln, title: "lint 错误", style: { position: "absolute", top: (ln - 1) * LINE_H() + 17, left: 4, width: 4000, height: 2, background: edErr, borderRadius: 1 } })),
 									),
 								) : null,
 								!isViewTab ? React.createElement(React.Fragment, null,

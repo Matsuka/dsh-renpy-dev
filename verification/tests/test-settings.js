@@ -49,8 +49,8 @@ const src = fs.readFileSync(require('./paths').CLIENT_SRC, 'utf8')
     ok(ids.filter((x) => x.group === "显示").length === 8, '显示组 8 项（+括号/缩进线/padding 2）', ids.filter((x) => x.group === "显示").length)
     ok(ids.filter((x) => x.group === "补全").length === 4, '补全组 4 项')
     ok(ids.filter((x) => x.group === "编辑行为").length === 3, '编辑行为组 3 项', ids.filter((x) => x.group === "编辑行为").length)
-    ok(ids.filter((x) => x.group === "颜色").length === 4, '颜色组 4 项', ids.filter((x) => x.group === "颜色").length)
-    ok(ids.filter((x) => x.type === "color").length === 4, 'color 类型 4 项（新增控件类型）', ids.filter((x) => x.type === "color").length)
+    ok(ids.filter((x) => x.group === "颜色").length === 12, '颜色组 12 项（对齐 VSCode editor.* token）', ids.filter((x) => x.group === "颜色").length)
+    ok(ids.filter((x) => x.type === "color").length === 12, 'color 类型 12 项', ids.filter((x) => x.type === "color").length)
     const mwz = ids.find((x) => x.id === "editor.mouseWheelZoom")
     ok(mwz.def === "false", 'mouseWheelZoom 默认 false（不影响页面缩放，冲突可关）', mwz && mwz.def)
     // 关键默认值（与 VSCode 语义一致）
@@ -86,6 +86,28 @@ const src = fs.readFileSync(require('./paths').CLIENT_SRC, 'utf8')
     ok(completionContext('    e "正在输入', 11) === 'strings', '引号内 strings', completionContext('    e "正在输入', 11))
     ok(completionContext('    e "已闭合" 继续', 15) === 'other', '引号闭合后 other', completionContext('    e "已闭合" 继续', 15))
     ok(completionContext('', 0) === 'other', '空输入 other')
+  }
+}
+
+// ── COLOR_PRESETS（预制配色方案，VSCode 2026 主题色值） ──────────────────
+{
+  ok(src.indexOf('const COLOR_PRESETS = {') >= 0, 'client.js 含 COLOR_PRESETS')
+  const m = /const COLOR_PRESETS = \{([\s\S]*?)\n\t\t\};/.exec(src)
+  ok(!!m, 'COLOR_PRESETS 可提取', m && m[1].slice(0, 80))
+  if (m) {
+    const names = [...m[1].matchAll(/^\t\t\t"([^"]+)": \{/gm)].map((x) => x[1])
+    ok(names.includes('2026 Dark') && names.includes('2026 Light'), '含 VSCode 2026 预制方案（2026 Dark/Light）', names)
+    for (const n of ['Dark Modern', 'Dark+', 'Light Modern', 'Light+', 'Dark High Contrast', 'Light High Contrast']) ok(names.includes(n), '含 ' + n)
+    ok(names.length === 8, '共 8 套方案', names.length)
+    // 每套至少含背景/前景/选区（name 可能含 + 等正则元字符，需转义）
+    const seg = m[1]
+    const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    const hasBg = (n) => new RegExp('"' + esc(n) + '": \\{[\\s\\S]*?"editor.background"').test(seg)
+    for (const n of names) ok(hasBg(n), n + ' 含 editor.background')
+    // 2026 Dark 精确色值（本机 VSCode 1.133.0 实测）
+    const d26 = /"2026 Dark": \{([^}]*)\}/.exec(seg)
+    ok(d26 && /"editor.background": "#121314"/.test(d26[1]), '2026 Dark 背景 #121314（本机实测）', d26 && d26[1].slice(0, 100))
+    ok(d26 && /"editor.foreground": "#BBBEBF"/.test(d26[1]), '2026 Dark 前景 #BBBEBF')
   }
 }
 
