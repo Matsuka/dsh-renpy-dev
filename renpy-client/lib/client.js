@@ -4271,11 +4271,10 @@ window.__ModuleLoader__.load({
 				const onEnter = (e) => {
 					// 视觉指示：高亮底色
 					e.currentTarget.style.background = "var(--dsw-alias-interactive-bg-hover)";
-					// 右侧 tooltip：位置 = 图标项在控件栏内的纵向中心
+					// 右侧 tooltip：记录视口坐标（fixed 定位渲染在面板根，不受 nav 容器 overflow 裁剪）
 					try {
 						const r = e.currentTarget.getBoundingClientRect();
-						const cr = navRef.current ? navRef.current.getBoundingClientRect() : r;
-						setNavHover({ label, tip: (opts && opts.title) || label, top: r.top - cr.top + r.height / 2 });
+						setNavHover({ label, tip: (opts && opts.title) || label, x: r.right + 6, y: r.top + r.height / 2 });
 					} catch (err) { /* ignore */ }
 				};
 				const onLeave = (e) => { e.currentTarget.style.background = "transparent"; setNavHover(null); };
@@ -4287,6 +4286,11 @@ window.__ModuleLoader__.load({
 			};
 
 			return React.createElement("div", { ref: rootRef, style: { position: "relative", display: "flex", flexDirection: "column", flex: "1 1 0", minWidth: 0, minHeight: 0, maxWidth: "100%", overflow: "hidden", background: BG, color: TXT, fontFamily: UI, fontSize: 13, ...uiOverrides } },
+				// ── 控件栏 hover 右侧文字说明（fixed 视口定位，面板根渲染——不受 nav overflow 裁剪，亮暗主题均可见） ──
+				(navHover && navCollapsed) ? React.createElement("div", { style: { position: "fixed", left: navHover.x, top: navHover.y, transform: "translateY(-50%)", zIndex: 950, pointerEvents: "none", whiteSpace: "nowrap", background: "var(--dsw-alias-bg-layer-3)", color: TXT, border: "1px solid " + BORDER, borderRadius: 8, padding: "5px 10px", fontSize: 12, lineHeight: 1.5, boxShadow: "0 6px 20px rgba(0,0,0,.35)", maxWidth: 280 } },
+					React.createElement("div", { style: { fontWeight: 600, color: ACCENT } }, navHover.label),
+					navHover.tip !== navHover.label ? React.createElement("div", { style: { color: TXT2, fontSize: 11, marginTop: 2 } }, navHover.tip) : null,
+				) : null,
 				// ── 路线图弹出窗口（Portal 到 body，可拖可缩放） ──
 				routeWin.open ? React.createElement(RouteWindow, { map: routeMap, onNodeClick: jumpToState, currentId: routeCurrentId, focusNodes: varNodes, win: routeWin, onChange: setRouteWin, onClose: () => setRouteWin((w) => ({ ...w, open: false })), TXT, TXT2, TXT3, ACCENT, BORDER, BG, GHOST, LAYER }) : null,
 				// ── 游戏画面窗口（Portal 到 body，可拖可缩放） ──
@@ -4350,13 +4354,8 @@ window.__ModuleLoader__.load({
 					busy ? React.createElement("span", { style: { color: TXT2 } }, "…") : null,
 				),
 				React.createElement("div", { style: { display: "flex", flex: 1, minHeight: 0, maxWidth: "100%", minWidth: 0 } },
-					// ── 控件总栏（固定收缩外观 46px 图标栏；hover 高亮 + 右侧 tooltip；可手动「«」展开） ──
+					// ── 控件总栏（固定收缩外观 46px 图标栏；hover 高亮；右侧 tooltip 在面板根 fixed 渲染） ──
 					React.createElement("div", { ref: navRef, style: { position: "relative", width: navCollapsed ? 46 : 172, flexShrink: 0, borderRight: "1px solid " + BORDER, background: LAYER, display: "flex", flexDirection: "column", paddingTop: 6, overflowY: "auto", overflowX: "hidden", transition: "width .15s" } },
-						// hover 右侧弹出文字说明（tooltip）
-						(navHover && navCollapsed) ? React.createElement("div", { style: { position: "absolute", left: 52, top: navHover.top, transform: "translateY(-50%)", zIndex: 30, pointerEvents: "none", whiteSpace: "nowrap", background: "var(--dsw-alias-bg-layer-3)", color: TXT, border: "1px solid " + BORDER, borderRadius: 8, padding: "5px 10px", fontSize: 12, lineHeight: 1.5, boxShadow: "0 6px 20px rgba(0,0,0,.35)", maxWidth: 280 } },
-							React.createElement("div", { style: { fontWeight: 600, color: ACCENT } }, navHover.label),
-							navHover.tip !== navHover.label ? React.createElement("div", { style: { color: TXT2, fontSize: 11, marginTop: 2 } }, navHover.tip) : null,
-						) : null,
 						// 调试控件（需运行游戏：桥接回报驱动；点击停靠为面板控件，可拖拽/吸附/浮动）
 						!navCollapsed ? React.createElement("div", { style: { width: "100%", padding: "1px 10px 5px", fontSize: 10, color: TXT3, fontWeight: 600 } }, "调试 · 需运行（停靠右侧栏）") : null,
 						abIcon("🗺", "分支路线图", () => movePanel("route", "right"), { opacity: project ? 1 : .4, hideText: navCollapsed, title: "路线图面板（右侧栏；状态机图，点击节点跳游戏需运行）" }),
