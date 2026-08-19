@@ -89,6 +89,51 @@ const ICONS = {
 			"💥 崩溃 traceback": "💥 Crash traceback",
 			"异常信息未知": "Unknown exception",
 			"最近: ": "Last: ",
+			"Character 调用 → renpy.say({name}, …)": "Character call → renpy.say({name}, …)",
+			"无角色旁白 → renpy.say(None, …)": "Narration → renpy.say(None, …)",
+			"无条件跳转（不返回）": "Unconditional jump (does not return)",
+			"压栈调用，return 回到 call 处": "Pushes the stack; return comes back here",
+			"弹栈返回": "Pops the stack and returns",
+			"清空当前层再显示": "Clears the current layer, then shows",
+			"显示图像（tag 替换同名）": "Shows the image (same-tag replacement)",
+			"隐藏图像": "Hides the image",
+			"应用过渡": "Applies a transition",
+			"init 阶段赋值（常量）": "Assigned at init time (constant)",
+			"init 阶段默认值（可存档覆盖）": "Default value at init (overridable by save)",
+			"注册图像 → renpy.image(...)": "Registers an image → renpy.image(...)",
+			"条件/循环本身是 Python": "Conditionals/loops are Python itself",
+			"$ = 单行 Python": "$ = one-line Python",
+			"选择菜单（展示 + 交互）": "Choice menu (display + interaction)",
+			"角色对话：{who} 说出这段话（等待玩家点击继续——Ren'Py 的交互点）": "{who} speaks this line (waits for a click — Ren'Py's interaction point)",
+			"旁白：无角色叙述（显示在对话窗口）": "Narration: no character (shown in the dialogue window)",
+			"注释：不执行，给人看的说明": "Comment: not executed, for human readers",
+			"菜单选项「{name}」：玩家点击后进入该分支": "Menu choice \"{name}\": clicking enters this branch",
+			"标签「{name}」：跳转目标，不是函数——顺序执行到此处可被 jump/call 进入；label 全局唯一": "Label \"{name}\": a jump target, not a function — execution falls through; labels are globally unique",
+			"选择菜单：显示选项并暂停，玩家选择后按 jump 分支（交互点）": "Choice menu: shows options and pauses; the player's choice jumps to a branch (interaction point)",
+			"无条件跳转到「{name}」——不返回（不是函数调用）": "Unconditional jump to \"{name}\" — does not return (not a function call)",
+			"调用标签「{name}」：压栈，被调处的 return 回到这里": "Calls label \"{name}\": pushes the stack; its return comes back here",
+			"返回：弹出调用栈（call 的配套；顶层 return 结束游戏）": "Return: pops the call stack (pairs with call; a top-level return ends the game)",
+			"场景「{name}」：清空当前层再显示（换背景）": "Scene \"{name}\": clears the current layer then shows (change background)",
+			"显示图像「{name}」：同名 tag 替换；at 变换可加位置": "Shows image \"{name}\": same-tag replacement; at adds a transform",
+			"隐藏图像「{name}」": "Hides image \"{name}\"",
+			"应用转场「{name}」：过渡上一次 scene/show 的变化": "Applies transition \"{name}\": animates the last scene/show change",
+			"define：init 阶段定义常量（游戏启动时执行一次）": "define: constant assigned at init (runs once at startup)",
+			"default：init 阶段定义变量默认值（可被存档覆盖，玩家进度）": "default: variable default at init (overridable by save; player progress)",
+			"image：注册图像名 → 文件（show 时用名字引用）": "image: registers a name → file (referenced by name in show)",
+			"transform：定义 ATL 变换（位置/动画规则，show at 时应用）": "transform: defines an ATL transform (position/animation rules, applied via show at)",
+			"screen：定义界面（声明式，每次交互重算渲染）": "screen: defines a UI (declarative, re-rendered on each interaction)",
+			"python 块：整块 Python 代码": "python block: a block of Python code",
+			"$ 行：单行 Python": "$ line: one-line Python",
+			"条件/循环：本身就是 Python 语法": "Conditionals/loops: plain Python syntax",
+			"播放音频（{ch} 通道：背景乐/音效/语音）": "Plays audio ({ch} channel: music/sfx/voice)",
+			"暂停等待（0/省略 = 等点击）": "Pause and wait (0/omitted = wait for click)",
+			"对话窗口管理（show/hide/auto）": "Dialogue window management (show/hide/auto)",
+			"layeredimage：分层立绘定义（部件组合差分）": "layeredimage: layered sprite definition (parts/attributes/expressions)",
+			"translate：翻译块（覆盖源文本，查表生效）": "translate: translation block (overrides source text via lookup)",
+			"init：初始化阶段块（优先级数字控制顺序）": "init: initialization block (priority number controls order)",
+			"其他语句/表达式": "Other statement / expression",
+			"；缩进 = 属于上方块（Ren'Py 对缩进敏感）": "; indented = part of the block above (Ren'Py is indentation-sensitive)",
+			"关闭标签 {/{tag} 没有对应的开标签": "Closing tag {/{tag} has no matching opening tag",
 			"点击画面可操作游戏": "Click the view to operate the game",
 			"⚙ 功能": "⚙ Features",
 			"🎨 控件": "🎨 Controls",
@@ -365,27 +410,27 @@ const ICONS = {
 			if (!L) return null;
 			let m
 			m = /^([A-Za-z_][\w.]*)\s+"((?:[^"\\]|\\.)*)"/.exec(L)
-			if (m) return { py: m[1] + "(" + JSON.stringify(m[2]) + ")", note: "Character 调用 → renpy.say(" + m[1] + ", …)" }
+			if (m) return { py: m[1] + "(" + JSON.stringify(m[2]) + ")", note: tr("Character 调用 → renpy.say({name}, …)", { name: m[1] }) }
 			m = /^"((?:[^"\\]|\\.)*)"/.exec(L)
-			if (m) return { py: 'renpy.say(None, ' + JSON.stringify(m[1]) + ')', note: "无角色旁白 → renpy.say(None, …)" }
+			if (m) return { py: 'renpy.say(None, ' + JSON.stringify(m[1]) + ')', note: tr("无角色旁白 → renpy.say(None, …)") }
 			m = /^jump\s+(.+)$/.exec(L)
-			if (m) return { py: 'renpy.jump("' + m[1] + '")', note: "无条件跳转（不返回）" }
+			if (m) return { py: 'renpy.jump("' + m[1] + '")', note: tr("无条件跳转（不返回）") }
 			m = /^call\s+(\w+)(.*)$/.exec(L)
-			if (m) { const args = m[2].trim().replace(/^\((.*)\)$/, "$1").trim(); return { py: "renpy.call(" + JSON.stringify(m[1]) + (args ? ", " + args : "") + ")", note: "压栈调用，return 回到 call 处" } }
+			if (m) { const args = m[2].trim().replace(/^\((.*)\)$/, "$1").trim(); return { py: "renpy.call(" + JSON.stringify(m[1]) + (args ? ", " + args : "") + ")", note: tr("压栈调用，return 回到 call 处") } }
 			m = /^return(?:\s+(.+))?$/.exec(L)
-			if (m) return { py: m[1] ? "renpy.return_(" + m[1] + ")" : "renpy.return_()", note: "弹栈返回" }
+			if (m) return { py: m[1] ? "renpy.return_(" + m[1] + ")" : "renpy.return_()", note: tr("弹栈返回") }
 			m = /^scene\s+(.+)$/.exec(L)
-			if (m) return { py: 'renpy.scene(); renpy.show("' + m[1] + '")', note: "清空当前层再显示" }
+			if (m) return { py: 'renpy.scene(); renpy.show("' + m[1] + '")', note: tr("清空当前层再显示") }
 			m = /^show\s+(.+?)(?:\s+at\s+(.+))?$/.exec(L)
-			if (m) return { py: 'renpy.show("' + m[1] + '"' + (m[2] ? ", at_list=[" + m[2] + "]" : "") + ")", note: "显示图像（tag 替换同名）" }
+			if (m) return { py: 'renpy.show("' + m[1] + '"' + (m[2] ? ", at_list=[" + m[2] + "]" : "") + ")", note: tr("显示图像（tag 替换同名）") }
 			m = /^hide\s+(.+)$/.exec(L)
-			if (m) return { py: 'renpy.hide("' + m[1] + '")', note: "隐藏图像" }
+			if (m) return { py: 'renpy.hide("' + m[1] + '")', note: tr("隐藏图像") }
 			m = /^with\s+(.+)$/.exec(L)
-			if (m) return { py: "renpy.with_statement(" + m[1] + ")", note: "应用过渡" }
-			if (/^(define|default|image)\s/.test(L)) return { py: L.replace(/^(define|default|image)\s+/, ""), note: /^define/.test(L) ? "init 阶段赋值（常量）" : /^default/.test(L) ? "init 阶段默认值（可存档覆盖）" : "注册图像 → renpy.image(...)" }
-			if (/^(if|elif|else|while|for)\b/.test(L)) return { py: L, note: "条件/循环本身是 Python" }
-			if (/^\$/.test(L)) return { py: L.slice(1).trim(), note: "$ = 单行 Python" }
-			if (/^menu\s*:/.test(L)) return { py: "renpy.menu([('选项', '值'), …])", note: "选择菜单（展示 + 交互）" }
+			if (m) return { py: "renpy.with_statement(" + m[1] + ")", note: tr("应用过渡") }
+			if (/^(define|default|image)\s/.test(L)) return { py: L.replace(/^(define|default|image)\s+/, ""), note: /^define/.test(L) ? tr("init 阶段赋值（常量）") : /^default/.test(L) ? tr("init 阶段默认值（可存档覆盖）") : tr("注册图像 → renpy.image(...)") }
+			if (/^(if|elif|else|while|for)\b/.test(L)) return { py: L, note: tr("条件/循环本身是 Python") }
+			if (/^\$/.test(L)) return { py: L.slice(1).trim(), note: tr("$ = 单行 Python") }
+			if (/^menu\s*:/.test(L)) return { py: "renpy.menu([('选项', '值'), …])", note: tr("选择菜单（展示 + 交互）") }
 			return null
 		};
 
@@ -423,46 +468,46 @@ const ICONS = {
 				comment: { doc: "language_basics.html", skill: "renpy-core · 注释" },
 			};
 			const sayNote = (who, what) => {
-				if (who) return "角色对话：" + who + " 说出这段话（等待玩家点击继续——Ren'Py 的交互点）";
-				return "旁白：无角色叙述（显示在对话窗口）";
+				if (who) return tr("角色对话：{who} 说出这段话（等待玩家点击继续——Ren'Py 的交互点）", { who });
+				return tr("旁白：无角色叙述（显示在对话窗口）");
 			};
 			for (let i = 0; i < lines.length; i++) {
 				const raw = lines[i];
 				const line = raw.trim();
 				if (!line) { out.push({ line: i + 1, code: raw, note: "", kind: "blank" }); continue; }
-				if (/^#/.test(line)) { out.push({ line: i + 1, code: raw, note: "注释：不执行，给人看的说明", kind: "comment", doc: DOC.comment.doc, skill: DOC.comment.skill }); continue; }
+				if (/^#/.test(line)) { out.push({ line: i + 1, code: raw, note: tr("注释：不执行，给人看的说明"), kind: "comment", doc: DOC.comment.doc, skill: DOC.comment.skill }); continue; }
 				let note = "", kind = "stmt", ref = null;
 				// 语句识别（renpy-core 映射 + skill 知识点）
 				let m;
-				if (/^"[^"]*"\s*:\s*$/.test(line)) { note = "菜单选项「" + line.replace(/^"|":\s*$/g, "") + "」：玩家点击后进入该分支"; ref = DOC.menu; }
-				else if ((m = /^label\s+([\w.]+)\s*:/.exec(line))) { note = "标签「" + m[1] + "」：跳转目标，不是函数——顺序执行到此处可被 jump/call 进入；label 全局唯一"; kind = "label"; ref = DOC.label; }
+				if (/^"[^"]*"\s*:\s*$/.test(line)) { note = tr("菜单选项「{name}」：玩家点击后进入该分支", { name: line.replace(/^"|":\s*$/g, "") }); ref = DOC.menu; }
+				else if ((m = /^label\s+([\w.]+)\s*:/.exec(line))) { note = tr("标签「{name}」：跳转目标，不是函数——顺序执行到此处可被 jump/call 进入；label 全局唯一", { name: m[1] }); kind = "label"; ref = DOC.label; }
 				else if ((m = /^([A-Za-z_][\w.]*)\s+"((?:[^"\\]|\\.)*)"/.exec(line))) { note = sayNote(m[1], m[2]); ref = DOC.say; }
 				else if ((m = /^"((?:[^"\\]|\\.)*)"/.exec(line))) { note = sayNote(null, m[1]); ref = DOC.say; }
-				else if (/^menu\s*:/.test(line)) { note = "选择菜单：显示选项并暂停，玩家选择后按 jump 分支（交互点）"; ref = DOC.menu; }
-				else if ((m = /^jump\s+(.+)$/.exec(line))) { note = "无条件跳转到「" + m[1] + "」——不返回（不是函数调用）"; ref = DOC.jump; }
-				else if ((m = /^call\s+(\w+)/.exec(line))) { note = "调用标签「" + m[1] + "」：压栈，被调处的 return 回到这里"; ref = DOC.call; }
-				else if (/^return\b/.test(line)) { note = "返回：弹出调用栈（call 的配套；顶层 return 结束游戏）"; ref = DOC.return; }
-				else if ((m = /^scene\s+(.+)$/.exec(line))) { note = "场景「" + m[1] + "」：清空当前层再显示（换背景）"; ref = DOC.scene; }
-				else if ((m = /^show\s+(\S+)/.exec(line))) { note = "显示图像「" + m[1] + "」：同名 tag 替换；at 变换可加位置"; ref = DOC.show; }
-				else if ((m = /^hide\s+(.+)$/.exec(line))) { note = "隐藏图像「" + m[1] + "」"; ref = DOC.hide; }
-				else if ((m = /^with\s+(.+)$/.exec(line))) { note = "应用转场「" + m[1] + "」：过渡上一次 scene/show 的变化"; ref = DOC.with; }
-				else if (/^define\s/.test(line)) { note = "define：init 阶段定义常量（游戏启动时执行一次）"; ref = DOC.define; }
-				else if (/^default\s/.test(line)) { note = "default：init 阶段定义变量默认值（可被存档覆盖，玩家进度）"; ref = DOC.default; }
-				else if (/^image\s/.test(line)) { note = "image：注册图像名 → 文件（show 时用名字引用）"; ref = DOC.image; }
-				else if (/^transform\s/.test(line)) { note = "transform：定义 ATL 变换（位置/动画规则，show at 时应用）"; ref = DOC.transform; }
-				else if (/^screen\s/.test(line)) { note = "screen：定义界面（声明式，每次交互重算渲染）"; ref = DOC.screen; }
-				else if (/^python\s*:/.test(line)) { note = "python 块：整块 Python 代码"; ref = DOC.python; }
-				else if (/^\$/.test(line)) { note = "$ 行：单行 Python"; ref = DOC.dollar; }
-				else if (/^(if|elif|else|while|for)\b/.test(line)) { note = "条件/循环：本身就是 Python 语法"; ref = DOC.if; }
-				else if ((m = /^play\s+(music|sound|voice)/.exec(line))) { note = "播放音频（" + m[1] + " 通道：背景乐/音效/语音）"; ref = DOC.play; }
-				else if (/^pause\b/.test(line)) { note = "暂停等待（0/省略 = 等点击）"; ref = DOC.pause; }
-				else if (/^window\b/.test(line)) { note = "对话窗口管理（show/hide/auto）"; ref = DOC.window; }
-				else if (/^layeredimage\s/.test(line)) { note = "layeredimage：分层立绘定义（部件组合差分）"; ref = DOC.layeredimage; }
-				else if (/^translate\s/.test(line)) { note = "translate：翻译块（覆盖源文本，查表生效）"; ref = DOC.translate; }
-				else if (/^init\b/.test(line)) { note = "init：初始化阶段块（优先级数字控制顺序）"; ref = DOC.init; }
-				else { note = "其他语句/表达式"; kind = "other"; }
+				else if (/^menu\s*:/.test(line)) { note = tr("选择菜单：显示选项并暂停，玩家选择后按 jump 分支（交互点）"); ref = DOC.menu; }
+				else if ((m = /^jump\s+(.+)$/.exec(line))) { note = tr("无条件跳转到「{name}」——不返回（不是函数调用）", { name: m[1] }); ref = DOC.jump; }
+				else if ((m = /^call\s+(\w+)/.exec(line))) { note = tr("调用标签「{name}」：压栈，被调处的 return 回到这里", { name: m[1] }); ref = DOC.call; }
+				else if (/^return\b/.test(line)) { note = tr("返回：弹出调用栈（call 的配套；顶层 return 结束游戏）"); ref = DOC.return; }
+				else if ((m = /^scene\s+(.+)$/.exec(line))) { note = tr("场景「{name}」：清空当前层再显示（换背景）", { name: m[1] }); ref = DOC.scene; }
+				else if ((m = /^show\s+(\S+)/.exec(line))) { note = tr("显示图像「{name}」：同名 tag 替换；at 变换可加位置", { name: m[1] }); ref = DOC.show; }
+				else if ((m = /^hide\s+(.+)$/.exec(line))) { note = tr("隐藏图像「{name}」", { name: m[1] }); ref = DOC.hide; }
+				else if ((m = /^with\s+(.+)$/.exec(line))) { note = tr("应用转场「{name}」：过渡上一次 scene/show 的变化", { name: m[1] }); ref = DOC.with; }
+				else if (/^define\s/.test(line)) { note = tr("define：init 阶段定义常量（游戏启动时执行一次）"); ref = DOC.define; }
+				else if (/^default\s/.test(line)) { note = tr("default：init 阶段定义变量默认值（可被存档覆盖，玩家进度）"); ref = DOC.default; }
+				else if (/^image\s/.test(line)) { note = tr("image：注册图像名 → 文件（show 时用名字引用）"); ref = DOC.image; }
+				else if (/^transform\s/.test(line)) { note = tr("transform：定义 ATL 变换（位置/动画规则，show at 时应用）"); ref = DOC.transform; }
+				else if (/^screen\s/.test(line)) { note = tr("screen：定义界面（声明式，每次交互重算渲染）"); ref = DOC.screen; }
+				else if (/^python\s*:/.test(line)) { note = tr("python 块：整块 Python 代码"); ref = DOC.python; }
+				else if (/^\$/.test(line)) { note = tr("$ 行：单行 Python"); ref = DOC.dollar; }
+				else if (/^(if|elif|else|while|for)\b/.test(line)) { note = tr("条件/循环：本身就是 Python 语法"); ref = DOC.if; }
+				else if ((m = /^play\s+(music|sound|voice)/.exec(line))) { note = tr("播放音频（{ch} 通道：背景乐/音效/语音）", { ch: m[1] }); ref = DOC.play; }
+				else if (/^pause\b/.test(line)) { note = tr("暂停等待（0/省略 = 等点击）"); ref = DOC.pause; }
+				else if (/^window\b/.test(line)) { note = tr("对话窗口管理（show/hide/auto）"); ref = DOC.window; }
+				else if (/^layeredimage\s/.test(line)) { note = tr("layeredimage：分层立绘定义（部件组合差分）"); ref = DOC.layeredimage; }
+				else if (/^translate\s/.test(line)) { note = tr("translate：翻译块（覆盖源文本，查表生效）"); ref = DOC.translate; }
+				else if (/^init\b/.test(line)) { note = tr("init：初始化阶段块（优先级数字控制顺序）"); ref = DOC.init; }
+				else { note = tr("其他语句/表达式"); kind = "other"; }
 				// 缩进提示（学习用途）
-				if (/^\t|^    /.test(raw) && kind === "stmt" && note) note += "；缩进 = 属于上方块（Ren'Py 对缩进敏感）";
+				if (/^\t|^    /.test(raw) && kind === "stmt" && note) note += tr("；缩进 = 属于上方块（Ren'Py 对缩进敏感）");
 				out.push({ line: i + 1, code: raw, note, kind, doc: ref ? ref.doc : null, skill: ref ? ref.skill : null });
 			}
 			return out;
@@ -570,7 +615,7 @@ const ICONS = {
 			const close = (tag) => {
 				let i = stack.length - 1;
 				while (i > 0 && stack[i].tag !== tag) i--;
-				if (i === 0) { note("mismatch", "关闭标签 {/" + tag + "} 没有对应的开标签"); return; }
+				if (i === 0) { note("mismatch", tr("关闭标签 {/{tag} 没有对应的开标签", { tag })); return; }
 				stack.length = i; // 弹出到匹配处（含自身）
 			};
 			const applyOpen = (tag, value) => {

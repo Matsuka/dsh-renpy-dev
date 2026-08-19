@@ -5,6 +5,7 @@ const src = fs.readFileSync(require('./paths').CLIENT_SRC, 'utf8')
 // renpyLearnNotes 用 test-learn.js 的专用提取（含正则+引号，通用括号平衡不可靠）
 const rnM = src.match(/const renpyLearnNotes = \(src\) => \{[\s\S]*?\n\t\t\};/)
 if (!rnM) { console.log('未找到 renpyLearnNotes'); process.exit(1) }
+global.tr = (s, v) => { if (v) for (const k of Object.keys(v)) s = s.split('{' + k + '}').join(String(v[k])); return s; }; // i18n 桩
 // TDZ 坑：eval 赋值名不能撞外层 const，用 var 全局名承接
 var __rln__
 const rln = eval('(' + rnM[0].replace(/^const /, '').replace(/renpyLearnNotes/, '__rln__').replace(/;$/, '') + ')')

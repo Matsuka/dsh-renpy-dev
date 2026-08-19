@@ -3,6 +3,7 @@ const fs = require('fs')
 const src = fs.readFileSync(require('./paths').CLIENT_SRC, 'utf8')
 const m = src.match(/const renpyLearnNotes = \(src\) => \{[\s\S]*?\n\t\t\};/)
 if (!m) { console.log('未找到 renpyLearnNotes'); process.exit(1) }
+global.tr = (s, v) => { if (v) for (const k of Object.keys(v)) s = s.split('{' + k + '}').join(String(v[k])); return s; }; // i18n 桩
 const fn = eval('(' + m[0].replace(/^const /, '').replace(/;$/, '') + ')')
 let p = 0, f = 0
 const ok = (c, msg, extra) => { if (c) { p++; } else { f++; console.log('  ✗ FAIL:', msg, extra !== undefined ? '| got ' + JSON.stringify(extra) : '') } }
