@@ -217,6 +217,21 @@ console.log('补全面板: stmt 条目', htmlEd.indexOf('label') >= 0 && htmlEd.
 console.log('工作范围: 条', htmlEd.indexOf('工作范围') >= 0, '| L2-3', htmlEd.indexOf('L2-3') >= 0, '| 图标按钮 svg', htmlEd.indexOf('<svg') >= 0, '| 清除', htmlEd.indexOf('清除') >= 0 || htmlEd.indexOf('解除') >= 0, '| 图标文字按钮', htmlEd.indexOf('加载') >= 0 && htmlEd.indexOf('保存') >= 0);
 console.log('编辑器第二批: 缩进线', htmlEd.indexOf('rgba(0,0,0,.08)') >= 0, '| 当前行高亮', htmlEd.indexOf('rgba(0,0,0,.06)') >= 0, '| 括号匹配高亮', htmlEd.indexOf('rgba(180,130,0,.35)') >= 0);
 
+// Python 高亮分支：python 块（含 init -10 python / python early / $ 单行 / define 右值）语法色
+const srcPy = srcWithData
+  .replace('const [tabs, setTabs] = React.useState(panelState.tabs);', 'const [tabs, setTabs] = React.useState([{ name: "script.rpy", content: "init python:\\n    def greet(name):\\n        return \\"hi \\" + name\\n    x = len(greet(\\"a\\"))\\npython early:\\n    pass\\ninit -10 python:\\n    y = 42\\ndefine e = Character(\\"Eileen\\")\\n$ z = int(x)\\n", dirty: false }]);')
+  .replace('const [activeName, setActiveName] = React.useState(panelState.activeName);', 'const [activeName, setActiveName] = React.useState("script.rpy");')
+let capturedPy = null;
+global.window.__ModuleLoader__.load = (m) => { capturedPy = m.factory; };
+require('vm').runInThisContext(srcPy, { filename: 'client-py.js' });
+const modPy = capturedPy((id) => { if (id === 'react') return react; if (id === 'react-dom') return reactDOM; throw new Error('unexpected require: ' + id); });
+let regPy = null;
+const slotsPy = { inject: (n, fn) => { regPy = fn; }, register: (o, c) => ({ opts: o, comp: c }) };
+modPy.apply({ get: (n) => (n === 'slots' ? slotsPy : undefined) });
+const htmlPy = renderToString(regPy().comp({ sessionId: 's22', inputActions: undefined }));
+console.log('python 高亮: 关键词紫 #af00db', htmlPy.indexOf('#af00db') >= 0, '| 内置类型青 #267f99', htmlPy.indexOf('#267f99') >= 0, '| 内置函数蓝 #0000ff', htmlPy.indexOf('#0000ff') >= 0, '| 函数调用黄 #795e26', htmlPy.indexOf('#795e26') >= 0);
+console.log('python 变体块: init -10 python 内数字 #098658', htmlPy.indexOf('#098658') >= 0, '| python early 内 pass', htmlPy.indexOf('pass') >= 0, '| define 右值 Character 黄', htmlPy.indexOf('Character') >= 0);
+
 // 内联文本样式预览模式分支（Aa 预览 toggle：富文本化 + 降级提示条 + {font} 三态 + 字号真实渲染 + 行高放大）
 const srcPrev = srcWithData
   .replace('const [stylePreview, setStylePreview] = React.useState(false);', 'const [stylePreview, setStylePreview] = React.useState(true);')
