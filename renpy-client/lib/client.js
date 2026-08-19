@@ -3622,8 +3622,8 @@ window.__ModuleLoader__.load({
 						}, title: "编辑并重发这条消息" }, "✎ 编辑") : null,
 					);
 					const bubble = isUser
-						? React.createElement("div", { style: { maxWidth: "100%", background: BUBBLE, borderRadius: "12px 4px 12px 12px", padding: "7px 11px", fontSize: 13, lineHeight: "20px", color: TXT, whiteSpace: "pre-wrap", wordBreak: "break-word" } }, c.text)
-						: React.createElement("div", { style: { maxWidth: "100%", background: LAYER2, border: "1px solid " + BORDER, borderRadius: "4px 12px 12px 12px", padding: "7px 11px", fontSize: 13, lineHeight: "20px", color: TXT, wordBreak: "break-word", overflowX: "hidden" }, dangerouslySetInnerHTML: { __html: mdToHtml(c.text) } });
+						? React.createElement("div", { style: { maxWidth: "100%", background: "var(--dsw-alias-bg-layer-1)", borderRadius: "12px 4px 12px 12px", padding: "7px 11px", fontSize: 13, lineHeight: "20px", color: TXT, whiteSpace: "pre-wrap", wordBreak: "break-word" } }, c.text)
+						: React.createElement("div", { style: { maxWidth: "100%", background: "var(--dsw-alias-bg-layer-1)", border: "1px solid " + BORDER, borderRadius: "4px 12px 12px 12px", padding: "7px 11px", fontSize: 13, lineHeight: "20px", color: TXT, wordBreak: "break-word", overflowX: "hidden" }, dangerouslySetInnerHTML: { __html: mdToHtml(c.text) } });
 					const reasonOpen = !!expandedReason[msgKey];
 					const reasonTag = (!isUser && c.r) ? React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 4, marginBottom: 4, padding: "1px 8px", borderRadius: 9, fontSize: 11, color: TXT2, background: "rgba(128,128,128,.12)", cursor: "pointer", userSelect: "none" }, onClick: () => setExpandedReason((prev) => { const n = { ...prev }; n[msgKey] = !reasonOpen; return n; }) },
 						"🤔 思考" + (reasonOpen ? " ▾" : " ▸"),
@@ -4038,8 +4038,8 @@ window.__ModuleLoader__.load({
 			const btnDanger = { ...C.btnDanger };
 			const iconBtn = { ...C.iconBtn };
 			const iconBtnAct = { ...iconBtn, background: GHOST, color: ACCENT, border: "1px solid " + BORDER };
-			// 图标 + 简短文字
-			const iconBtnText = { ...C.btn, color: TXT2, border: "1px solid transparent" };
+			// 工具栏按钮：底色用 layer-1（对齐 DSH 官方输入框层级，暗色下比 layer-2 暗，不刺眼）
+			const iconBtnText = { ...C.btn, background: "var(--dsw-alias-bg-layer-1)", color: TXT2, border: "1px solid transparent" };
 			// 工作范围强调按钮（单独放大）
 			const wsBtn = { display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 16px", cursor: "pointer", background: "rgba(100,160,255,.14)", color: "#fff", border: "1px solid rgba(100,160,255,.5)", borderRadius: 9, fontSize: 13, fontWeight: 600, lineHeight: 1.4, whiteSpace: "nowrap", boxShadow: "0 1px 6px rgba(100,160,255,.25)" };
 			const pre = { fontFamily: CODE, fontSize: 12, lineHeight: 1.6, whiteSpace: "pre-wrap", margin: 0, padding: 6, maxHeight: 140, overflow: "auto", borderTop: "1px solid " + BORDER, background: CODEBLK, color: TXT2 };
@@ -4298,7 +4298,7 @@ window.__ModuleLoader__.load({
 					) : null,
 					React.createElement("div", { style: { width: 1, height: 22, background: BORDER, flexShrink: 0 } }),
 					// 全局主操作（常驻可见）：运行 / 停止
-					React.createElement("button", { style: { ...iconBtnText, background: ACCENT, color: "#fff", borderRadius: 6, padding: "4px 12px" }, onClick: doRun, title: "运行游戏（调试桥接自动注入）" }, React.createElement("span", { style: { fontSize: 13 } }, "▶"), React.createElement("span", {}, "运行游戏")),
+					React.createElement("button", { style: { ...iconBtnText, background: ACCENT, color: "var(--dsw-alias-label-primary-foreground)", borderRadius: 6, padding: "4px 12px" }, onClick: doRun, title: "运行游戏（调试桥接自动注入）" }, React.createElement("span", { style: { fontSize: 13 } }, "▶"), React.createElement("span", {}, "运行游戏")),
 					React.createElement("button", { style: iconBtnText, onClick: doStop, title: "停止游戏" }, React.createElement("span", { style: { fontSize: 13 } }, "■"), React.createElement("span", {}, "停止游戏")),
 					React.createElement("div", { style: { width: 1, height: 22, background: BORDER, flexShrink: 0 } }),
 					// ── 按键（点击立即起效；统一顶部，控件在左导航） ──
