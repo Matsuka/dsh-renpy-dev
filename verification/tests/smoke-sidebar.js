@@ -97,7 +97,7 @@ console.log('素材预览浮窗: 浮窗', html.indexOf('关闭预览') >= 0, '| 
 console.log('  debug 浮窗样式:', html.indexOf('right: 14px') >= 0, '| previewImg 注入后:', html.indexOf('React.useState("images/bg/house.png")') >= 0);
 console.log('轨迹卡片:', html.indexOf('lint') >= 0 && html.indexOf('✓') >= 0, '| 运行中:', html.indexOf('run') >= 0);
 // 资源文件夹树断言（files 视图渲染）
-console.log('文件视图: 文件标题', html.indexOf('文件 (3)') >= 0, '| 目录树 📁', html.indexOf('📁') >= 0, '| 根文件', html.indexOf('script.rpy') >= 0, '| 导航区', html.indexOf('导航') >= 0 && html.indexOf('标签') >= 0);
+console.log('文件视图: 文件标题', html.indexOf('文件 (3)') >= 0, '| 目录树 svg', html.indexOf('<svg') >= 0, '| 根文件', html.indexOf('script.rpy') >= 0, '| 导航区', html.indexOf('导航') >= 0 && html.indexOf('标签') >= 0);
 // 资源视图（activeView=assets）
 const srcAsset = srcWithData.replace('const [activeView, setActiveView] = React.useState("files");', 'const [activeView, setActiveView] = React.useState("assets");');
 let captured8 = null;
@@ -108,7 +108,7 @@ let reg8 = null;
 const slots8 = { inject: (n, fn) => { reg8 = fn; }, register: (o, c) => ({ opts: o, comp: c }) };
 modAsset.apply({ get: (n) => (n === 'slots' ? slots8 : undefined) });
 const htmlAsset = renderToString(reg8().comp({ sessionId: 's9', inputActions: undefined }));
-console.log('资源视图: 标题', htmlAsset.indexOf('资源 (7)') >= 0, '| 分类图标', htmlAsset.indexOf('🖼') >= 0, '| 子目录 bg/chars/bgm', htmlAsset.indexOf('bg') >= 0 && htmlAsset.indexOf('bgm') >= 0);
+console.log('资源视图: 标题', htmlAsset.indexOf('资源 (7)') >= 0, '| 分类图标 svg', htmlAsset.indexOf('<svg') >= 0, '| 子目录 bg/chars/bgm', htmlAsset.indexOf('bg') >= 0 && htmlAsset.indexOf('bgm') >= 0);
 console.log('资源视图 分类: 图片(4)', htmlAsset.indexOf('图片') >= 0 && htmlAsset.indexOf('▾') >= 0, '| 音频(2)', htmlAsset.indexOf('音频') >= 0, '| 字体(1)', htmlAsset.indexOf('字体') >= 0);
 
 // 展开子目录后叶子文件应渲染（资源视图）
@@ -214,7 +214,7 @@ const htmlEd = renderToString(reg6().comp({ sessionId: 's7', inputActions: undef
 console.log('查找栏: 查找框', htmlEd.indexOf('查找…') >= 0, '| 替换框', htmlEd.indexOf('替换为…') >= 0, '| 全部替换', htmlEd.indexOf('全部替换') >= 0, '| 计数', htmlEd.indexOf('/') >= 0);
 console.log('lint 下划线: 红线', htmlEd.indexOf('200,50,50') >= 0, '| 查找高亮', htmlEd.indexOf('180,130,0') >= 0);
 console.log('补全面板: stmt 条目', htmlEd.indexOf('label') >= 0 && htmlEd.indexOf('语句') >= 0, '| snippet', htmlEd.indexOf('选择菜单') >= 0);
-console.log('工作范围: 条', htmlEd.indexOf('工作范围') >= 0, '| L2-3', htmlEd.indexOf('L2-3') >= 0, '| 🎯按钮', htmlEd.indexOf('🎯') >= 0, '| 清除', htmlEd.indexOf('清除') >= 0 || htmlEd.indexOf('解除') >= 0, '| 图标文字按钮', htmlEd.indexOf('加载') >= 0 && htmlEd.indexOf('保存') >= 0);
+console.log('工作范围: 条', htmlEd.indexOf('工作范围') >= 0, '| L2-3', htmlEd.indexOf('L2-3') >= 0, '| 图标按钮 svg', htmlEd.indexOf('<svg') >= 0, '| 清除', htmlEd.indexOf('清除') >= 0 || htmlEd.indexOf('解除') >= 0, '| 图标文字按钮', htmlEd.indexOf('加载') >= 0 && htmlEd.indexOf('保存') >= 0);
 console.log('编辑器第二批: 缩进线', htmlEd.indexOf('rgba(0,0,0,.08)') >= 0, '| 当前行高亮', htmlEd.indexOf('rgba(0,0,0,.06)') >= 0, '| 括号匹配高亮', htmlEd.indexOf('rgba(180,130,0,.35)') >= 0);
 
 // 内联文本样式预览模式分支（Aa 预览 toggle：富文本化 + 降级提示条 + {font} 三态 + 字号真实渲染 + 行高放大）
@@ -251,7 +251,7 @@ const slotsB = { inject: (n, fn) => { regB = fn; }, register: (o, c) => ({ opts:
 modAnim.apply({ get: (n) => (n === 'slots' ? slotsB : undefined) });
 const htmlAnim = renderToString(regB().comp({ sessionId: 's12', inputActions: undefined }));
 console.log('动画条: 标题', htmlAnim.indexOf('▶ 打字动画预览 L2') >= 0, '| 速度 40 字/秒', htmlAnim.indexOf('速度 40 字/秒') >= 0, '| 重播', htmlAnim.indexOf('重播') >= 0, '| 说明', htmlAnim.indexOf('{cps=} 控制出字速度') >= 0, '| 可拖动标题栏', htmlAnim.indexOf('cursor:move') >= 0);
-console.log('动画条: 关闭', htmlAnim.indexOf('✕') >= 0, '| 初始态', htmlAnim.indexOf('准备播放') >= 0);
+console.log('动画条: 关闭', htmlAnim.indexOf('<svg') >= 0, '| 初始态', htmlAnim.indexOf('准备播放') >= 0);
 
 // 字体管理：导航第 5 标签 + 字体列表（assets.font）
 const srcFonts = srcWithData
@@ -265,7 +265,7 @@ let regA = null;
 const slotsA = { inject: (n, fn) => { regA = fn; }, register: (o, c) => ({ opts: o, comp: c }) };
 modFonts.apply({ get: (n) => (n === 'slots' ? slotsA : undefined) });
 const htmlFonts = renderToString(regA().comp({ sessionId: 's11', inputActions: undefined }));
-console.log('字体导航: 第5标签', htmlFonts.indexOf('字体') >= 0 && htmlFonts.indexOf('🔤') >= 0, '| 列表项', htmlFonts.indexOf('cn.ttf') >= 0, '| 数量', htmlFonts.indexOf('1 个') >= 0);
+console.log('字体导航: 第5标签', htmlFonts.indexOf('字体') >= 0 && htmlFonts.indexOf('<svg') >= 0, '| 列表项', htmlFonts.indexOf('cn.ttf') >= 0, '| 数量', htmlFonts.indexOf('1 个') >= 0);
 console.log('字体浮窗: 标题', htmlFonts.indexOf('字体预览') >= 0, '| 示例文本', htmlFonts.indexOf('Font Preview') >= 0, '| 引擎用法提示', htmlFonts.indexOf('引擎用法') >= 0, '| 大小', htmlFonts.indexOf('1.0 KB') >= 0);
 
 // GUI 定制面板分支（🎨 按钮 → 面板：分辨率/主题色/字号）
