@@ -7,7 +7,7 @@ const grab = (name, pat) => {
   return eval('(' + m[0].replace(/^const /, '').replace(/;$/, '') + ')')
 }
 const fm = grab('findMatchingBracket', /const findMatchingBracket = \(text, pos\) => \{[\s\S]*?\n\t\t\};/)
-const ni = grab('nextIndent', /const nextIndent = \(line\) => \{[\s\S]*?\n\t\t\};/)
+const ni = grab('nextIndent', /const nextIndent = \(line, tabSize = 4, insertSpaces = true\) => \{[\s\S]*?\n\t\t\};/)
 const bjt = grab('bracketJumpTarget', /const bracketJumpTarget = \(bm, pos\) => \{[\s\S]*?\n\t\t\};/)
 let p = 0, f = 0
 const ok = (c, msg, extra) => { if (c) { p++; } else { f++; console.log('  ✗ FAIL:', msg, extra !== undefined ? '| got ' + JSON.stringify(extra) : '') } }

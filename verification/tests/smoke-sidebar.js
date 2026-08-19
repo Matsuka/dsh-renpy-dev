@@ -373,6 +373,28 @@ modGuard.apply({ get: (n) => (n === 'slots' ? slotsG2 : undefined) });
 const htmlGuard = renderToString(regG2().comp({ sessionId: 's19', inputActions: undefined }));
 console.log('守卫弹层: 标题', htmlGuard.indexOf('写守卫拦截了保存') >= 0, '| 错误数', htmlGuard.indexOf('2 个确定问题') >= 0, '| 错误行', htmlGuard.indexOf('L2 [indent]') >= 0, '| 强制按钮', htmlGuard.indexOf('仍要保存（强制）') >= 0, '| 取消按钮', htmlGuard.indexOf('取消（先修正）') >= 0);
 
+// 个性化设置面板（⚙ SettingsWindow）+ 编辑器应用（字号 16 + relative 行号）
+const srcSettings = srcWithData
+  .replace('const LAYOUT_DEFAULT = { left: { panels: ["files", "nav", "assets", "edits"] }, right: { panels: ["chat"] }, bottom: { panels: ["log"] } };',
+    'const LAYOUT_DEFAULT = { left: { panels: ["files", "nav", "assets", "edits"] }, right: { panels: ["chat", "settings"] }, bottom: { panels: ["log"] } };')
+  .replace('const [settings, setSettings] = React.useState({ global: {}, project: {}, merged: {} });',
+    'const [settings, setSettings] = React.useState({ global: { "editor.fontSize": 16 }, project: {}, merged: { "editor.fontSize": 16, "editor.lineNumbers": "relative" } });')
+  .replace('const [tabs, setTabs] = React.useState(panelState.tabs);',
+    'const [tabs, setTabs] = React.useState([{ name: "script.rpy", content: "label start:\\n    e \\"hi\\"\\n", dirty: false }]);')
+  .replace('const [activeName, setActiveName] = React.useState(panelState.activeName);',
+    'const [activeName, setActiveName] = React.useState("script.rpy");');
+let capturedS = null;
+global.window.__ModuleLoader__.load = (m) => { capturedS = m.factory; };
+require('vm').runInThisContext(srcSettings, { filename: 'client-settings.js' });
+const modSettings = capturedS((id) => { if (id === 'react') return react; if (id === 'react-dom') return reactDOM; throw new Error('unexpected require: ' + id); });
+let regS = null;
+const slotsS = { inject: (n, fn) => { regS = fn; }, register: (o, c) => ({ opts: o, comp: c }) };
+modSettings.apply({ get: (n) => (n === 'slots' ? slotsS : undefined) });
+const htmlSettings = renderToString(regS().comp({ sessionId: 's20', inputActions: undefined }));
+console.log('设置面板: 标题', htmlSettings.indexOf('个性化设置') >= 0, '| 搜索', htmlSettings.indexOf('搜索设置') >= 0, '| 分组', htmlSettings.indexOf('字体') >= 0 && htmlSettings.indexOf('缩进') >= 0 && htmlSettings.indexOf('显示') >= 0, '| 全局/项目切换', htmlSettings.indexOf('全局（所有项目）') >= 0, '| 重置按钮', htmlSettings.indexOf('↺') >= 0);
+console.log('设置面板: 字号控件值 16', htmlSettings.indexOf('value="16"') >= 0, '| 已修改标注', htmlSettings.indexOf('已修改') >= 0, '| 默认标注', htmlSettings.indexOf('默认') >= 0, '| 底部 VSCode 说明', htmlSettings.indexOf('VSCode') >= 0);
+console.log('设置应用: gutter 字号 16px', htmlSettings.indexOf('font-size:16px') >= 0, '| 活动栏入口', htmlSettings.indexOf('个性化设置面板') >= 0);
+
 // 渲染 hideSidebar 变体
 const el2 = comp({ sessionId: 's2', inputActions: undefined, hideSidebar: true });
 const html2 = renderToString(el2);

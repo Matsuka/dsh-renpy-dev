@@ -4,7 +4,7 @@
 // 沙箱：按会话解析 sandboxPolicy（query 带 session id）。
 'use strict'
 
-const { lineDiff, hasOpenToolCall, layoutRouteMap, computeRouteMeta, parseTraceback, parseLog, parseErrors, findDiagnostics, guardRpy } = require('./renpy-core')
+const { lineDiff, hasOpenToolCall, layoutRouteMap, computeRouteMeta, parseTraceback, parseLog, parseErrors, findDiagnostics, guardRpy, mergeSettings } = require('./renpy-core')
 
 const name = 'renpy-dev'
 
@@ -235,6 +235,22 @@ init python:
     }
     await walk(project.replace(/[\\/]+$/, '') + '/game', '')
     return labels
+  }
+
+  // ── 个性化配置存储（分层：全局 userDir/settings.json + 项目级 userDir/settings/<projectKey>.json；
+  //    全部在 userDir 内，不写 Ren'Py 项目目录——保持项目零痕迹；配置体系借鉴 VSCode（MIT）） ──
+  const settingsGlobalFile = () => userDir + '/settings.json'
+  const settingsProjectFile = (project) => userDir + '/settings/' + backupsKey(project) + '.json'
+  const settingsGet = async (project) => {
+    const read = async (p) => { try { return JSON.parse(await readText(p)) } catch (e) { return null } }
+    const globalCfg = await read(settingsGlobalFile())
+    const projectCfg = project ? await read(settingsProjectFile(project)) : null
+    return { global: globalCfg || {}, project: projectCfg || {}, merged: mergeSettings(globalCfg || {}, projectCfg || {}) }
+  }
+  const settingsSave = async (project, globalCfg, projectCfg, session) => {
+    if (globalCfg !== undefined) await writeText(settingsGlobalFile(), JSON.stringify(globalCfg || {}, null, 2), session)
+    if (project && projectCfg !== undefined) await writeText(settingsProjectFile(project), JSON.stringify(projectCfg || {}, null, 2), session)
+    return { ok: true }
   }
 
   // ── 保存历史备份：write-file 前把旧版本存入 userDir/backups/<projectKey>/<rel>/<ts>.bak ──
@@ -1216,6 +1232,8 @@ init python:
           })
           return
         }
+        if (p === '/renpy-dev/settings-get') { respond(res, 200, await settingsGet(body.project)); return }
+        if (p === '/renpy-dev/settings-save') { respond(res, 200, await settingsSave(body.project, body.global, body.projectCfg, session)); return }
         if (p === '/renpy-dev/diagnostics') {
           // 静态诊断（find_*：引用完整性扫描，秒级快速通道；递归收集 game/ 下 .rpy）
           const proj = String(body.project || '').trim()

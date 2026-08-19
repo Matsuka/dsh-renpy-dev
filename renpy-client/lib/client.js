@@ -32,6 +32,42 @@ window.__ModuleLoader__.load({
 		};
 		const countFiles = (node) => (node ? node.files.length + Object.keys(node.dirs || {}).reduce((n, k) => n + countFiles(node.dirs[k]), 0) : 0);
 
+		// ── 个性化配置注册表（设计借鉴 VSCode（MIT）：声明式 → 设置面板/校验/应用全由它驱动；
+		//    键名对齐 editor.* 命名，值语义与 VSCode 一致，支持未来配置互操作/导入） ──
+		// 字段：id / group / type（string|number|boolean|enum|number[]）/ default / enum / min / max / step / desc
+		// 本期 P0 范围：字体族 + 缩进 + 显示类（wordWrap 会破坏逐行对齐核心机制，P1 再议；导入导出 P1）
+		const SETTINGS_SCHEMA = [
+			{ id: "editor.fontFamily", group: "字体", type: "string", default: "", desc: "编辑器代码字体（CSS font-family，可逗号分隔 fallback）；留空=跟随 DSH 主题 --ds-font-family-code" },
+			{ id: "editor.fontSize", group: "字体", type: "number", default: 13, min: 8, max: 32, desc: "编辑器字号（px）" },
+			{ id: "editor.fontWeight", group: "字体", type: "enum", default: "normal", enum: ["normal", "bold", "lighter"], desc: "代码字重" },
+			{ id: "editor.lineHeight", group: "字体", type: "number", default: 0, min: 0, max: 60, desc: "行高（px；0=自动，按字号×1.5 计算。与 VSCode 语义一致）" },
+			{ id: "editor.letterSpacing", group: "字体", type: "number", default: 0, min: -1, max: 4, step: 0.1, desc: "字间距（px）" },
+			{ id: "editor.tabSize", group: "缩进", type: "number", default: 4, min: 1, max: 8, desc: "制表符宽度（列数）；影响自动缩进与缩进线" },
+			{ id: "editor.insertSpaces", group: "缩进", type: "boolean", default: true, desc: "自动缩进使用空格（false=制表符 \\t）" },
+			{ id: "editor.lineNumbers", group: "显示", type: "enum", default: "on", enum: ["on", "relative", "off"], desc: "行号模式：绝对 / 相对当前行 / 关闭" },
+			{ id: "editor.renderLineHighlight", group: "显示", type: "enum", default: "line", enum: ["none", "line", "gutter", "all"], desc: "当前行高亮：关闭 / 仅行 / 仅槽位 / 全部（gutter 与 all 暂按 line 渲染）" },
+			{ id: "editor.renderWhitespace", group: "显示", type: "enum", default: "none", enum: ["none", "boundary", "trailing", "all"], desc: "空白显示：无 / 行首缩进+行尾空格 / 仅行尾空格 / 全部空格" },
+			{ id: "editor.rulers", group: "显示", type: "number[]", default: [], desc: "垂直标尺（列号数组，如 [80, 120]）" },
+		];
+		const SETTINGS_DEFAULTS = (() => {
+			const d = {};
+			for (const s of SETTINGS_SCHEMA) d[s.id] = s.default;
+			return d;
+		})();
+		// 分层合并（与 renpy-core.js mergeSettings 同源；project 覆盖 global，键级深合并）
+		const mergeSettings = (globalCfg, projectCfg) => {
+			const out = {};
+			const g = globalCfg && typeof globalCfg === "object" ? globalCfg : {};
+			const p = projectCfg && typeof projectCfg === "object" ? projectCfg : {};
+			const keys = new Set([...Object.keys(g), ...Object.keys(p)]);
+			for (const k of keys) {
+				const gv = g[k], pv = p[k];
+				if (pv !== undefined && gv && typeof gv === "object" && pv && typeof pv === "object" && !Array.isArray(gv) && !Array.isArray(pv)) out[k] = { ...gv, ...pv };
+				else out[k] = pv !== undefined ? pv : gv;
+			}
+			return out;
+		};
+
 		// 文件目录树（game/ 下 .rpy 相对路径 → {dirs, files} 树；files 存完整 rel，显示 basename）
 		const buildFileTree = (items) => {
 			const root = { dirs: {}, files: [] };
@@ -402,10 +438,10 @@ window.__ModuleLoader__.load({
 			return { charCps, styleCps, globalCps: say && say.cps !== null ? say.cps * (say.mult || 1) : null };
 		};
 
-		// ── 自动缩进：回车后新行应带的前缀缩进（继承上一行；以 ":" 结尾的块开行 +4） ──
-		const nextIndent = (line) => {
+		// ── 自动缩进：回车后新行应带的前缀缩进（继承上一行；以 ":" 结尾的块开行 +tabSize；tabSize 来自个性化配置） ──
+		const nextIndent = (line, tabSize = 4, insertSpaces = true) => {
 			let ind = /^[ \t]*/.exec(line)[0];
-			if (/:\s*$/.test(line.trimEnd())) ind += "    ";
+			if (/:\s*$/.test(line.trimEnd())) ind += insertSpaces ? " ".repeat(Math.max(1, tabSize)) : "\t";
 			return ind;
 		};
 
@@ -602,6 +638,7 @@ window.__ModuleLoader__.load({
 			cp: { title: "修改面板", icon: "✎" },
 			err: { title: "报错诊断", icon: "🐞" },
 			diag: { title: "静态诊断", icon: "🔍" },
+			settings: { title: "个性化设置", icon: "⚙" },
 		};
 		// 默认布局（Win11 式：区域内多面板平铺平分；持久化到 localStorage.renpy-panel-layout）
 		const LAYOUT_DEFAULT = { left: { panels: ["files", "nav", "assets", "edits"] }, right: { panels: ["chat"] }, bottom: { panels: ["log"] } };
@@ -1272,6 +1309,75 @@ window.__ModuleLoader__.load({
 						)),
 					)),
 				),
+			);
+		}
+
+		// ── 个性化设置面板（⚙：搜索 + 分组 + 控件 + 默认值标注 + 重置；全局/项目两层切换。
+		//    由 SETTINGS_SCHEMA 注册表驱动——新增配置项无需改面板代码） ──
+		function SettingsWindow(props) {
+			const { project, api, sessionId, settings, onChange, TXT, TXT2, TXT3, ACCENT, BORDER, LAYER } = props;
+			const [query, setQuery] = React.useState("");
+			const [scope, setScope] = React.useState("global");
+			const editing = (scope === "global" ? (settings && settings.global) : (settings && settings.project)) || {};
+			const setVal = (id, val) => onChange(scope, { ...editing, [id]: val });
+			const resetVal = (id) => { const s = SETTINGS_SCHEMA.find((x) => x.id === id); onChange(scope, { ...editing, [id]: s ? s.default : undefined }); };
+			const groups = {};
+			for (const s of SETTINGS_SCHEMA) (groups[s.group] = groups[s.group] || []).push(s);
+			const shown = query.trim() ? SETTINGS_SCHEMA.filter((s) => s.id.indexOf(query) >= 0 || s.desc.indexOf(query) >= 0) : null;
+			// 值控件（按 type 分发）
+			const control = (s) => {
+				const val = editing[s.id] !== undefined ? editing[s.id] : s.default;
+				const base = { boxSizing: "border-box", height: 24, background: "var(--dsw-alias-bg-layer-2)", color: TXT, border: "1px solid " + BORDER, borderRadius: 6, fontSize: 12, padding: "0 6px", outline: "none", fontFamily: "inherit" };
+				if (s.type === "boolean") {
+					return React.createElement("input", { type: "checkbox", checked: !!val, onChange: (e) => setVal(s.id, e.target.checked), style: { width: 16, height: 16, cursor: "pointer", accentColor: ACCENT } });
+				}
+				if (s.type === "enum") {
+					return React.createElement("select", { value: val, onChange: (e) => setVal(s.id, e.target.value), style: { ...base, minWidth: 110, cursor: "pointer" } },
+						(s.enum || []).map((e) => React.createElement("option", { key: e, value: e }, e)));
+				}
+				if (s.type === "number[]") {
+					return React.createElement("input", { value: Array.isArray(val) ? val.join(", ") : "", placeholder: "如 80, 120", onChange: (e) => setVal(s.id, e.target.value.split(",").map((x) => parseInt(x.trim(), 10)).filter((x) => !isNaN(x))), style: { ...base, width: 120 } });
+				}
+				if (s.type === "number") {
+					return React.createElement("input", { type: "number", value: val, min: s.min, max: s.max, step: s.step || 1, onChange: (e) => setVal(s.id, e.target.value === "" ? s.default : Number(e.target.value)), style: { ...base, width: 70 } });
+				}
+				// string
+				return React.createElement("input", { value: val || "", placeholder: "留空=默认", onChange: (e) => setVal(s.id, e.target.value), style: { ...base, width: 160 } });
+			};
+			const row = (s) => {
+				const modified = editing[s.id] !== undefined && editing[s.id] !== s.default;
+				return React.createElement("div", { key: s.id, style: { display: "flex", alignItems: "center", gap: 8, padding: "4px 8px", minHeight: 28, borderBottom: "1px solid " + BORDER } },
+					React.createElement("div", { style: { flex: 1, minWidth: 0 } },
+						React.createElement("div", { style: { fontSize: 12, color: TXT, fontFamily: "monospace", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, s.id),
+						React.createElement("div", { style: { fontSize: 11, color: TXT3, lineHeight: 1.4 } }, s.desc),
+					),
+					React.createElement("span", { style: { fontSize: 10, color: modified ? "#e5c07b" : TXT3, flexShrink: 0, width: 34, textAlign: "right" } }, modified ? "已修改" : "默认"),
+					control(s),
+					React.createElement("button", { onClick: () => resetVal(s.id), title: "重置为默认值", style: { ...C.iconBtn, flexShrink: 0 } }, "↺"),
+				);
+			};
+			const list = (shown || SETTINGS_SCHEMA).map(row);
+			const groupNames = Object.keys(groups);
+			return React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } },
+				React.createElement("div", { style: { flexShrink: 0, display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", background: LAYER, borderBottom: "1px solid " + BORDER, flexWrap: "wrap" } },
+					React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: TXT } }, "⚙ 个性化设置"),
+					React.createElement("input", { value: query, onChange: (e) => setQuery(e.target.value), placeholder: "搜索设置…", style: { ...C.inp, flex: 1, minWidth: 80 } }),
+					React.createElement("span", { style: { fontSize: 11, color: TXT3 } }, scope === "global" ? "全局" : "项目"),
+				),
+				React.createElement("div", { style: { flexShrink: 0, display: "flex", gap: 6, padding: "4px 10px", borderBottom: "1px solid " + BORDER } },
+					React.createElement("button", { onClick: () => setScope("global"), style: { ...C.chip(scope === "global") } }, "全局（所有项目）"),
+					project ? React.createElement("button", { onClick: () => setScope("project"), style: { ...C.chip(scope === "project") } }, "项目（当前）") : React.createElement("span", { style: { fontSize: 11, color: TXT3 } }, "未选择项目"),
+				),
+				React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", padding: "4px 0" } },
+					query.trim()
+						? (list.length ? list : React.createElement("div", { style: { color: TXT3, fontSize: 12, padding: "16px 8px", textAlign: "center" } }, "无匹配的设置"))
+						: groupNames.map((g) => React.createElement("div", { key: g },
+							React.createElement("div", { style: { padding: "4px 10px", fontSize: 11, fontWeight: 600, color: TXT2, background: "rgba(128,128,128,.07)", borderBottom: "1px solid " + BORDER } }, g),
+							groups[g].map(row),
+						)),
+				),
+				React.createElement("div", { style: { flexShrink: 0, padding: "3px 10px", fontSize: 10, color: TXT3, borderTop: "1px solid " + BORDER } },
+					"配置键名与语义对齐 VSCode（editor.*，MIT 借鉴）；保存于工作区 .renpy-user（不写入项目目录）。更改即时生效，字号/字体改动会重载编辑器。"),
 			);
 		}
 
@@ -2010,7 +2116,7 @@ window.__ModuleLoader__.load({
 					const end = ta.selectionEnd;
 					const lineStart = content.lastIndexOf("\n", start - 1) + 1;
 					const curLine = content.slice(lineStart, start);
-					const indent = nextIndent(curLine);
+					const indent = nextIndent(curLine, Number(cfg["editor.tabSize"]) || 4, cfg["editor.insertSpaces"] !== false);
 					const next = content.slice(0, start) + "\n" + indent + content.slice(end);
 					onChange(next);
 					requestAnimationFrame(function () { ta.selectionStart = ta.selectionEnd = start + 1 + indent.length; });
@@ -2068,7 +2174,9 @@ window.__ModuleLoader__.load({
 			// ── 行/列 → 像素（编辑器 13px/1.5，行高 19.5；字符宽用 canvas 实测 + CJK 双宽） ──
 			const CHAR_W = charW;
 			// 行高：预览模式 34px 容纳 say 字号差异
-			const LINE_H = () => (stylePreview ? 34 : 19.5);
+			// 行高（px 语义：0=自动=字号×1.5；预览模式另行固定 34px，避免样式预览错位）
+			const lhPx = () => { const v = Number(cfg["editor.lineHeight"]); return v > 0 ? v : Number(cfg["editor.fontSize"]) * 1.5; };
+			const LINE_H = () => (stylePreview ? 34 : lhPx());
 			// 实测代码字体字符宽（等宽字体；pre 挂载后测量一次）
 			React.useEffect(() => {
 				const pre = preRef.current;
@@ -3370,6 +3478,7 @@ window.__ModuleLoader__.load({
 				if (id === "vars") return React.createElement(VarWindow, { vars: (routeStatus && routeStatus.vars) || {}, routeVars: (routeMap && routeMap.variables) || [], onVarJump: jumpToVarDef, onVarFocus: setVarFocus, TXT, TXT2, TXT3, ACCENT, BORDER, BG, LAYER, embedded: true });
 				if (id === "err") return React.createElement(ErrWindow, { project, api, sessionId, TXT, TXT2, TXT3, ACCENT, BORDER, LAYER, onJump: (rel, line) => { openFile(rel, () => flashJumpToLine(line)); } });
 				if (id === "diag") return React.createElement(DiagWindow, { project, api, sessionId, TXT, TXT2, TXT3, ACCENT, BORDER, LAYER, onJump: (rel, line) => { openFile(rel, () => flashJumpToLine(line)); } });
+				if (id === "settings") return React.createElement(SettingsWindow, { project, api, sessionId, settings, onChange: onSettingsChange, TXT, TXT2, TXT3, ACCENT, BORDER, LAYER });
 				return renderSidePanel(id);
 			};
 			// ── 类 VSCode 布局：活动视图切换 + 光标位置（状态栏） ──
@@ -3386,6 +3495,59 @@ window.__ModuleLoader__.load({
 			const [pyConv, setPyConv] = React.useState(null); // {rpy, py, note}
 			// 文本样式预览模式（所见即所得：编辑器内 say 文本直接显示样式）+ 降级提示汇总
 			const [stylePreview, setStylePreview] = React.useState(false);
+			// ── 个性化配置（分层：全局 userDir/settings.json + 项目级 userDir/settings/<key>.json；
+			//    merged 供编辑器应用；对齐 VSCode User→Workspace 思路） ──
+			const [settings, setSettings] = React.useState({ global: {}, project: {}, merged: {} });
+			const settingsSaveTimerRef = React.useRef(null);
+			React.useEffect(() => {
+				if (!project) return;
+				api("settings-get", {}, { project }).then((r) => { if (r) setSettings({ global: r.global || {}, project: r.project || {}, merged: r.merged || {} }); }).catch(() => { /* 配置读取失败用默认 */ });
+			}, [project, api]);
+			// 生效配置 = schema 默认兜底 + 两层合并（merged 已是 global←project 键级合并）
+			const cfg = mergeSettings(SETTINGS_DEFAULTS, settings.merged || {});
+			const onSettingsChange = (scope, next) => {
+				setSettings((prev) => {
+					const global = scope === "global" ? next : (prev.global || {});
+					const project = scope === "project" ? next : (prev.project || {});
+					return { global, project, merged: mergeSettings(global, project) };
+				});
+				if (settingsSaveTimerRef.current) clearTimeout(settingsSaveTimerRef.current);
+				settingsSaveTimerRef.current = setTimeout(() => {
+					api("settings-save", {}, { project, global: scope === "global" ? next : undefined, projectCfg: scope === "project" ? next : undefined }).catch(() => {});
+				}, 500);
+			};
+			// 字号/字体变化 → 强制重挂载编辑器（重测 CHAR_W 字符宽，避免 overlay 错位）
+			const editorRemountKey = String(cfg["editor.fontSize"]) + "|" + (cfg["editor.fontFamily"] || "") + "|" + cfg["editor.lineHeight"];
+			// 字体相关（空 fontFamily 回退 DSH 主题代码字体）
+			const codeFont = (cfg["editor.fontFamily"] && cfg["editor.fontFamily"].trim()) ? cfg["editor.fontFamily"] : CODE;
+			// 空白显示标记（renderWhitespace）：boundary=行首缩进段+行尾空格段；trailing=仅行尾；all=全部空格段（连续段合并）
+			const whitespaceMarks = React.useMemo(() => {
+				const mode = cfg["editor.renderWhitespace"];
+				if (!mode || mode === "none" || !active) return [];
+				const ls = content.split("\n");
+				const marks = [];
+				for (let i = 0; i < ls.length; i++) {
+					const line = ls[i];
+					const segs = [];
+					let j = 0;
+					while (j < line.length) {
+						if (line[j] === " ") {
+							let k = j;
+							while (k < line.length && line[k] === " ") k++;
+							segs.push([j, k - j]);
+							j = k;
+						} else j++;
+					}
+					for (const [start, len] of segs) {
+						const isLead = start === 0;
+						const isTrail = start + len === line.length;
+						const show = mode === "all" || (mode === "boundary" && (isLead || isTrail)) || (mode === "trailing" && isTrail);
+						if (show) marks.push({ line: i + 1, col: start, left: 4 + textWidth(line.slice(0, start)), len, boundary: isLead || isTrail });
+					}
+				}
+				return marks;
+				// eslint-disable-next-line react-hooks/exhaustive-deps
+			}, [content, cfg["editor.renderWhitespace"], activeName]);
 			// 打字动画预览（出字速度/间隔）：预览模式下点击 say 行播放
 			const [animLine, setAnimLine] = React.useState(null); // 行号
 			const [animSeq, setAnimSeq] = React.useState(0); // 重播计数
@@ -3642,7 +3804,7 @@ window.__ModuleLoader__.load({
 			const pre = { fontFamily: CODE, fontSize: 12, lineHeight: 1.6, whiteSpace: "pre-wrap", margin: 0, padding: 6, maxHeight: 140, overflow: "auto", borderTop: "1px solid " + BORDER, background: CODEBLK, color: TXT2 };
 			const editorWrap = { display: "flex", flex: 1, minHeight: 0, maxWidth: "100%", borderTop: "1px solid " + BORDER, background: "#1e1e1e", overflow: "hidden" };
 			// 行高：预览模式 34px（容纳 say 字号差异）；pre/ta/gutter 必须一致
-			const ED_LH = stylePreview ? 34 : 19.5;
+			const ED_LH = stylePreview ? 34 : lhPx();
 			// ── 缩进线：按行缩进档位画垂直虚线（overlay 内容坐标；依赖 stylePreview 的 LINE_H，故置于此） ──
 			const indentGuides = React.useMemo(() => {
 				const lines = content.split("\n");
@@ -3660,9 +3822,9 @@ window.__ModuleLoader__.load({
 				}
 				return Object.keys(guide).map((k) => ({ x: parseInt(k, 10) * CHAR_W, top: guide[k].first * LINE_H(), h: (guide[k].last - guide[k].first + 1) * LINE_H() }));
 			}, [content, charW, stylePreview]);
-			const gutterStyle = { position: "relative", width: 44, flexShrink: 0, overflow: "hidden", padding: "4px 6px 4px 4px", textAlign: "right", fontFamily: CODE, fontSize: 13, lineHeight: ED_LH + "px", color: "rgba(128,128,128,.65)", userSelect: "none", background: "#252526" };
-			const preStyle = { position: "absolute", inset: 0, margin: 0, padding: 4, fontFamily: CODE, fontSize: 13, lineHeight: ED_LH + "px", whiteSpace: "pre", overflow: "hidden", color: "#d4d4d4", pointerEvents: "none" };
-			const taStyle = { position: "absolute", inset: 0, margin: 0, padding: 4, fontFamily: CODE, fontSize: 13, lineHeight: ED_LH + "px", whiteSpace: "pre", overflow: "auto", background: "transparent", color: "transparent", caretColor: "#e0e0e0", outline: "none", border: "none", resize: "none" };
+			const gutterStyle = { position: "relative", width: 44, flexShrink: 0, overflow: "hidden", padding: "4px 6px 4px 4px", textAlign: "right", fontFamily: codeFont, fontSize: cfg["editor.fontSize"], lineHeight: ED_LH + "px", letterSpacing: cfg["editor.letterSpacing"] + "px", color: "rgba(128,128,128,.65)", userSelect: "none", background: "#252526" };
+			const preStyle = { position: "absolute", inset: 0, margin: 0, padding: 4, fontFamily: codeFont, fontSize: cfg["editor.fontSize"], lineHeight: ED_LH + "px", letterSpacing: cfg["editor.letterSpacing"] + "px", fontWeight: cfg["editor.fontWeight"], whiteSpace: "pre", overflow: "hidden", color: "#d4d4d4", pointerEvents: "none" };
+			const taStyle = { position: "absolute", inset: 0, margin: 0, padding: 4, fontFamily: codeFont, fontSize: cfg["editor.fontSize"], lineHeight: ED_LH + "px", letterSpacing: cfg["editor.letterSpacing"] + "px", fontWeight: cfg["editor.fontWeight"], whiteSpace: "pre", overflow: "auto", background: "transparent", color: "transparent", caretColor: "#e0e0e0", outline: "none", border: "none", resize: "none" };
 			const editorBox = { position: "relative", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" };
 			const tabBar = { display: "flex", gap: 2, padding: "4px 8px", overflowX: "auto", borderBottom: "1px solid " + BORDER, minHeight: 30, alignItems: "center", background: LAYER };
 			const tabStyle = (act) => ({ padding: "3px 10px", cursor: "pointer", background: act ? GHOST : "transparent", border: "1px solid " + (act ? BORDER : "transparent"), borderRadius: 6, fontSize: 13, whiteSpace: "nowrap", color: act ? ACCENT : TXT, fontFamily: "inherit" });
@@ -3904,6 +4066,7 @@ window.__ModuleLoader__.load({
 						abIcon("📊", "运行时变量", () => movePanel("vars", "right"), { opacity: project ? 1 : .4, hideText: navCollapsed, title: "变量监控面板（右侧栏；变化高亮）" }),
 						abIcon("🐞", "报错诊断", () => movePanel("err", "right"), { opacity: project ? 1 : .4, hideText: navCollapsed, title: "报错诊断面板（右侧栏；traceback/log/errors 结构化 + 跳转）" }),
 						abIcon("🔍", "静态诊断", () => movePanel("diag", "right"), { opacity: project ? 1 : .4, hideText: navCollapsed, title: "静态诊断面板（右侧栏；无效跳转/未定义 screen/角色/缺失资源/不可达 label）" }),
+						abIcon("⚙", "个性化设置", () => movePanel("settings", "right"), { hideText: navCollapsed, title: "个性化设置面板（右侧栏；字体/缩进/显示，全局或按项目）" }),
 						React.createElement("div", { style: { width: 148, height: 1, background: BORDER, margin: "4px 0 6px", alignSelf: "center" } }),
 						// 视图控件（停靠左栏）
 						[["files", "📄", "项目文件"], ["nav", "🧭", "导航"], ["assets", "🖼", "项目素材"], ["edits", "✎", "基线更改"]].map(([k, icon, label]) => { const inLeft = (panelLayout.left.panels || []).includes(k); return React.createElement("div", { key: k, title: label, onClick: () => movePanel(k, "left"), style: { position: "relative", width: "100%", height: 32, marginBottom: 2, display: "flex", alignItems: "center", gap: 7, padding: "0 10px", cursor: "pointer" } },
@@ -3952,15 +4115,18 @@ window.__ModuleLoader__.load({
 							previewNotes.length ? previewNotes.slice(0, 6).map((n, i) => React.createElement("span", { key: i, style: { color: "#e5c07b" } }, "• " + n.msg)) : React.createElement("span", { style: { color: TXT2 } }, "say 文本已按样式渲染（粗/斜/下/删/色/透明所见即所得；字号/字体/插值以底色标记，悬停看详情）"),
 							previewNotes.length > 6 ? React.createElement("span", { style: { color: "#e5c07b" } }, "… 共 " + previewNotes.length + " 条") : null,
 						) : null,
-						React.createElement("div", { style: editorWrap },
+						React.createElement("div", { style: editorWrap, key: "ed" + editorRemountKey },
 							React.createElement("div", { style: gutterStyle, ref: gutterRef },
 								// 检查点修改标记与行号同行渲染（随滚动天然对齐；绿=新增 蓝=修改 红=删除）
+								// 行号模式来自个性化配置：on=绝对 / relative=相对当前行（当前行显示自身）/ off=不显示
 								lines.map((n) => {
 									const t = curDiff ? curDiff.lineTypes[n] : null;
 									const color = t === "add" ? "#4caf50" : t === "del" ? "#e05c5c" : t === "mod" ? "#569cd6" : "transparent";
+									const lnMode = cfg["editor.lineNumbers"] || "on";
+									const label = lnMode === "off" ? "" : (lnMode === "relative" && n !== cursorPos.line ? String(Math.abs(n - cursorPos.line)) : String(n));
 									return React.createElement("div", { key: n, title: t ? (t === "add" ? "新增" : t === "del" ? "删除" : "修改") : "", style: { display: "flex", alignItems: "center", height: LINE_H() } },
 										React.createElement("span", { style: { width: 4, flexShrink: 0, height: LINE_H(), background: color, marginRight: 2 } }),
-										React.createElement("span", { style: { flex: 1, textAlign: "right" } }, n),
+										React.createElement("span", { style: { flex: 1, textAlign: "right" } }, label),
 									);
 								}),
 							),
@@ -3976,8 +4142,12 @@ window.__ModuleLoader__.load({
 									React.createElement("div", { ref: overlayRef, style: { position: "absolute", top: 0, left: 0, width: 1, height: 1, transform: "translate(0,0)" } },
 										// 缩进线（最底：垂直虚线，随缩进档位）
 										indentGuides.map((g) => React.createElement("div", { key: "ig" + g.x, style: { position: "absolute", top: g.top, left: g.x, width: 1, height: g.h, background: "rgba(255,255,255,.07)", boxShadow: "inset 1px 0 0 rgba(255,255,255,.03)" } })),
-										// 当前行高亮（光标所在行整行浅背景）
-										(active && cursorPos.line >= 1) ? React.createElement("div", { key: "curline", style: { position: "absolute", top: (cursorPos.line - 1) * LINE_H(), left: 0, width: 4000, height: LINE_H(), background: "rgba(255,255,255,.035)" } }) : null,
+										// 当前行高亮（光标所在行整行浅背景；renderLineHighlight 配置控制；gutter/all 暂按 line 渲染）
+										(active && cursorPos.line >= 1 && cfg["editor.renderLineHighlight"] !== "none") ? React.createElement("div", { key: "curline", style: { position: "absolute", top: (cursorPos.line - 1) * LINE_H(), left: 0, width: 4000, height: LINE_H(), background: "rgba(255,255,255,.035)" } }) : null,
+										// 垂直标尺（editor.rulers 列号数组 → 竖线）
+										(cfg["editor.rulers"] || []).map((r, ri) => React.createElement("div", { key: "rl" + ri, title: "标尺列 " + r, style: { position: "absolute", top: 0, left: Number(r) * CHAR_W, width: 1, height: "100%", background: "rgba(255,255,255,.14)" } })),
+										// 空白显示（renderWhitespace：boundary=行首缩进+行尾空格；trailing=仅行尾；all=全部空格）
+										(cfg["editor.renderWhitespace"] && cfg["editor.renderWhitespace"] !== "none") ? whitespaceMarks.map((wm) => React.createElement("div", { key: "ws" + wm.line + "-" + wm.col, style: { position: "absolute", top: (wm.line - 1) * LINE_H() + (LINE_H() - 4) / 2, left: wm.left, width: wm.len * CHAR_W, height: 2, background: wm.boundary ? "rgba(224,92,92,.55)" : "rgba(255,255,255,.14)", borderRadius: 1 } })) : null,
 										// 跳转落点闪烁高亮（路线图节点 / lint / 定义跳转；仅当前文件，2.2s 后消失）
 										(jumpFlash && jumpFlash.file === activeName) ? React.createElement("div", { key: "jf" + jumpFlash.key, title: "跳转落点", style: { position: "absolute", top: (jumpFlash.line - 1) * LINE_H(), left: 0, width: 4000, height: LINE_H(), background: "rgba(86,156,214,.22)", boxShadow: "inset 3px 0 0 rgba(86,156,214,.85)" } }) : null,
 										// 括号匹配高亮（配对括号字符块）

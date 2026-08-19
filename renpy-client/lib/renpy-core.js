@@ -641,4 +641,25 @@ const guardRpy = (content, opts = {}) => {
   return { ok: errors.length === 0, errors }
 }
 
-module.exports = { lineDiff, hasOpenToolCall, layoutRouteMap, computeRouteMeta, parseTraceback, parseLog, parseErrors, findDiagnostics, guardRpy }
+// ── 个性化配置：分层合并（全局 → 项目级覆盖，对齐 VSCode User→Workspace 思路） ──
+// 输入：global/project 为配置对象（{editor: {...}} 或扁平 {id: value} 均可，按键深合并）
+// 输出：合并后的配置对象。project 层覆盖 global 层（键级覆盖，非整体替换）。
+// 配置体系设计借鉴 VSCode（MIT 开源）：键名对齐 editor.* 命名以支持配置互操作。
+const mergeSettings = (globalCfg, projectCfg) => {
+  const out = {}
+  const g = globalCfg && typeof globalCfg === "object" ? globalCfg : {}
+  const p = projectCfg && typeof projectCfg === "object" ? projectCfg : {}
+  const keys = new Set([...Object.keys(g), ...Object.keys(p)])
+  for (const k of keys) {
+    const gv = g[k], pv = p[k]
+    // 对象值深合并一层（支持 editor: {fontSize: 14} 嵌套），标量直接覆盖
+    if (pv !== undefined && gv && typeof gv === "object" && pv && typeof pv === "object" && !Array.isArray(gv) && !Array.isArray(pv)) {
+      out[k] = { ...gv, ...pv }
+    } else {
+      out[k] = pv !== undefined ? pv : gv
+    }
+  }
+  return out
+}
+
+module.exports = { lineDiff, hasOpenToolCall, layoutRouteMap, computeRouteMeta, parseTraceback, parseLog, parseErrors, findDiagnostics, guardRpy, mergeSettings }
