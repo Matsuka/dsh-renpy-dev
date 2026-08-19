@@ -48,6 +48,12 @@ window.__ModuleLoader__.load({
 			{ id: "editor.renderLineHighlight", group: "显示", type: "enum", default: "line", enum: ["none", "line", "gutter", "all"], desc: "当前行高亮：关闭 / 仅行 / 仅槽位 / 全部（gutter 与 all 暂按 line 渲染）" },
 			{ id: "editor.renderWhitespace", group: "显示", type: "enum", default: "none", enum: ["none", "boundary", "trailing", "all"], desc: "空白显示：无 / 行首缩进+行尾空格 / 仅行尾空格 / 全部空格" },
 			{ id: "editor.rulers", group: "显示", type: "number[]", default: [], desc: "垂直标尺（列号数组，如 [80, 120]）" },
+			{ id: "editor.bracketPairColorization.enabled", group: "显示", type: "boolean", default: true, desc: "括号配对着色（光标处括号对金色高亮）" },
+			{ id: "editor.guides.indentation", group: "显示", type: "boolean", default: true, desc: "缩进向导线（缩进参考虚线）" },
+			{ id: "editor.quickSuggestions.other", group: "补全", type: "boolean", default: true, desc: "代码中输入时自动弹出补全" },
+			{ id: "editor.quickSuggestions.comments", group: "补全", type: "boolean", default: false, desc: "注释中自动弹出补全（默认关，对齐 VSCode）" },
+			{ id: "editor.quickSuggestions.strings", group: "补全", type: "boolean", default: false, desc: "字符串（对白文本）中自动弹出补全（默认关，对齐 VSCode）" },
+			{ id: "editor.suggestOnTriggerCharacters", group: "补全", type: "boolean", default: true, desc: "输入触发字符（_ 与 .）时自动弹出补全" },
 		];
 		const SETTINGS_DEFAULTS = (() => {
 			const d = {};
@@ -66,6 +72,16 @@ window.__ModuleLoader__.load({
 				else out[k] = pv !== undefined ? pv : gv;
 			}
 			return out;
+		};
+
+		// 补全上下文判断（editor.quickSuggestions）：other=代码 / comments=注释（行内 # 之后）/
+		// strings=字符串（行内到光标未闭合引号内）。Ren'Py 约定 # 起注释（字符串内 # 罕见，接受近似）
+		const completionContext = (text, pos) => {
+			const src = String(text || "");
+			const lineStart = src.lastIndexOf("\n", pos - 1) + 1;
+			const line = src.slice(lineStart, pos);
+			if (line.lastIndexOf("#") >= 0) return "comments";
+			return (line.match(/"/g) || []).length % 2 === 1 ? "strings" : "other";
 		};
 
 		// 文件目录树（game/ 下 .rpy 相对路径 → {dirs, files} 树；files 存完整 rel，显示 basename）
@@ -2347,6 +2363,12 @@ window.__ModuleLoader__.load({
 				let s = pos;
 				while (s > 0 && /[A-Za-z0-9_.]/.test(cur[s - 1])) s--;
 				const prefix = cur.slice(s, pos);
+				// 个性化配置：自动补全开关（Ctrl+Space forceAll 手动触发不受限）
+				if (!forceAll) {
+					if (!cfg["editor.suggestOnTriggerCharacters"] && prefix.length === 1 && /[_.]/.test(prefix)) { setCompletions([]); return; }
+					const ctxKey = "editor.quickSuggestions." + completionContext(cur, pos);
+					if (!cfg[ctxKey]) { setCompletions([]); return; }
+				}
 				if (!prefix && !forceAll) { setCompletions([]); return; }
 				const list = buildCompletions(prefix, forceAll);
 				if (!list.length) { setCompletions([]); return; }
@@ -4204,8 +4226,8 @@ window.__ModuleLoader__.load({
 								// 查找高亮 + lint 下划线（内容坐标；滚动时 transform 反向平移对齐）
 								!isViewTab ? React.createElement("div", { style: { position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none", zIndex: 1 } },
 									React.createElement("div", { ref: overlayRef, style: { position: "absolute", top: 0, left: 0, width: 1, height: 1, transform: "translate(0,0)" } },
-										// 缩进线（最底：垂直虚线，随缩进档位）
-										indentGuides.map((g) => React.createElement("div", { key: "ig" + g.x, style: { position: "absolute", top: g.top, left: g.x, width: 1, height: g.h, background: "rgba(255,255,255,.07)", boxShadow: "inset 1px 0 0 rgba(255,255,255,.03)" } })),
+										// 缩进线（最底：垂直虚线，随缩进档位；editor.guides.indentation 配置控制）
+										(cfg["editor.guides.indentation"] !== false) ? indentGuides.map((g) => React.createElement("div", { key: "ig" + g.x, style: { position: "absolute", top: g.top, left: g.x, width: 1, height: g.h, background: "rgba(255,255,255,.07)", boxShadow: "inset 1px 0 0 rgba(255,255,255,.03)" } })) : null,
 										// 当前行高亮（光标所在行整行浅背景；renderLineHighlight 配置控制；gutter/all 暂按 line 渲染）
 										(active && cursorPos.line >= 1 && cfg["editor.renderLineHighlight"] !== "none") ? React.createElement("div", { key: "curline", style: { position: "absolute", top: (cursorPos.line - 1) * LINE_H(), left: 0, width: 4000, height: LINE_H(), background: "rgba(255,255,255,.035)" } }) : null,
 										// 垂直标尺（editor.rulers 列号数组 → 竖线）
@@ -4214,8 +4236,8 @@ window.__ModuleLoader__.load({
 										(cfg["editor.renderWhitespace"] && cfg["editor.renderWhitespace"] !== "none") ? whitespaceMarks.map((wm) => React.createElement("div", { key: "ws" + wm.line + "-" + wm.col, style: { position: "absolute", top: (wm.line - 1) * LINE_H() + (LINE_H() - 4) / 2, left: wm.left, width: wm.len * CHAR_W, height: 2, background: wm.boundary ? "rgba(224,92,92,.55)" : "rgba(255,255,255,.14)", borderRadius: 1 } })) : null,
 										// 跳转落点闪烁高亮（路线图节点 / lint / 定义跳转；仅当前文件，2.2s 后消失）
 										(jumpFlash && jumpFlash.file === activeName) ? React.createElement("div", { key: "jf" + jumpFlash.key, title: "跳转落点", style: { position: "absolute", top: (jumpFlash.line - 1) * LINE_H(), left: 0, width: 4000, height: LINE_H(), background: "rgba(86,156,214,.22)", boxShadow: "inset 3px 0 0 rgba(86,156,214,.85)" } }) : null,
-										// 括号匹配高亮（配对括号字符块）
-										bracketRects ? React.createElement(React.Fragment, null,
+										// 括号匹配高亮（配对括号字符块；editor.bracketPairColorization.enabled 配置控制）
+										(bracketRects && cfg["editor.bracketPairColorization.enabled"] !== false) ? React.createElement(React.Fragment, null,
 											bracketRects.open ? React.createElement("div", { key: "bo", title: "匹配括号", style: { position: "absolute", top: (bracketRects.open.line - 1) * LINE_H() + 2, left: bracketRects.open.left, width: CHAR_W, height: LINE_H() - 4, background: "rgba(229,192,123,.45)", borderRadius: 2 } }) : null,
 											bracketRects.close ? React.createElement("div", { key: "bc", title: "匹配括号", style: { position: "absolute", top: (bracketRects.close.line - 1) * LINE_H() + 2, left: bracketRects.close.left, width: CHAR_W, height: LINE_H() - 4, background: "rgba(229,192,123,.45)", borderRadius: 2 } }) : null,
 										) : null,

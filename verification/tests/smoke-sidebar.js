@@ -397,6 +397,25 @@ console.log('设置面板: 标题', htmlSettings.indexOf('个性化设置') >= 0
 console.log('设置面板: 字号控件值 16', htmlSettings.indexOf('value="16"') >= 0, '| 已修改标注', htmlSettings.indexOf('已修改') >= 0, '| 默认标注', htmlSettings.indexOf('默认') >= 0, '| 底部 VSCode 说明', htmlSettings.indexOf('VSCode') >= 0);
 console.log('设置应用: gutter 字号 16px', htmlSettings.indexOf('font-size:16px') >= 0, '| 活动栏入口', htmlSettings.indexOf('个性化设置（最大化视图') >= 0);
 console.log('设置最大化: 全屏覆盖层', htmlSettings.indexOf('✕ 关闭') >= 0, '| 三列分组卡片', htmlSettings.indexOf('min-width:320px') >= 0, '| 宽松控件高 28', htmlSettings.indexOf('height:28px') >= 0);
+console.log('设置补全组: 分组名', htmlSettings.indexOf('补全') >= 0, '| quickSuggestions.other', htmlSettings.indexOf('editor.quickSuggestions.other') >= 0, '| 注释默认关', htmlSettings.indexOf('editor.quickSuggestions.comments') >= 0, '| 括号着色项', htmlSettings.indexOf('editor.bracketPairColorization.enabled') >= 0, '| 缩进线项', htmlSettings.indexOf('editor.guides.indentation') >= 0);
+
+// 显示开关关闭分支：缩进线 + 括号着色关闭 → 不渲染
+const srcShowOff = srcWithData
+  .replace('const [settings, setSettings] = React.useState(settingsStoreInit || { global: {}, project: {}, merged: {} });',
+    'const [settings, setSettings] = React.useState(settingsStoreInit || { global: { "editor.bracketPairColorization.enabled": false, "editor.guides.indentation": false }, project: {}, merged: { "editor.bracketPairColorization.enabled": false, "editor.guides.indentation": false } });')
+  .replace('const [tabs, setTabs] = React.useState(panelState.tabs);',
+    'const [tabs, setTabs] = React.useState([{ name: "script.rpy", content: "label start:\\n    e \\"hi\\"\\n", dirty: false }]);')
+  .replace('const [activeName, setActiveName] = React.useState(panelState.activeName);',
+    'const [activeName, setActiveName] = React.useState("script.rpy");');
+let capturedSO = null;
+global.window.__ModuleLoader__.load = (m) => { capturedSO = m.factory; };
+require('vm').runInThisContext(srcShowOff, { filename: 'client-showoff.js' });
+const modSO = capturedSO((id) => { if (id === 'react') return react; if (id === 'react-dom') return reactDOM; throw new Error('unexpected require: ' + id); });
+let regSO = null;
+const slotsSO = { inject: (n, fn) => { regSO = fn; }, register: (o, c) => ({ opts: o, comp: c }) };
+modSO.apply({ get: (n) => (n === 'slots' ? slotsSO : undefined) });
+const htmlSO = renderToString(regSO().comp({ sessionId: 's21', inputActions: undefined }));
+console.log('显示开关关闭: 缩进线消失', htmlSO.indexOf('rgba(255,255,255,.07)') < 0, '| 括号高亮消失', htmlSO.indexOf('229,192,123') < 0, '| 编辑器仍渲染', htmlSO.indexOf('font-size') >= 0);
 
 // 渲染 hideSidebar 变体
 const el2 = comp({ sessionId: 's2', inputActions: undefined, hideSidebar: true });

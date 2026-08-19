@@ -40,13 +40,14 @@ const src = fs.readFileSync(require('./paths').CLIENT_SRC, 'utf8')
   ok(!!m, 'SETTINGS_SCHEMA 数组可提取', m && m[1].slice(0, 80))
   if (m) {
     const ids = [...m[1].matchAll(/\{ id: "([^"]+)", group: "([^"]+)", type: "([^"]+)", default: ([^,]+),/g)].map((x) => ({ id: x[1], group: x[2], type: x[3], def: x[4] }))
-    const required = ["editor.fontFamily", "editor.fontSize", "editor.fontWeight", "editor.lineHeight", "editor.letterSpacing", "editor.tabSize", "editor.insertSpaces", "editor.lineNumbers", "editor.renderLineHighlight", "editor.renderWhitespace", "editor.rulers"]
+    const required = ["editor.fontFamily", "editor.fontSize", "editor.fontWeight", "editor.lineHeight", "editor.letterSpacing", "editor.tabSize", "editor.insertSpaces", "editor.lineNumbers", "editor.renderLineHighlight", "editor.renderWhitespace", "editor.rulers", "editor.bracketPairColorization.enabled", "editor.guides.indentation", "editor.quickSuggestions.other", "editor.quickSuggestions.comments", "editor.quickSuggestions.strings", "editor.suggestOnTriggerCharacters"]
     for (const rid of required) ok(ids.some((x) => x.id === rid), 'schema 含 ' + rid)
     const dup = ids.length - new Set(ids.map((x) => x.id)).size
     ok(dup === 0, 'schema id 无重复', dup)
     ok(ids.filter((x) => x.group === "字体").length === 5, '字体组 5 项', ids.filter((x) => x.group === "字体").length)
     ok(ids.filter((x) => x.group === "缩进").length === 2, '缩进组 2 项')
-    ok(ids.filter((x) => x.group === "显示").length === 4, '显示组 4 项')
+    ok(ids.filter((x) => x.group === "显示").length === 6, '显示组 6 项（+括号着色+缩进线）', ids.filter((x) => x.group === "显示").length)
+    ok(ids.filter((x) => x.group === "补全").length === 4, '补全组 4 项', ids.filter((x) => x.group === "补全").length)
     // 关键默认值（与 VSCode 语义一致）
     const lineHeight = ids.find((x) => x.id === "editor.lineHeight")
     ok(lineHeight.def === "0", 'lineHeight 默认 0（=自动，VSCode 语义）', lineHeight && lineHeight.def)
@@ -56,11 +57,30 @@ const src = fs.readFileSync(require('./paths').CLIENT_SRC, 'utf8')
     ok(lineNumbers.def === '"on"', 'lineNumbers 默认 on', lineNumbers && lineNumbers.def)
     const tabSize = ids.find((x) => x.id === "editor.tabSize")
     ok(tabSize.def === "4", 'tabSize 默认 4（Ren' + 'Py 惯例）', tabSize && tabSize.def)
+    const qcOther = ids.find((x) => x.id === "editor.quickSuggestions.other")
+    ok(qcOther.def === "true", 'quickSuggestions.other 默认 true', qcOther && qcOther.def)
+    const qcComments = ids.find((x) => x.id === "editor.quickSuggestions.comments")
+    ok(qcComments.def === "false", 'quickSuggestions.comments 默认 false（对齐 VSCode）', qcComments && qcComments.def)
     // 枚举值集（对齐 VSCode 值域）
     const wsSeg = m[1].slice(m[1].indexOf("renderWhitespace"), m[1].indexOf("renderWhitespace") + 400)
     ok(/trailing/.test(wsSeg), 'renderWhitespace 含 trailing（VSCode 值域）', wsSeg.slice(0, 120))
     const rlhSeg = m[1].slice(m[1].indexOf("renderLineHighlight"), m[1].indexOf("renderLineHighlight") + 400)
     ok(/"gutter"/.test(rlhSeg), 'renderLineHighlight 含 gutter（VSCode 值域）', rlhSeg.slice(0, 120))
+  }
+}
+
+// ── completionContext（client.js 源码提取，quickSuggestions 上下文判断） ──
+{
+  const cm = src.match(/const completionContext = \(text, pos\) => \{[\s\S]*?\n\t\t\};/)
+  ok(!!cm, 'completionContext 可提取', cm && cm[0].slice(0, 60))
+  if (cm) {
+    const completionContext = eval('(' + cm[0].replace(/^const completionContext = /, '').replace(/;$/, '') + ')')
+    ok(completionContext('label start:\n    e "hi"', 14) === 'other', '代码上下文 other', completionContext('label start:\n    e "hi"', 14))
+    ok(completionContext('    # 注释文字', 8) === 'comments', '整行注释 comments', completionContext('    # 注释文字', 8))
+    ok(completionContext('    e "hi"  # 行尾注释', 18) === 'comments', '行尾注释 comments', completionContext('    e "hi"  # 行尾注释', 18))
+    ok(completionContext('    e "正在输入', 11) === 'strings', '引号内 strings', completionContext('    e "正在输入', 11))
+    ok(completionContext('    e "已闭合" 继续', 15) === 'other', '引号闭合后 other', completionContext('    e "已闭合" 继续', 15))
+    ok(completionContext('', 0) === 'other', '空输入 other')
   }
 }
 
