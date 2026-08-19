@@ -4075,7 +4075,7 @@ window.__ModuleLoader__.load({
 						abIcon("📊", "运行时变量", () => movePanel("vars", "right"), { opacity: project ? 1 : .4, hideText: navCollapsed, title: "变量监控面板（右侧栏；变化高亮）" }),
 						abIcon("🐞", "报错诊断", () => movePanel("err", "right"), { opacity: project ? 1 : .4, hideText: navCollapsed, title: "报错诊断面板（右侧栏；traceback/log/errors 结构化 + 跳转）" }),
 						abIcon("🔍", "静态诊断", () => movePanel("diag", "right"), { opacity: project ? 1 : .4, hideText: navCollapsed, title: "静态诊断面板（右侧栏；无效跳转/未定义 screen/角色/缺失资源/不可达 label）" }),
-						abIcon("⚙", "个性化设置", () => { movePanel("settings", "right"); setMaximized("settings"); }, { hideText: navCollapsed, title: "个性化设置（最大化视图：字体/缩进/显示，全局或按项目；🗗 还原为侧栏面板）" }),
+						abIcon("⚙", "个性化设置", () => setMaximized("settings"), { hideText: navCollapsed, title: "个性化设置（最大化视图：字体/缩进/显示，全局或按项目；🗗 还原）" }),
 						React.createElement("div", { style: { width: 148, height: 1, background: BORDER, margin: "4px 0 6px", alignSelf: "center" } }),
 						// 视图控件（停靠左栏）
 						[["files", "📄", "项目文件"], ["nav", "🧭", "导航"], ["assets", "🖼", "项目素材"], ["edits", "✎", "基线更改"]].map(([k, icon, label]) => { const inLeft = (panelLayout.left.panels || []).includes(k); return React.createElement("div", { key: k, title: label, onClick: () => movePanel(k, "left"), style: { position: "relative", width: "100%", height: 32, marginBottom: 2, display: "flex", alignItems: "center", gap: 7, padding: "0 10px", cursor: "pointer" } },
