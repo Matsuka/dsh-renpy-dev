@@ -148,14 +148,14 @@ $composed = $template.Replace('{{SDK_PATH}}', $sdkYaml)
 [System.IO.File]::WriteAllText((Join-Path $presetDir 'agent.cordis.yml'), $composed, (New-Object System.Text.UTF8Encoding($false)))
 Write-Ok 'preset 已部署（agent.cordis.yml / preset.yml / plugins/）'
 
-# ── 3. 复制 skills ──────────────────────────────────────────────────────────
-Write-Step '部署 renpy-* skills'
+# ── 3. 复制 skills（全部 *.md：15 个 renpy-* 知识库 + workbench-ui 界面规范） ──
+Write-Step '部署 skills'
 $skillDir = Join-Path $DshHome 'skills'
 New-Item -ItemType Directory -Force -Path $skillDir | Out-Null
-$skillCount = (Get-ChildItem (Join-Path $pubRoot 'skills\renpy-*.md') -File -ErrorAction SilentlyContinue).Count
+$skillCount = (Get-ChildItem (Join-Path $pubRoot 'skills\*.md') -File -ErrorAction SilentlyContinue).Count
 if ($skillCount -eq 0) { Write-Warn '发布包 skills/ 目录为空，跳过' }
 else {
-  Copy-Item (Join-Path $pubRoot 'skills\renpy-*.md') $skillDir -Force
+  Copy-Item (Join-Path $pubRoot 'skills\*.md') $skillDir -Force
   Write-Ok "已复制 $skillCount 个 skill"
 }
 

@@ -16,7 +16,7 @@
 | 1 | 检测 DSH 是否已安装 | 决定走哪种模式（见 §3） |
 | 2 | 检测 / 指定 Ren'Py SDK | 记录 SDK 路径（不下载） |
 | 3 | 复制 agent preset | `~/.dsh/.agent-presets/renpy/` |
-| 4 | 复制 14 个 skill | `~/.dsh/skills/renpy-*.md` |
+| 4 | 复制 15 个知识库 skill + workbench-ui 界面规范 | `~/.dsh/skills/*.md` |
 | 5 | 链接 dsh-renpy-dev-client 插件包 | `~/.dsh/profiles/node_modules/dsh-renpy-dev-client`（junction） |
 | 6 | 更新 web profile | `~/.dsh/profiles/web/package.json`（bundles + link） |
 | 7 | 建 preset 的 node_modules junction | 指向 DSH node_modules |
@@ -112,7 +112,7 @@ cd <解压目录>
 ==> 部署 agent preset
     preset 已部署（agent.cordis.yml / preset.yml / plugins/）
 ==> 部署 renpy-* skills
-    已复制 14 个 skill
+    已复制 16 个 skill（15 知识库 + 界面规范）
 ==> 链接 dsh-renpy-dev-client 包
     dsh-renpy-dev-client -> <发布包>\renpy-client    ← junction 建立
 ==> 更新 web profile
@@ -169,7 +169,7 @@ cd <解压目录>
 | 面板里 Ren'Py 页签不存在 | web profile 未生效：检查 `profiles/web/package.json` 的 bundles 是否含 `dsh-renpy-dev-client`，且 `~/.dsh/profiles/node_modules/dsh-renpy-dev-client` 存在；确认重启过 dsh |
 | 加载项目报 SDK 相关错误 | 检查 `~/.dsh/renpy.config.json` 的 `sdkPath` 是否指向有效 SDK；或设置环境变量 `RENPY_SDK_PATH` 后重启 |
 | 编辑器改动不生效 / 看不到新功能 | client 侧改动刷新页面即可；host 侧改动必须重启 dsh |
-| 面板加载后没有 skill | `~/.dsh/skills/` 下应有 `renpy-*.md`（14 个）；缺则重跑 deploy.ps1 |
+| 面板加载后没有 skill | `~/.dsh/skills/` 下应有 `*.md`（15 个 renpy-* 知识库 + workbench-ui）；缺则重跑 deploy.ps1 |
 
 ---
 
@@ -187,7 +187,7 @@ cd <解压目录>
 
 ```
 ~/.dsh/.agent-presets/renpy/                 # preset
-~/.dsh/skills/renpy-*.md                     # 14 个 skill（可选）
+~/.dsh/skills/*.md                          # 15 知识库 + 界面规范（可选）
 ~/.dsh/profiles/node_modules/dsh-renpy-dev-client    # 插件包 junction
 ~/.dsh/renpy.config.json                     # 运行配置（可选）
 ```

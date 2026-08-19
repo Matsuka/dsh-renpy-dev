@@ -2,7 +2,7 @@
 
 > A validation of DSH's core idea: a self-bootstrapped Ren'Py development workbench with deep integration of agent preset + skills + web plugin.
 
-DeepSeek Harness (DSH) is extended into a full **Ren'Py game development workbench**: an in-browser editor (syntax highlighting including **Python blocks**, autocomplete, find & replace, codicon icon system), lint / run / screenshot / automated testing, save history with checkpoint rollback, workspace locking, write guard, static diagnostics and error diagnostics panels, AI learning annotations, personalization settings (25 color tokens + 8 preset themes), 14 Ren'Py knowledge bases (skills), and 9 development tools directly callable by the AI.
+DeepSeek Harness (DSH) is extended into a full **Ren'Py game development workbench**: an in-browser editor (syntax highlighting including **Python blocks**, autocomplete, find & replace, codicon icon system), lint / run / screenshot / automated testing, save history with checkpoint rollback, workspace locking, write guard, static diagnostics and error diagnostics panels, AI learning annotations, personalization settings (25 color tokens + 8 preset themes), 15 Ren'Py knowledge bases (skills) plus a UI spec, and 13 development tools directly callable by the AI.
 
 This repository is the **open-source edition** (for developers/contributors), including the full verification assets. End users should use the **release zip** from the **Releases** page (no verification assets, more lightweight).
 
@@ -11,7 +11,7 @@ This repository is the **open-source edition** (for developers/contributors), in
 > - **Deployment guide** (full: both modes / parameters / troubleshooting / upgrade & uninstall) → **`DEPLOY.md`**
 > - **User guide** (features / operations / expected results / regression table + **how to feed your experience back to developers**) → **`GUIDE.md`**
 > - **Tester guide** (a feature-by-feature operations manual for testers: where → how → expected → what to test + full regression checklist) → **`docs/TESTER-GUIDE.md`**
-> - **Knowledge pipeline** (how the 14 skills are produced: extraction → verification → engine validation) → **`docs/knowledge-pipeline.md`**
+> - **Knowledge pipeline** (how the 15 skills are produced: extraction → verification → engine validation) → **`docs/knowledge-pipeline.md`**
 > - **Contribution guide** (three-tier experience isolation + submission conventions) → **`CONTRIBUTING.md`**
 > - **Terminology** (EN↔ZH glossary for Ren'Py terms) → **`docs/glossary.md`**
 > - Quick start → below.
@@ -48,7 +48,7 @@ cd D:\dsh-renpy-dev
 3. The script will, in order:
    - Detect DSH (if not installed, ask: continue after manual install / auto-install with `-InstallDsh`)
    - Detect the Ren'Py SDK (searches common locations; if not found, prompts for the path, **no auto-download**)
-   - Copy the preset, 14 skills, and link the `dsh-renpy-dev-client` plugin bundle
+   - Copy the preset, 15 skills (plus the UI spec), and link the `dsh-renpy-dev-client` plugin bundle
    - Update the web profile and generate the config file
 4. **Restart dsh** (fully quit and relaunch).
 
@@ -99,10 +99,10 @@ dsh-renpy-dev/
 │       ├── preset.yml                # Preset name/description
 │       ├── agent.cordis.yml.template # Plugin composition ({{SDK_PATH}} substituted at deploy)
 │       └── plugins/
-│           ├── renpy-host.mjs        # 9 agent tools (lint/index/scaffold/run/...)
+│           ├── renpy-host.mjs        # 13 agent tools (lint/index/scaffold/run/...)
 │           └── indexer.py            # Project indexer (engine dump)
 ├── skills/
-│   ├── renpy-*.md                    # 14 Ren'Py knowledge bases (loaded on demand)
+│   ├── renpy-*.md                    # 15 Ren'Py knowledge bases + workbench-ui UI spec (loaded on demand)
 │   └── workbench-ui.md               # Workbench UI style design spec (incl. icon system)
 ├── docs/
 │   ├── TESTER-GUIDE.md               # Tester guide (feature-by-feature operations + regression checklist)
@@ -117,7 +117,7 @@ dsh-renpy-dev/
     ├── package.json
     ├── cordis.patch.yml
     └── lib/
-        ├── host.js                   # 30+ /renpy-dev/* endpoints (requires dsh restart)
+        ├── host.js                   # 39 /renpy-dev/* endpoints (requires dsh restart)
         ├── renpy-core.js             # Shared pure-function module (lineDiff/hasOpenToolCall)
         └── client.js                 # Ren'Py panel UI (refresh to apply; includes the codicon icon system)
 ```
@@ -129,7 +129,7 @@ dsh-renpy-dev/
 | Location | Content |
 |---|---|
 | `~/.dsh/.agent-presets/renpy/` | Agent preset (including the generated agent.cordis.yml) |
-| `~/.dsh/skills/renpy-*.md` | 14 skills |
+| `~/.dsh/skills/*.md` | 15 knowledge skills + workbench-ui UI spec |
 | `~/.dsh/profiles/node_modules/dsh-renpy-dev-client` | Plugin bundle junction (points to the release; independent of how DSH is installed) |
 | `~/.dsh/profiles/web/package.json` | Web profile (bundles + link dependency) |
 | `~/.dsh/renpy.config.json` | SDK/indexer/skill path config (read at runtime) |
@@ -153,7 +153,25 @@ After reinstall or moving to another machine, just re-run `deploy.ps1`; the conf
 
 ---
 
-## 5. Version notes
+## 6. Deployment and DSH native elements (as of v1.1)
+
+The plugin applies a few **runtime visual adjustments** to the DSH host UI:
+
+| Adjustment | Implementation | Depends on |
+|---|---|---|
+| Hides the native DSH composer input (the panel ships its own input area, avoiding double inputs) | Injects a `<style>` into `document.head` on panel mount, removed on unmount | `[data-composer-seat]` attribute |
+| Pins the DSH sidebar logo (fish / wordmark) to the Ren'Py brand color `#00b8c3`, independent of theme changes | Same injection; CSS overrides the `fill: currentColor` inheritance chain | DSH sidebar CSS-Module semantic class suffixes (`logoRow` / `railFish` / `panelIcon`) |
+
+**Impact on the deployment flow: none.**
+
+- Both are **runtime-only injections** — no DSH installation files are modified (unmounting the panel / closing the page restores everything). The `deploy.ps1` flow, the plugin junction link, and the "restart dsh to take effect" rule are **unchanged**.
+- ⚠️ **One caveat**: the injected CSS relies on DSH's DOM structure (class suffixes). **After upgrading DSH, regression-check** both injections (no duplicated input box; sidebar logo shows the brand color). If broken, adjust the injection effect in `client.js` for the new class names.
+- **Skills deployment scope** (since v1.1): `deploy.ps1` copies `skills\*.md` (15 `renpy-*` knowledge bases + `workbench-ui` UI spec); older versions copied only `renpy-*.md`.
+- **Upgrading an existing install**: re-extract the release (or update `renpy-client/lib/` and `skills/`) → re-run `deploy.ps1` (overwrites preset/skills/link) → **fully quit and restart dsh**.
+
+---
+
+## 7. Version notes
 
 - Targets **Ren'Py 8.5.x** (local SDK pinned to 8.5.3).
 - Packaging (distribute) is not supported yet: SDK packaging lives inside the launcher; this plugin only covers `build.rpy` configuration knowledge (the `renpy-build` skill).

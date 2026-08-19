@@ -16,7 +16,7 @@
 | 1 | Detect whether DSH is installed | Decides which mode to use (§3) |
 | 2 | Detect / specify the Ren'Py SDK | Records the SDK path (no download) |
 | 3 | Copy the agent preset | `~/.dsh/.agent-presets/renpy/` |
-| 4 | Copy the 14 skills | `~/.dsh/skills/renpy-*.md` |
+| 4 | Copy the 15 knowledge skills + workbench-ui UI spec | `~/.dsh/skills/*.md` |
 | 5 | Link the dsh-renpy-dev-client plugin bundle | `~/.dsh/profiles/node_modules/dsh-renpy-dev-client` (junction) |
 | 6 | Update the web profile | `~/.dsh/profiles/web/package.json` (bundles + link) |
 | 7 | Create the preset's node_modules junction | Points to DSH node_modules |
@@ -113,8 +113,8 @@ Script output uses `==>` for steps, `✓` for success, `!` for notices, `x` for 
     SDK: D:\renpy-8.5.3-sdk                  <- detected / entered SDK
 ==> 部署 agent preset                                 (Deploy agent preset)
     preset 已部署（agent.cordis.yml / preset.yml / plugins/）   (preset deployed)
-==> 部署 renpy-* skills                               (Deploy renpy-* skills)
-    已复制 14 个 skill                          (copied 14 skills)
+==> 部署 skills                                     (Deploy skills)
+    已复制 16 个 skill（15 知识库 + 界面规范）      (copied 16 skills)
 ==> 链接 dsh-renpy-dev-client 包                      (Link dsh-renpy-dev-client bundle)
     dsh-renpy-dev-client -> <release>\renpy-client    <- junction created
 ==> 更新 web profile                                  (Update web profile)
@@ -172,7 +172,7 @@ developers (templates / three submission methods / developer processing flow) is
 | The Ren'Py tab doesn't exist in the panel | Web profile not effective: check `profiles/web/package.json` bundles contains `dsh-renpy-dev-client` and `~/.dsh/profiles/node_modules/dsh-renpy-dev-client` exists; confirm dsh was restarted |
 | SDK-related error when loading a project | Check `sdkPath` in `~/.dsh/renpy.config.json` points to a valid SDK; or set `RENPY_SDK_PATH` and restart |
 | Editor changes don't apply / new features invisible | Client-side changes: refresh the page; host-side changes: must restart dsh |
-| No skills after the panel loads | `~/.dsh/skills/` should contain `renpy-*.md` (14 of them); if missing, re-run deploy.ps1 |
+| No skills after the panel loads | `~/.dsh/skills/` should contain `*.md` (15 renpy-* knowledge skills + workbench-ui); if missing, re-run deploy.ps1 |
 
 ---
 
@@ -190,7 +190,7 @@ Manually remove the following:
 
 ```
 ~/.dsh/.agent-presets/renpy/                 # preset
-~/.dsh/skills/renpy-*.md                     # 14 skills (optional)
+~/.dsh/skills/*.md                          # 15 knowledge + UI spec (optional)
 ~/.dsh/profiles/node_modules/dsh-renpy-dev-client    # plugin bundle junction
 ~/.dsh/renpy.config.json                     # runtime config (optional)
 ```

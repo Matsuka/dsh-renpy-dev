@@ -2,7 +2,7 @@
 
 > 一次对 DSH 核心思想的验证：agent preset + skills + web 插件三形态深度融合，自举构建的 Ren'Py 开发工作台。
 
-在 DeepSeek Harness（DSH）内提供完整的 **Ren'Py 游戏开发工作台**：浏览器内编辑器（语法高亮含 **Python 块**、补全、查找替换、codicon 图标系统）、lint/运行/截图/自动化测试、保存历史与检查点回滚、工作区域锁定、写守卫、静态诊断与报错诊断面板、AI 学习注释、个性化设置（25 个颜色 token + 8 套预制配色）、14 个 Ren'Py 知识库（skill），以及可供 AI 直接调用的 9 个开发工具。
+在 DeepSeek Harness（DSH）内提供完整的 **Ren'Py 游戏开发工作台**：浏览器内编辑器（语法高亮含 **Python 块**、补全、查找替换、codicon 图标系统）、lint/运行/截图/自动化测试、保存历史与检查点回滚、工作区域锁定、写守卫、静态诊断与报错诊断面板、AI 学习注释、个性化设置（25 个颜色 token + 8 套预制配色）、15 个 Ren'Py 知识库（skill）+ 界面规范，以及可供 AI 直接调用的 13 个开发工具。
 
 本仓库是**开源仓库版**（面向开发者/贡献者），含完整验证资产。普通使用者请用 **Releases** 里的发行版 zip（不含验证资产，更轻量）。
 
@@ -11,7 +11,7 @@
 > - **部署流程**（完整版，含两种模式/参数/故障排查/升级卸载）→ 见 **`DEPLOY.md`**
 > - **用户指南**（功能/操作/预期/回归表 + **个人经验回传给开发者的方法**）→ 见 **`GUIDE.md`**
 > - **测试用户功能手册**（面向测试人员的逐功能操作手册：在哪里→怎么操作→预期→测什么 + 完整回归清单）→ 见 **`docs/TESTER-GUIDE.md`**
-> - **知识流水线**（14 个 skill 怎么生产出来的：提取→核验→引擎验证）→ 见 **`docs/knowledge-pipeline.md`**
+> - **知识流水线**（15 个 skill 怎么生产出来的：提取→核验→引擎验证）→ 见 **`docs/knowledge-pipeline.md`**
 > - **贡献指南**（三层经验隔离 + 提交规范）→ 见 **`CONTRIBUTING.md`**
 > - **术语表**（Ren'Py 中英术语对照）→ 见 **`docs/glossary.md`**
 > - 快速上手 → 见下文。
@@ -48,7 +48,7 @@ cd D:\dsh-renpy-dev
 3. 脚本会依次：
    - 检测 DSH（未装则询问：手动安装后继续 / 用 `-InstallDsh` 自动装）
    - 检测 Ren'Py SDK（在常见位置找；找不到则提示你输入路径，**不自动下载**）
-   - 复制 preset、14 个 skill、链接 dsh-renpy-dev-client 插件包
+   - 复制 preset、15 个 skill（+ 界面规范）、链接 dsh-renpy-dev-client 插件包
    - 更新 web profile 并生成配置文件
 4. **重启 dsh**（完全退出后重新启动）。
 
@@ -99,10 +99,10 @@ dsh-renpy-dev/
 │       ├── preset.yml                # preset 名称/描述
 │       ├── agent.cordis.yml.template # 插件组合（部署时替换 {{SDK_PATH}}）
 │       └── plugins/
-│           ├── renpy-host.mjs        # 9 个 agent 工具（lint/index/scaffold/run/...）
+│           ├── renpy-host.mjs        # 13 个 agent 工具（lint/index/scaffold/run/...）
 │           └── indexer.py            # 项目索引器（引擎 dump）
 ├── skills/
-│   ├── renpy-*.md                    # 14 个 Ren'Py 知识库（按需加载）
+│   ├── renpy-*.md                    # 15 个 Ren'Py 知识库 + workbench-ui 界面规范（按需加载）
 │   └── workbench-ui.md               # 工作台界面样式设计规范（含图标系统）
 ├── docs/
 │   ├── TESTER-GUIDE.md               # 测试用户功能手册（逐功能操作 + 回归清单）
@@ -117,7 +117,7 @@ dsh-renpy-dev/
     ├── package.json
     ├── cordis.patch.yml
     └── lib/
-        ├── host.js                   # 30+ 个 /renpy-dev/* 端点（需重启 dsh）
+        ├── host.js                   # 39 个 /renpy-dev/* 端点（需重启 dsh）
         ├── renpy-core.js             # 共享纯函数模块（lineDiff/hasOpenToolCall/诊断/守卫）
         └── client.js                 # Ren'Py 面板 UI（刷新即生效；含 codicon 图标系统）
 ```
@@ -129,7 +129,7 @@ dsh-renpy-dev/
 | 位置 | 内容 |
 |---|---|
 | `~/.dsh/.agent-presets/renpy/` | agent preset（含生成的 agent.cordis.yml） |
-| `~/.dsh/skills/renpy-*.md` | 14 个 skill |
+| `~/.dsh/skills/renpy-*.md` | 15 个知识库 skill + workbench-ui 界面规范 |
 | `~/.dsh/profiles/node_modules/dsh-renpy-dev-client` | 插件包 junction（指向发布包；DSH 安装方式无关） |
 | `~/.dsh/profiles/web/package.json` | web profile（bundles + link 依赖） |
 | `~/.dsh/renpy.config.json` | SDK/索引器/skill 路径配置（运行时读取） |
@@ -153,7 +153,25 @@ dsh-renpy-dev/
 
 ---
 
-## 五、版本说明
+## 五、部署与 DSH 原生元素（v1.1 起）
+
+本插件会对 **DSH 宿主界面做少量运行时视觉调整**：
+
+| 调整 | 实现 | 依赖 |
+|---|---|---|
+| 隐藏 DSH 原生对话输入框（面板自带输入区，避免双输入框） | 面板挂载时向 `document.head` 注入 `<style>`，卸载时移除 | `[data-composer-seat]` 属性 |
+| 固定 DSH 侧栏 logo（鱼形/品牌字标）为 Ren'Py 品牌色 `#00b8c3`，不随主题配色变化 | 同上，CSS 覆盖 `fill: currentColor` 继承链 | DSH 侧栏 CSS Module 类名语义后缀（`logoRow`/`railFish`/`panelIcon`） |
+
+**对部署流程的影响：无额外步骤。**
+
+- 以上均为**运行时注入**，不修改任何 DSH 安装文件（卸载面板/关闭页面即还原）；deploy.ps1 流程、插件 junction 链接、重启 dsh 生效的规则**完全不变**。
+- ⚠️ **唯一注意**：注入的 CSS 依赖 DSH 的 DOM 结构（类名后缀）。**升级 DSH 后请回归验证**两项注入是否仍生效（输入框不重复出现、侧栏 logo 为品牌色）；若失效，面板内对应代码位置（client.js 的注入 effect）需按新类名调整。
+- **skills 部署范围**（v1.1 起）：`deploy.ps1` 复制 `skills\*.md`（15 个 `renpy-*` 知识库 + `workbench-ui` 界面规范）；旧版本只复制 `renpy-*.md`。
+- **升级部署**：已有部署机重新解压发布包（或更新 `renpy-client/lib/` 与 `skills/`）→ 重跑 `deploy.ps1`（覆盖 preset/skills/链接）→ **完全退出并重启 dsh**。
+
+---
+
+## 六、版本说明
 
 - 面向 **Ren'Py 8.5.x**（本地 SDK 锁定 8.5.3）。
 - 打包（distribute）暂不支持：SDK 打包在 launcher 内部，本插件只覆盖 build.rpy 配置知识（`renpy-build` skill）。
