@@ -72,6 +72,7 @@ window.__ModuleLoader__.load({
 			{ id: "editorFindMatchBackground", group: "颜色", type: "color", default: "", desc: "查找匹配高亮颜色（留空=默认）" },
 			{ id: "editorError.foreground", group: "颜色", type: "color", default: "", desc: "lint 错误下划线颜色（留空=默认）" },
 			{ id: "workbench.background", group: "界面", type: "color", default: "", desc: "工作台背景色（留空=跟随 DSH 主题）" },
+			{ id: "theme.mode", group: "界面", type: "enum", default: "system", enum: ["system", "light", "dark"], desc: "亮暗模式：跟随系统 / 强制亮色 / 强制暗色（切换整个 DSH 界面，编辑器随之适配）" },
 			{ id: "workbench.sideBar.background", group: "界面", type: "color", default: "", desc: "侧栏背景色（文件/导航/素材区）" },
 			{ id: "workbench.activityBar.background", group: "界面", type: "color", default: "", desc: "活动栏背景色（最左图标栏）" },
 			{ id: "workbench.panel.background", group: "界面", type: "color", default: "", desc: "面板背景色（对话/调试/设置等停靠面板）" },
@@ -131,6 +132,11 @@ window.__ModuleLoader__.load({
 			"Light High Contrast": { "editor.background": "#FFFFFF", "editor.foreground": "#292929", "editor.selectionBackground": "#0F4A85", "editor.lineHighlightBackground": "#FFFFFF", "editorLineNumber.foreground": "#292929", "editorCursor.foreground": "#0F4A85", "editorIndentGuide.background1": "#CCCCCC", "editorWhitespace.foreground": "#CCCCCC", "editorBracketMatch.background": "#0000", "editorError.foreground": "#B5200D", "editorGutter.background": "#FFFFFF", "workbench.background": "#FFFFFF", "workbench.sideBar.background": "#FFFFFF", "workbench.activityBar.background": "#FFFFFF", "workbench.panel.background": "#FFFFFF", "workbench.editorGroupHeader.tabsBackground": "#FFFFFF", "workbench.statusBar.background": "#FFFFFF", "workbench.foreground": "#292929", "workbench.border": "#0F4A85" },
 		};
 		const COLOR_PRESET_NAMES = Object.keys(COLOR_PRESETS);
+
+		// 当前 DSH 是否暗色主题（body[data-ds-dark-theme]，宿主亮暗 token 的开关属性）
+		const isDarkTheme = () => {
+			try { return typeof document !== "undefined" && !!document.body && document.body.matches("[data-ds-dark-theme]") } catch (e) { return true }
+		};
 
 		// 文件目录树（game/ 下 .rpy 相对路径 → {dirs, files} 树；files 存完整 rel，显示 basename）
 		const buildFileTree = (items) => {
@@ -1945,14 +1951,16 @@ window.__ModuleLoader__.load({
 			};
 
 			// ── 官方来源的分色规则（parser.py @statement + renpy/common register_statement）──
-			const C_STMT = "#569cd6"; // 语句关键字（蓝）
-			const C_NAME = "#dcdcaa"; // 名称：label/define/image/角色（黄）
-			const C_PY = "#c586c0"; // python 关键字（紫）
-			const C_TAG = "#e5c07b"; // 字符串内 {text tag}（金）
-			const C_CMT = "#6a9955"; // 注释（绿）
-			const C_STR = "#ce9178"; // 字符串（橙）
-			const C_NUM = "#b5cea8"; // 数字（青）
-			const C_PLAIN = "#d4d4d4"; // 普通（灰）
+			// 语法色跟随 DSH 亮暗：暗色用 VSCode Dark+ 风格，亮色用 Light+ 风格（深色语法字在浅底可读）
+			const darkTheme = isDarkTheme();
+			const C_STMT = darkTheme ? "#569cd6" : "#0000ff"; // 语句关键字（蓝）
+			const C_NAME = darkTheme ? "#dcdcaa" : "#795e26"; // 名称：label/define/image/角色（黄/棕）
+			const C_PY = darkTheme ? "#c586c0" : "#af00db"; // python 关键字（紫）
+			const C_TAG = darkTheme ? "#e5c07b" : "#b18000"; // 字符串内 {text tag}（金/棕金）
+			const C_CMT = darkTheme ? "#6a9955" : "#008000"; // 注释（绿）
+			const C_STR = darkTheme ? "#ce9178" : "#a31515"; // 字符串（橙/红）
+			const C_NUM = darkTheme ? "#b5cea8" : "#098658"; // 数字（青/深青）
+			const C_PLAIN = darkTheme ? "#d4d4d4" : "#000000"; // 普通（灰/黑）
 
 			const STMT_WORDS = "if elif else while pass menu return jump call scene show hide with image define default transform python label init screen style testcase testsuite translate camera play queue stop pause window voice extend centered right left nvl monologue IF ELIF ELSE".split(" ");
 			const STMT_PHRASES = ["show screen", "call screen", "hide screen", "window show", "window hide", "window auto", "show layer", "rpy python", "rpy monologue", "init offset", "init label"];
@@ -3722,6 +3730,30 @@ window.__ModuleLoader__.load({
 			const cfgRef = React.useRef(cfg); cfgRef.current = cfg;
 			const settingsRef = React.useRef(settings); settingsRef.current = settings;
 			const onSettingsChangeRef = React.useRef(onSettingsChange); onSettingsChangeRef.current = onSettingsChange;
+			// ── 亮暗模式（theme.mode）：改 body[data-ds-dark-theme] 驱动整个 DSH 界面亮暗 ──
+			React.useEffect(() => {
+				const mode = cfg["theme.mode"] || "system";
+				const apply = (dark) => {
+					try {
+						const b = document.body;
+						if (!b) return;
+						if (dark) b.setAttribute("data-ds-dark-theme", "");
+						else b.removeAttribute("data-ds-dark-theme");
+					} catch (e) { /* 无 DOM 环境忽略 */ }
+				};
+				if (mode === "dark") { apply(true); return; }
+				if (mode === "light") { apply(false); return; }
+				let mq = null;
+				try { mq = window.matchMedia("(prefers-color-scheme: dark)"); } catch (e) { mq = null; }
+				if (mq && mq.addEventListener) {
+					const on = (e) => apply(e.matches);
+					apply(mq.matches);
+					mq.addEventListener("change", on);
+					return () => mq.removeEventListener("change", on);
+				}
+				apply(false);
+				// eslint-disable-next-line react-hooks/exhaustive-deps
+			}, [cfg["theme.mode"]]);
 			// 界面颜色覆写（workbench.* → --dsw-* CSS 变量，注入面板根；对齐 VSCode colorCustomizations 语义）
 			// 侧栏区域容器已用 SIDEFILL（--dsw-specific-sidebar-fill），故 sideBar 映射可生效；
 			// panel 映射 bg-base（面板内容组件用 BG token），后写覆盖根背景
@@ -3747,17 +3779,18 @@ window.__ModuleLoader__.load({
 			// 字体相关（空 fontFamily 回退 DSH 主题代码字体）
 			const codeFont = (cfg["editor.fontFamily"] && cfg["editor.fontFamily"].trim()) ? cfg["editor.fontFamily"] : CODE;
 			// 颜色覆写（workbench.colorCustomizations 式：editor.* 家族，对齐 VSCode token 命名）
-			const edBg = (cfg["editor.background"] && cfg["editor.background"].trim()) ? cfg["editor.background"] : "#1e1e1e";
-			const edFg = (cfg["editor.foreground"] && cfg["editor.foreground"].trim()) ? cfg["editor.foreground"] : "#d4d4d4";
-			const edLine = (cfg["editor.lineHighlightBackground"] && cfg["editor.lineHighlightBackground"].trim()) ? cfg["editor.lineHighlightBackground"] : "rgba(255,255,255,.035)";
-			const edLineNum = (cfg["editorLineNumber.foreground"] && cfg["editorLineNumber.foreground"].trim()) ? cfg["editorLineNumber.foreground"] : "rgba(128,128,128,.65)";
+			// 默认值跟随 DSH 亮暗：底/前景用 var(--dsw-*)（亮色白底/暗色深底），overlay 半透明按 isDarkTheme 选
+			const edBg = (cfg["editor.background"] && cfg["editor.background"].trim()) ? cfg["editor.background"] : "var(--dsw-alias-bg-base)";
+			const edFg = (cfg["editor.foreground"] && cfg["editor.foreground"].trim()) ? cfg["editor.foreground"] : "var(--dsw-alias-label-primary)";
+			const edLine = (cfg["editor.lineHighlightBackground"] && cfg["editor.lineHighlightBackground"].trim()) ? cfg["editor.lineHighlightBackground"] : (darkTheme ? "rgba(255,255,255,.035)" : "rgba(0,0,0,.06)");
+			const edLineNum = (cfg["editorLineNumber.foreground"] && cfg["editorLineNumber.foreground"].trim()) ? cfg["editorLineNumber.foreground"] : "var(--dsw-alias-label-tertiary)";
 			const edCursor = (cfg["editorCursor.foreground"] && cfg["editorCursor.foreground"].trim()) ? cfg["editorCursor.foreground"] : edFg;
 			const edGutterBg = (cfg["editorGutter.background"] && cfg["editorGutter.background"].trim()) ? cfg["editorGutter.background"] : edBg;
-			const edIndent = (cfg["editorIndentGuide.background1"] && cfg["editorIndentGuide.background1"].trim()) ? cfg["editorIndentGuide.background1"] : "rgba(255,255,255,.07)";
-			const edWs = (cfg["editorWhitespace.foreground"] && cfg["editorWhitespace.foreground"].trim()) ? cfg["editorWhitespace.foreground"] : "rgba(255,255,255,.14)";
-			const edBracket = (cfg["editorBracketMatch.background"] && cfg["editorBracketMatch.background"].trim()) ? cfg["editorBracketMatch.background"] : "rgba(229,192,123,.45)";
-			const edFind = (cfg["editorFindMatchBackground"] && cfg["editorFindMatchBackground"].trim()) ? cfg["editorFindMatchBackground"] : "rgba(229,192,123,.3)";
-			const edErr = (cfg["editorError.foreground"] && cfg["editorError.foreground"].trim()) ? cfg["editorError.foreground"] : "rgba(224,92,92,.9)";
+			const edIndent = (cfg["editorIndentGuide.background1"] && cfg["editorIndentGuide.background1"].trim()) ? cfg["editorIndentGuide.background1"] : (darkTheme ? "rgba(255,255,255,.07)" : "rgba(0,0,0,.08)");
+			const edWs = (cfg["editorWhitespace.foreground"] && cfg["editorWhitespace.foreground"].trim()) ? cfg["editorWhitespace.foreground"] : (darkTheme ? "rgba(255,255,255,.14)" : "rgba(0,0,0,.12)");
+			const edBracket = (cfg["editorBracketMatch.background"] && cfg["editorBracketMatch.background"].trim()) ? cfg["editorBracketMatch.background"] : (darkTheme ? "rgba(229,192,123,.45)" : "rgba(180,130,0,.35)");
+			const edFind = (cfg["editorFindMatchBackground"] && cfg["editorFindMatchBackground"].trim()) ? cfg["editorFindMatchBackground"] : (darkTheme ? "rgba(229,192,123,.3)" : "rgba(180,130,0,.28)");
+			const edErr = (cfg["editorError.foreground"] && cfg["editorError.foreground"].trim()) ? cfg["editorError.foreground"] : (darkTheme ? "rgba(224,92,92,.9)" : "rgba(200,50,50,.8)");
 			// 编辑器上下内边距（editor.padding.top/bottom）：三处样式同步 + overlay 容器偏移 + 补全浮窗偏移
 			const padTop = Number(cfg["editor.padding.top"]) || 0;
 			const padBottom = Number(cfg["editor.padding.bottom"]) || 0;

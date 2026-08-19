@@ -212,10 +212,10 @@ const slots6 = { inject: (n, fn) => { reg6 = fn; }, register: (o, c) => ({ opts:
 modEd.apply({ get: (n) => (n === 'slots' ? slots6 : undefined) });
 const htmlEd = renderToString(reg6().comp({ sessionId: 's7', inputActions: undefined }));
 console.log('查找栏: 查找框', htmlEd.indexOf('查找…') >= 0, '| 替换框', htmlEd.indexOf('替换为…') >= 0, '| 全部替换', htmlEd.indexOf('全部替换') >= 0, '| 计数', htmlEd.indexOf('/') >= 0);
-console.log('lint 下划线: 红线', htmlEd.indexOf('224,92,92') >= 0, '| 查找高亮', htmlEd.indexOf('229,192,123') >= 0);
+console.log('lint 下划线: 红线', htmlEd.indexOf('200,50,50') >= 0, '| 查找高亮', htmlEd.indexOf('180,130,0') >= 0);
 console.log('补全面板: stmt 条目', htmlEd.indexOf('label') >= 0 && htmlEd.indexOf('语句') >= 0, '| snippet', htmlEd.indexOf('选择菜单') >= 0);
 console.log('工作范围: 条', htmlEd.indexOf('工作范围') >= 0, '| L2-3', htmlEd.indexOf('L2-3') >= 0, '| 🎯按钮', htmlEd.indexOf('🎯') >= 0, '| 清除', htmlEd.indexOf('清除') >= 0 || htmlEd.indexOf('解除') >= 0, '| 图标文字按钮', htmlEd.indexOf('加载') >= 0 && htmlEd.indexOf('保存') >= 0);
-console.log('编辑器第二批: 缩进线', htmlEd.indexOf('rgba(255,255,255,.07)') >= 0, '| 当前行高亮', htmlEd.indexOf('rgba(255,255,255,.035)') >= 0, '| 括号匹配高亮', htmlEd.indexOf('rgba(229,192,123,.45)') >= 0);
+console.log('编辑器第二批: 缩进线', htmlEd.indexOf('rgba(0,0,0,.08)') >= 0, '| 当前行高亮', htmlEd.indexOf('rgba(0,0,0,.06)') >= 0, '| 括号匹配高亮', htmlEd.indexOf('rgba(180,130,0,.35)') >= 0);
 
 // 内联文本样式预览模式分支（Aa 预览 toggle：富文本化 + 降级提示条 + {font} 三态 + 字号真实渲染 + 行高放大）
 const srcPrev = srcWithData
@@ -233,7 +233,7 @@ const htmlPrev = renderToString(reg9().comp({ sessionId: 's10', inputActions: un
 console.log('内联预览: 模式条', htmlPrev.indexOf('样式预览') >= 0, '| 降级提示条', htmlPrev.indexOf('降级提示') >= 0, '| 工具栏预览中', htmlPrev.indexOf('预览中') >= 0);
 console.log('内联渲染: 粗体', htmlPrev.indexOf('font-weight:700') >= 0, '| 颜色红', htmlPrev.indexOf('#ff0000') >= 0, '| 插值占位', htmlPrev.indexOf('[points]') >= 0, '| 等待标记', htmlPrev.indexOf('⏸') >= 0);
 console.log('内联字号: 真实渲染 font-size:24px（32×0.75）', htmlPrev.indexOf('font-size:24px') >= 0, '| 行高放大 34px', htmlPrev.indexOf('height:34px') >= 0);
-console.log('内联降级: 插值提示', htmlPrev.indexOf('插值 [points] 在运行时求值') >= 0, '| 角色名保色', htmlPrev.indexOf('#dcdcaa') >= 0);
+console.log('内联降级: 插值提示', htmlPrev.indexOf('插值 [points] 在运行时求值') >= 0, '| 角色名保色', htmlPrev.indexOf('#795e26') >= 0);
 console.log('内联字体: 存在→加载中标记', htmlPrev.indexOf('字体 cn.ttf（加载中…）') >= 0, '| 不存在提示条移除(fontMap 命中)', htmlPrev.indexOf('字体文件不存在') < 0);
 
 // 打字动画预览分支（出字速度/间隔：预览模式下点击 say 行播放）
@@ -419,7 +419,7 @@ let regSO = null;
 const slotsSO = { inject: (n, fn) => { regSO = fn; }, register: (o, c) => ({ opts: o, comp: c }) };
 modSO.apply({ get: (n) => (n === 'slots' ? slotsSO : undefined) });
 const htmlSO = renderToString(regSO().comp({ sessionId: 's21', inputActions: undefined }));
-console.log('显示开关关闭: 缩进线消失', htmlSO.indexOf('rgba(255,255,255,.07)') < 0, '| 括号高亮消失', htmlSO.indexOf('229,192,123') < 0, '| 编辑器仍渲染', htmlSO.indexOf('font-size') >= 0);
+console.log('显示开关关闭: 缩进线消失', htmlSO.indexOf('rgba(0,0,0,.08)') < 0, '| 括号高亮消失', htmlSO.indexOf('180,130,0') < 0, '| 编辑器仍渲染', htmlSO.indexOf('font-size') >= 0);
 
 // 渲染 hideSidebar 变体
 const el2 = comp({ sessionId: 's2', inputActions: undefined, hideSidebar: true });
