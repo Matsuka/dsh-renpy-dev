@@ -10,7 +10,7 @@ This repository is the **open-source edition** (for developers/contributors), in
 > - **中文版** → **`README.md`**
 > - **Deployment guide** (full: both modes / parameters / troubleshooting / upgrade & uninstall) → **`DEPLOY.md`**
 > - **User guide** (features / operations / expected results / regression table + **how to feed your experience back to developers**) → **`GUIDE.md`**
-> - **Tester guide** (a feature-by-feature operations manual for testers: where → how → expected → what to test + full regression checklist) → **`docs/TESTER-GUIDE.md`**
+> - **Tester guide** (all-in-one: environment setup + per-feature details + operation/testing + FAQ + experience feedback: where → how → expected → what to test + full regression checklist) → **`docs/TESTER-GUIDE.md`**
 > - **Knowledge pipeline** (how the 15 skills are produced: extraction → verification → engine validation) → **`docs/knowledge-pipeline.md`**
 > - **Contribution guide** (three-tier experience isolation + submission conventions) → **`CONTRIBUTING.md`**
 > - **Terminology** (EN↔ZH glossary for Ren'Py terms) → **`docs/glossary.md`**
