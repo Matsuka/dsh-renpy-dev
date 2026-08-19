@@ -2260,10 +2260,12 @@ window.__ModuleLoader__.load({
 					if (w > 4 && w < 20) setCharW(w);
 				} catch (e) { /* 保持默认 */ }
 			}, [activeName]);
-			const textWidth = (s) => {
+			const textWidth = (s, spacing = 0) => {
 				let w = 0;
-				for (const ch of String(s)) w += ch.charCodeAt(0) > 0x2e7f ? CHAR_W * 2 : CHAR_W;
-				return w;
+				let cnt = 0;
+				for (const ch of String(s)) { w += ch.charCodeAt(0) > 0x2e7f ? CHAR_W * 2 : CHAR_W; cnt++; }
+				// 字间距（editor.letterSpacing）：n 个字符间有 n-1 个间距（与三处样式一致，overlay 定位不偏移）
+				return w + (cnt > 1 ? Number(spacing) * (cnt - 1) : 0);
 			};
 			const offsetToPos = (text, offset) => {
 				const before = text.slice(0, offset);
@@ -2271,20 +2273,8 @@ window.__ModuleLoader__.load({
 				return { line: ls.length, col: ls[ls.length - 1].length };
 			};
 
-			// ── 括号匹配 → 屏幕位置（供 overlay 高亮；无 stylePreview 依赖可留此处） ──
-			const bracketRects = React.useMemo(() => {
-				if (!bracketMatch) return null;
-				const of = (p) => {
-					const before = content.slice(0, p);
-					const ls = before.split("\n");
-					const line = ls.length;
-					const col = ls[ls.length - 1].length;
-					return { line, left: textWidth(ls[ls.length - 1]) };
-				};
-				const o = bracketMatch.open !== null ? of(bracketMatch.open) : null;
-				const c = bracketMatch.close !== null ? of(bracketMatch.close) : null;
-				return { open: o, close: c };
-			}, [bracketMatch, content]);
+			// ── 括号匹配 → 屏幕位置（供 overlay 高亮；textWidth 依赖 cfg 的 letterSpacing，故定义移至 cfg 之后） ──
+			// 原定义在 2277 行（cfg 初始化前）——textWidth 引用 cfg 会 TDZ，已移至 ED_LH 附近
 
 			// ── 注释切换：选区涉及的整行加/去 # ──
 			const toggleComment = () => {
@@ -3628,7 +3618,7 @@ window.__ModuleLoader__.load({
 						const isLead = start === 0;
 						const isTrail = start + len === line.length;
 						const show = mode === "all" || (mode === "boundary" && (isLead || isTrail)) || (mode === "trailing" && isTrail);
-						if (show) marks.push({ line: i + 1, col: start, left: 4 + textWidth(line.slice(0, start)), len, boundary: isLead || isTrail });
+						if (show) marks.push({ line: i + 1, col: start, left: 4 + textWidth(line.slice(0, start), Number(cfg["editor.letterSpacing"]) || 0), len, boundary: isLead || isTrail });
 					}
 				}
 				return marks;
@@ -3891,23 +3881,40 @@ window.__ModuleLoader__.load({
 			const editorWrap = { display: "flex", flex: 1, minHeight: 0, maxWidth: "100%", borderTop: "1px solid " + BORDER, background: "#1e1e1e", overflow: "hidden" };
 			// 行高：预览模式 34px（容纳 say 字号差异）；pre/ta/gutter 必须一致
 			const ED_LH = stylePreview ? 34 : lhPx();
-			// ── 缩进线：按行缩进档位画垂直虚线（overlay 内容坐标；依赖 stylePreview 的 LINE_H，故置于此） ──
+			// ── 括号匹配 → 屏幕位置（供 overlay 高亮；textWidth 依赖 cfg 的 letterSpacing，须在 cfg 之后定义） ──
+			const bracketRects = React.useMemo(() => {
+				if (!bracketMatch) return null;
+				const spacing = Number(cfg["editor.letterSpacing"]) || 0;
+				const of = (p) => {
+					const before = content.slice(0, p);
+					const ls = before.split("\n");
+					const line = ls.length;
+					const col = ls[ls.length - 1].length;
+					return { line, left: textWidth(ls[ls.length - 1], spacing) };
+				};
+				const o = bracketMatch.open !== null ? of(bracketMatch.open) : null;
+				const c = bracketMatch.close !== null ? of(bracketMatch.close) : null;
+				return { open: o, close: c };
+			}, [bracketMatch, content, cfg["editor.letterSpacing"]]);
+			// ── 缩进线：按行缩进档位画垂直虚线（overlay 内容坐标；档位宽 = tabSize 配置，Ren'Py 惯例 4） ──
 			const indentGuides = React.useMemo(() => {
 				const lines = content.split("\n");
 				const guide = {}; // x → {first, last}
+				const ts = Math.max(1, Number(cfg["editor.tabSize"]) || 4);
+				const tabPad = " ".repeat(ts);
 				for (let i = 0; i < lines.length; i++) {
 					const m = /^[ \t]*/.exec(lines[i]);
-					const raw = m[0].replace(/\t/g, "    ");
+					const raw = m[0].replace(/\t/g, tabPad);
 					const n = raw.length;
 					if (n <= 0) continue;
-					// 档位边界：4 空格一档（Ren'Py 惯例），只画有实际缩进内容的档位边界
-					const key = Math.floor(n / 4) * 4;
+					// 档位边界：tabSize 空格一档，只画有实际缩进内容的档位边界
+					const key = Math.floor(n / ts) * ts;
 					if (key <= 0) continue;
 					if (!guide[key]) guide[key] = { first: i, last: i };
 					else { guide[key].first = Math.min(guide[key].first, i); guide[key].last = Math.max(guide[key].last, i); }
 				}
 				return Object.keys(guide).map((k) => ({ x: parseInt(k, 10) * CHAR_W, top: guide[k].first * LINE_H(), h: (guide[k].last - guide[k].first + 1) * LINE_H() }));
-			}, [content, charW, stylePreview]);
+			}, [content, charW, stylePreview, cfg["editor.tabSize"]]);
 			const gutterStyle = { position: "relative", width: 44, flexShrink: 0, overflow: "hidden", padding: "4px 6px 4px 4px", textAlign: "right", fontFamily: codeFont, fontSize: cfg["editor.fontSize"], lineHeight: ED_LH + "px", letterSpacing: cfg["editor.letterSpacing"] + "px", color: "rgba(128,128,128,.65)", userSelect: "none", background: "#252526" };
 			const preStyle = { position: "absolute", inset: 0, margin: 0, padding: 4, fontFamily: codeFont, fontSize: cfg["editor.fontSize"], lineHeight: ED_LH + "px", letterSpacing: cfg["editor.letterSpacing"] + "px", fontWeight: cfg["editor.fontWeight"], whiteSpace: "pre", overflow: "hidden", color: "#d4d4d4", pointerEvents: "none" };
 			const taStyle = { position: "absolute", inset: 0, margin: 0, padding: 4, fontFamily: codeFont, fontSize: cfg["editor.fontSize"], lineHeight: ED_LH + "px", letterSpacing: cfg["editor.letterSpacing"] + "px", fontWeight: cfg["editor.fontWeight"], whiteSpace: "pre", overflow: "auto", background: "transparent", color: "transparent", caretColor: "#e0e0e0", outline: "none", border: "none", resize: "none" };
@@ -3938,7 +3945,7 @@ window.__ModuleLoader__.load({
 				return findMatches.map((m, i) => {
 					const { line, col } = offsetToPos(content, m.start);
 					const lineText = ls[line - 1] || "";
-					return { i, line, col, len: m.end - m.start, left: 4 + textWidth(lineText.slice(0, col)), width: Math.max(4, textWidth(content.slice(m.start, m.end))) };
+					return { i, line, col, len: m.end - m.start, left: 4 + textWidth(lineText.slice(0, col), Number(cfg["editor.letterSpacing"]) || 0), width: Math.max(4, textWidth(content.slice(m.start, m.end), Number(cfg["editor.letterSpacing"]) || 0)) };
 				});
 			})();
 			// 当前文件的 lint 错误行（编辑器内下划线）
