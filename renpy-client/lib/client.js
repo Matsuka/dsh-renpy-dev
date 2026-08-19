@@ -1314,10 +1314,20 @@ window.__ModuleLoader__.load({
 
 		// ── 个性化设置面板（⚙：搜索 + 分组 + 控件 + 默认值标注 + 重置；全局/项目两层切换。
 		//    由 SETTINGS_SCHEMA 注册表驱动——新增配置项无需改面板代码） ──
+		// ── 个性化设置面板（⚙：搜索 + 分组 + 控件 + 默认值标注 + 重置；全局/项目两层切换。
+		//    由 SETTINGS_SCHEMA 注册表驱动——新增配置项无需改面板代码） ──
+		// 跨挂载保留的 UI 状态：DSH 宿主周期性重渲染可能导致面板实例重建（内部 state 全丢），
+		// query/scope 存模块级，组件初始化时恢复，避免"输入瞬间回滚"
+		let _settingsUI = {};
+		let _settingsMountCount = 0;
 		function SettingsWindow(props) {
 			const { project, api, sessionId, settings, onChange, TXT, TXT2, TXT3, ACCENT, BORDER, LAYER, full } = props;
-			const [query, setQuery] = React.useState("");
-			const [scope, setScope] = React.useState("global");
+			_settingsMountCount++;
+			if (typeof window !== "undefined" && window.console) console.log("[settings] mount #" + _settingsMountCount);
+			const [query, setQuery] = React.useState(_settingsUI.query || "");
+			const [scope, setScope] = React.useState(_settingsUI.scope || "global");
+			const onQuery = (v) => { _settingsUI.query = v; setQuery(v); };
+			const onScope = (v) => { _settingsUI.scope = v; setScope(v); };
 			// 本地镜像：控件立即响应（防止受控回滚）；父级 settings 变化或切换层级时同步
 			const editing = (scope === "global" ? (settings && settings.global) : (settings && settings.project)) || {};
 			const [local, setLocal] = React.useState(editing);
@@ -1381,11 +1391,11 @@ window.__ModuleLoader__.load({
 			return React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } },
 				React.createElement("div", { style: { flexShrink: 0, display: "flex", alignItems: "center", gap: 6, padding: full ? "8px 18px" : "4px 10px", background: LAYER, borderBottom: "1px solid " + BORDER, flexWrap: "wrap" } },
 					React.createElement("span", { style: { fontSize: full ? 14 : 12, fontWeight: 600, color: TXT } }, "⚙ 个性化设置"),
-					React.createElement("input", { value: query, onChange: (e) => setQuery(e.target.value), placeholder: "搜索设置…", style: { ...C.inp, flex: 1, minWidth: 80, height: full ? 28 : 26 } }),
+					React.createElement("input", { value: query, onChange: (e) => onQuery(e.target.value), placeholder: "搜索设置…", style: { ...C.inp, flex: 1, minWidth: 80, height: full ? 28 : 26 } }),
 					React.createElement("span", { style: { fontSize: 11, color: TXT3, whiteSpace: "nowrap" } }, scope === "global" ? "全局" : "项目"),
 					React.createElement("div", { style: { display: "flex", gap: 6 } },
-						React.createElement("button", { onClick: () => setScope("global"), style: { ...C.chip(scope === "global") } }, "全局（所有项目）"),
-						project ? React.createElement("button", { onClick: () => setScope("project"), style: { ...C.chip(scope === "project") } }, "项目（当前）") : React.createElement("span", { style: { fontSize: 11, color: TXT3 } }, "未选择项目"),
+						React.createElement("button", { onClick: () => onScope("global"), style: { ...C.chip(scope === "global") } }, "全局（所有项目）"),
+						project ? React.createElement("button", { onClick: () => onScope("project"), style: { ...C.chip(scope === "project") } }, "项目（当前）") : React.createElement("span", { style: { fontSize: 11, color: TXT3 } }, "未选择项目"),
 					),
 				),
 				React.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "auto", padding: full ? "8px 18px" : "4px 0", display: "flex", flexDirection: "column" } }, body),
