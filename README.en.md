@@ -234,7 +234,7 @@ dsh-renpy-dev/
 │   ├── scripts/                      # Extraction/verification scripts (extract-*.js, verify-text.py)
 │   ├── extracts/                     # Structured extraction outputs (*-extract.json)
 │   ├── projects/                     # 17 engine-verified projects + eq-test
-│   └── tests/                        # 21 unit tests (node --check + full regression)
+│   └── tests/                        # 22 unit tests (node --check + full regression)
 └── renpy-client/                     # Web plugin bundle (editor UI + /renpy-dev services)
     ├── package.json
     ├── cordis.patch.yml

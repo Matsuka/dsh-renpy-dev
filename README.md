@@ -238,7 +238,7 @@ dsh-renpy-dev/
 │   ├── scripts/                      # 提取/验证脚本（extract-*.js、verify-text.py）
 │   ├── extracts/                     # 结构化提取产物（*-extract.json）
 │   ├── projects/                     # 17 个引擎验证项目 + eq-test
-│   └── tests/                        # 21 个单测（node --check + 全量回归）
+│   └── tests/                        # 22 个单测（node --check + 全量回归）
 └── renpy-client/                     # web 插件包（编辑器 UI + /renpy-dev 服务）
     ├── package.json
     ├── cordis.patch.yml
