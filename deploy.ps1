@@ -185,9 +185,22 @@ Write-Step '更新 web profile'
 $profileDir = Join-Path $DshHome 'profiles\web'
 New-Item -ItemType Directory -Force -Path $profileDir | Out-Null
 $pkgPath = Join-Path $profileDir 'package.json'
+# 递归 PSCustomObject → hashtable（兼容 PowerShell 5.1；7 的 ConvertFrom-Json -AsHashtable 在 5.1 不存在）
+function ConvertTo-Hashtable($obj) {
+  if ($obj -is [System.Management.Automation.PSCustomObject]) {
+    $h = @{}
+    $obj.PSObject.Properties | ForEach-Object { $h[$_.Name] = ConvertTo-Hashtable $_.Value }
+    return $h
+  }
+  if ($obj -is [System.Collections.IEnumerable] -and $obj -isnot [string]) {
+    return @($obj | ForEach-Object { ConvertTo-Hashtable $_ })
+  }
+  return $obj
+}
 $pkg = @{}
 if (Test-Path $pkgPath) {
-  $pkg = Get-Content $pkgPath -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable
+  $pkg = Get-Content $pkgPath -Raw -Encoding UTF8 | ConvertFrom-Json
+  $pkg = ConvertTo-Hashtable $pkg
 }
 if (-not $pkg.ContainsKey('name')) { $pkg['name'] = 'dsh-profile-web' }
 if (-not $pkg.ContainsKey('private')) { $pkg['private'] = $true }
