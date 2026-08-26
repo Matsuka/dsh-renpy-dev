@@ -4426,14 +4426,19 @@ const ICONS = {
 					const raw = m[0].replace(/\t/g, tabPad);
 					const n = raw.length;
 					if (n <= 0) continue;
-					// 档位边界：tabSize 空格一档，只画有实际缩进内容的档位边界
-					const key = Math.floor(n / ts) * ts;
-					if (key <= 0) continue;
-					if (!guide[key]) guide[key] = { first: i, last: i };
-					else { guide[key].first = Math.min(guide[key].first, i); guide[key].last = Math.max(guide[key].last, i); }
+					// 档位边界：每一档都画（缩进 8 空格 → 4 档与 8 档都画；只画最深档会导致中间档位线缺失）
+					for (let k2 = ts; k2 <= n; k2 += ts) {
+						if (!guide[k2]) guide[k2] = { first: i, last: i };
+						else { guide[k2].first = Math.min(guide[k2].first, i); guide[k2].last = Math.max(guide[k2].last, i); }
+					}
 				}
-				return Object.keys(guide).map((k) => ({ x: 4 + parseInt(k, 10) * CHAR_W, top: guide[k].first * LINE_H(), h: (guide[k].last - guide[k].first + 1) * LINE_H() }));
-			}, [content, charW, stylePreview, cfg["editor.tabSize"]]);
+				return Object.keys(guide).map((k) => {
+					const col = parseInt(k, 10);
+					// 含 letterSpacing 的列宽（textWidth 与文本渲染一致；否则配置字距时缩进线偏移）
+					const x = 4 + textWidth(" ".repeat(col), Number(cfg["editor.letterSpacing"]) || 0);
+					return { x, top: guide[k].first * LINE_H(), h: (guide[k].last - guide[k].first + 1) * LINE_H() };
+				});
+			}, [content, charW, stylePreview, cfg["editor.tabSize"], cfg["editor.letterSpacing"]]);
 			const gutterStyle = { position: "relative", width: 44, flexShrink: 0, overflow: "hidden", paddingTop: 4 + padTop, paddingBottom: 4 + padBottom, paddingLeft: 4, paddingRight: 6, textAlign: "right", fontFamily: codeFont, fontSize: cfg["editor.fontSize"], lineHeight: ED_LH + "px", letterSpacing: cfg["editor.letterSpacing"] + "px", color: edLineNum, userSelect: "none", background: edGutterBg };
 			const preStyle = { position: "absolute", inset: 0, margin: 0, paddingTop: 4 + padTop, paddingBottom: 4 + padBottom, paddingLeft: 4, paddingRight: 4, fontFamily: codeFont, fontSize: cfg["editor.fontSize"], lineHeight: ED_LH + "px", letterSpacing: cfg["editor.letterSpacing"] + "px", fontWeight: cfg["editor.fontWeight"], whiteSpace: "pre", overflow: "hidden", color: edFg, pointerEvents: "none" };
 			const taStyle = { position: "absolute", inset: 0, margin: 0, paddingTop: 4 + padTop, paddingBottom: 4 + padBottom, paddingLeft: 4, paddingRight: 4, fontFamily: codeFont, fontSize: cfg["editor.fontSize"], lineHeight: ED_LH + "px", letterSpacing: cfg["editor.letterSpacing"] + "px", fontWeight: cfg["editor.fontWeight"], whiteSpace: "pre", overflow: "auto", background: "transparent", color: "transparent", caretColor: edCursor, outline: "none", border: "none", resize: "none" };
