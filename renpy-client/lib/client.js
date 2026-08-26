@@ -263,7 +263,7 @@ const ICONS = {
 			"renderSlot 不可用": "renderSlot unavailable",
 			"Ren'Py 开发工作区": "Ren'Py dev workspace",
 			"大文件": "Large file",
-			"已降级为纯文本模式（关闭语法高亮/行号/标记以提速）；编辑与保存正常": "Downgraded to plain-text mode (syntax highlighting/line numbers/markers disabled for speed); editing and saving work normally",
+			"已降级为纯文本（后台恢复高亮中…），编辑与保存正常": "Downgraded to plain text while syntax highlighting is being restored in the background; editing and saving work normally",
 		};
 		const uiLang = () => {
 			if (UI_LANG === "zh" || UI_LANG === "en") return UI_LANG;
@@ -3985,15 +3985,32 @@ const ICONS = {
 			const [pyConv, setPyConv] = React.useState(null); // {rpy, py, note}
 			// 文本样式预览模式（所见即所得：编辑器内 say 文本直接显示样式）+ 降级提示汇总
 			const [stylePreview, setStylePreview] = React.useState(false);
-			// ── 大文件性能保护：超过阈值降级为纯文本模式（关闭高亮/行号/overlay，避免数万 DOM 节点卡顿） ──
+			// ── 大文件性能保护：>500KB 先纯文本秒开，后台异步计算高亮后自动恢复完整显示 ──
+			// 首屏：esc(content) 纯文本（不卡）；后台 setTimeout 计算 highlightRpy（~百 ms，不阻塞首帧），
+			// 完成后 hlDone=true → 自动切换高亮 + 恢复行号/overlay（一次性 DOM 渲染，可接受）
 			// 注意：stylePreview 需已声明（hlHtml useMemo 依赖它，TDZ 会崩）
 			const BIG_FILE_BYTES = 500 * 1024; // 500KB 以上视为大文件（约 2 万行）
-			const bigFile = content.length > BIG_FILE_BYTES;
-			// 高亮 HTML 用 useMemo 缓存：content/stylePreview 不变时不重算、不重建 DOM（此前每次 render 全量重跑）
-			const hlHtml = React.useMemo(
-				() => (bigFile ? esc(content) : highlightRpy(content, stylePreview)),
-				[content, stylePreview, bigFile]
-			);
+			const [hlDone, setHlDone] = React.useState(content.length <= BIG_FILE_BYTES);
+			const hlCacheRef = React.useRef(null);
+			React.useEffect(() => {
+				if (content.length <= BIG_FILE_BYTES) { hlCacheRef.current = null; setHlDone(true); return; }
+				hlCacheRef.current = null;
+				setHlDone(false);
+				// 后台计算：先让首帧（纯文本）渲染，再同步计算高亮（此时 UI 已可交互）
+				const t = setTimeout(() => {
+					try { hlCacheRef.current = highlightRpy(content, stylePreview); } catch (e) { hlCacheRef.current = null; }
+					setHlDone(true);
+				}, 80);
+				return () => clearTimeout(t);
+				// eslint-disable-next-line react-hooks/exhaustive-deps
+			}, [activeName, stylePreview]);
+			const bigFile = content.length > BIG_FILE_BYTES && !hlDone;
+			// 高亮 HTML：小文件同步；大文件用后台缓存（未完成前纯文本），useMemo 避免每次 render 重算
+			const hlHtml = React.useMemo(() => {
+				if (content.length <= BIG_FILE_BYTES) return highlightRpy(content, stylePreview);
+				if (hlDone && hlCacheRef.current) return hlCacheRef.current;
+				return esc(content);
+			}, [content, stylePreview, hlDone]);
 			// ── 个性化配置（分层：全局 userDir/settings.json + 项目级 userDir/settings/<key>.json；
 			//    merged 供编辑器应用；对齐 VSCode User→Workspace 思路） ──
 			// 运行时权威存 localStorage（SETTINGS_STORE_KEY）：DSH 宿主可能重载整个 client bundle，
@@ -4744,7 +4761,7 @@ const ICONS = {
 						// ── 大文件降级提示条（超过 500KB：关闭高亮/行号/overlay 以提速） ──
 						bigFile ? React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", borderBottom: "1px solid " + BORDER, background: "rgba(229,192,123,.10)", fontSize: 11, flexShrink: 0, flexWrap: "wrap" } },
 							React.createElement("span", { style: { color: "#e5c07b", fontWeight: 600 } }, "⚠ " + tr("大文件") + "（" + (content.length / 1024).toFixed(0) + "KB）"),
-							React.createElement("span", { style: { color: TXT2 } }, tr("已降级为纯文本模式（关闭语法高亮/行号/标记以提速）；编辑与保存正常")),
+							React.createElement("span", { style: { color: TXT2 } }, tr("已降级为纯文本（后台恢复高亮中…），编辑与保存正常")),
 						) : null,
 						React.createElement("div", { style: editorWrap, key: "ed" + editorRemountKey },
 							React.createElement("div", { style: gutterStyle, ref: gutterRef },
