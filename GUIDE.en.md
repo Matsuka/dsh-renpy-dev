@@ -1,4 +1,4 @@
-# Ren'Py Development Mode — User Guide
+﻿# Ren'Py Development Mode — User Guide
 
 > A feature introduction and operations manual for users. This document explains what this tool can do, how to open it, how to operate each step, what results to expect, and things to watch out for while using it.
 >
@@ -257,7 +257,7 @@ In one sentence: **the whole Ren'Py development loop — "read code → edit cod
 - **Operate**: click **⚙ Settings** at the bottom of the control bar (fixed as the last item)
 - **Expected**: a full-screen settings panel (close with Esc/✕), with search + groups:
   - **Features**: editing behavior (indentation / scroll-wheel zoom / autocomplete / bracket pairing / indent guides / line-number mode / whitespace display / rulers), light/dark mode
-  - **Controls**: fonts and layout (font family / size / weight / line height / letter spacing / density), **colors** (25 tokens: 12 editor + 8 UI + 5 interaction, with「🎨 Apply preset theme」to apply any of 8 themes in one click)
+  - **Controls**: fonts and layout (font family / size / weight / line height / letter spacing / density), **colors** (35 tokens: editor 12 + syntax 10 + UI 8 + interaction 5, with「🎨 Apply preset theme」to apply any of 8 themes in one click)
   - Split into **global/project** layers (chips at the top-right), changes apply instantly
 - **Test points**:
   - Change the font size to 16 → the editor grows immediately; switch light/dark mode → the whole workbench toggles

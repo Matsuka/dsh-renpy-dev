@@ -430,6 +430,25 @@ console.log('设置应用: gutter 字号 16px', htmlSettings.indexOf('font-size:
 console.log('设置最大化: 全屏覆盖层', htmlSettings.indexOf('✕ 关闭') >= 0, '| 三列分组卡片', htmlSettings.indexOf('min-width:320px') >= 0, '| 宽松控件高 28', htmlSettings.indexOf('height:28px') >= 0);
 console.log('设置补全组: 分组名', htmlSettings.indexOf('补全') >= 0, '| quickSuggestions.other', htmlSettings.indexOf('editor.quickSuggestions.other') >= 0, '| 注释默认关', htmlSettings.indexOf('editor.quickSuggestions.comments') >= 0, '| 括号着色项', htmlSettings.indexOf('editor.bracketPairColorization.enabled') >= 0, '| 缩进线项', htmlSettings.indexOf('editor.guides.indentation') >= 0);
 console.log('设置新组: 编辑行为', htmlSettings.indexOf('编辑行为') >= 0 && htmlSettings.indexOf('editor.mouseWheelZoom') >= 0 && htmlSettings.indexOf('editor.smoothScrolling') >= 0, '| 颜色组', htmlSettings.indexOf('颜色') >= 0 && htmlSettings.indexOf('editor.background') >= 0, '| color 控件', htmlSettings.indexOf('type="color"') >= 0, '| padding 项', htmlSettings.indexOf('editor.padding.top') >= 0);
+console.log('设置语法色组: 组名', htmlSettings.indexOf('颜色·语法') >= 0, '| 语句关键字', htmlSettings.indexOf('editor.syntax.statement') >= 0, '| python 关键字', htmlSettings.indexOf('editor.syntax.pythonKeyword') >= 0, '| 注释/字符串', htmlSettings.indexOf('editor.syntax.comment') >= 0 && htmlSettings.indexOf('editor.syntax.string') >= 0, '| 数量(color 控件≥20)', (htmlSettings.match(/type="color"/g) || []).length >= 20);
+
+// 语法色设置生效：注入 editor.syntax.comment 覆盖 → 编辑器高亮 HTML 用该色（替代亮色默认 #008000）
+const srcSyn = srcWithData
+  .replace('const [settings, setSettings] = React.useState(settingsStoreInit || { global: {}, project: {}, merged: {} });',
+    'const [settings, setSettings] = React.useState(settingsStoreInit || { global: {}, project: {}, merged: { "editor.syntax.comment": "#ff00ff" } });')
+  .replace('const [tabs, setTabs] = React.useState(panelState.tabs);',
+    'const [tabs, setTabs] = React.useState([{ name: "script.rpy", content: "label start:\\n    # 注释\\n    e \\"hi\\"\\n", dirty: false }]);')
+  .replace('const [activeName, setActiveName] = React.useState(panelState.activeName);',
+    'const [activeName, setActiveName] = React.useState("script.rpy");');
+let capturedSyn = null;
+global.window.__ModuleLoader__.load = (m) => { capturedSyn = m.factory; };
+require('vm').runInThisContext(srcSyn, { filename: 'client-syn.js' });
+const modSyn = capturedSyn((id) => { if (id === 'react') return react; if (id === 'react-dom') return reactDOM; if (id === 'react-dom') return reactDOM; throw new Error('unexpected require: ' + id); });
+let regSyn = null;
+const slotsSyn = { inject: (n, fn) => { regSyn = fn; }, register: (o, c) => ({ opts: o, comp: c }) };
+modSyn.apply({ get: (n) => (n === 'slots' ? slotsSyn : undefined) });
+const htmlSyn = renderToString(regSyn().comp({ sessionId: 's21', inputActions: undefined }));
+console.log('语法色设置生效: 注释用 #ff00ff', htmlSyn.indexOf('#ff00ff') >= 0, '| 亮色默认 #008000 未用', htmlSyn.indexOf('#008000') < 0, '| 字符串仍默认 #a31515', htmlSyn.indexOf('#a31515') >= 0);
 console.log('配色方案: 下拉', htmlSettings.indexOf('🎨 应用预制配色') >= 0 || htmlSettings.indexOf('🎨 预制配色') >= 0, '| 2026 Dark 选项', htmlSettings.indexOf('2026 Dark') >= 0, '| 2026 Light 选项', htmlSettings.indexOf('2026 Light') >= 0, '| Dark+ 选项', htmlSettings.indexOf('Dark+') >= 0, '| 行号色项', htmlSettings.indexOf('editorLineNumber.foreground') >= 0, '| 光标色项', htmlSettings.indexOf('editorCursor.foreground') >= 0);
 console.log('界面组: 分组名', htmlSettings.indexOf('界面') >= 0, '| workbench.background', htmlSettings.indexOf('workbench.background') >= 0, '| 侧栏背景项', htmlSettings.indexOf('workbench.sideBar.background') >= 0, '| 状态栏项', htmlSettings.indexOf('workbench.statusBar.background') >= 0, '| 标签栏项', htmlSettings.indexOf('workbench.editorGroupHeader.tabsBackground') >= 0);
 console.log('交互组: 分组名', htmlSettings.indexOf('交互') >= 0, '| 按钮强调色', htmlSettings.indexOf('button.background') >= 0, '| hover 底色', htmlSettings.indexOf('list.hoverBackground') >= 0, '| 输入框底', htmlSettings.indexOf('input.background') >= 0, '| 输入框边框', htmlSettings.indexOf('input.border') >= 0);

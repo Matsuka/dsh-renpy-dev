@@ -83,7 +83,7 @@ const ICONS = {
 			"编辑层：全局配置（所有项目生效）": "Scope: global config (all projects)", "编辑层：项目配置（仅当前项目）": "Scope: project config (this project only)",
 			"应用预制配色": "Apply preset theme", "预制配色": "Preset theme",
 			"配置键名与语义对齐 VSCode（editor.*，MIT 借鉴）；保存于工作区 .renpy-user（不写入项目目录）。更改即时生效，字号/字体改动会重载编辑器。": "Key names and semantics follow VSCode (editor.*, MIT-inspired); saved to .renpy-user (not the project directory). Changes apply immediately; font changes reload the editor.",
-			"功能": "Features", "控件": "Controls", "亮暗模式": "Light/Dark mode", "编辑行为": "Editing behavior", "补全": "Completions", "显示": "Display", "字体": "Font", "布局": "Layout", "颜色·编辑器": "Colors · Editor", "颜色·界面": "Colors · UI", "颜色·交互": "Colors · Interaction",
+			"功能": "Features", "控件": "Controls", "亮暗模式": "Light/Dark mode", "编辑行为": "Editing behavior", "补全": "Completions", "显示": "Display", "字体": "Font", "布局": "Layout", "颜色·编辑器": "Colors · Editor", "颜色·语法": "Colors · Syntax", "颜色·界面": "Colors · UI", "颜色·交互": "Colors · Interaction",
 			"界面语言": "UI language", "界面语言（system=跟随系统/浏览器语言）": "UI language (system = follow the browser/OS language)",
 			"🎨 预制配色…": "🎨 Preset theme…",
 			"💥 崩溃 traceback": "💥 Crash traceback",
@@ -325,6 +325,17 @@ const ICONS = {
 			{ id: "editorBracketMatch.background", category: "控件", group: "颜色·编辑器", type: "color", default: "", desc: "括号匹配高亮颜色（留空=默认）" },
 			{ id: "editorFindMatchBackground", category: "控件", group: "颜色·编辑器", type: "color", default: "", desc: "查找匹配高亮颜色（留空=默认）" },
 			{ id: "editorError.foreground", category: "控件", group: "颜色·编辑器", type: "color", default: "", desc: "lint 错误下划线颜色（留空=默认）" },
+			// ── 控件 · 颜色·语法（语法高亮色：设置优先，留空跟随亮暗预设 Dark+/Light+；应用配色方案会重置） ──
+			{ id: "editor.syntax.statement", category: "控件", group: "颜色·语法", type: "color", default: "", desc: "语句关键字颜色（if/jump/menu 等；留空=跟随亮暗预设）" },
+			{ id: "editor.syntax.name", category: "控件", group: "颜色·语法", type: "color", default: "", desc: "名称颜色（label/角色名/函数调用等；留空=跟随亮暗预设）" },
+			{ id: "editor.syntax.pythonKeyword", category: "控件", group: "颜色·语法", type: "color", default: "", desc: "python 关键字颜色（def/return/import 等；留空=跟随亮暗预设）" },
+			{ id: "editor.syntax.pythonType", category: "控件", group: "颜色·语法", type: "color", default: "", desc: "python 内置类型颜色（str/int/list 等；留空=跟随亮暗预设）" },
+			{ id: "editor.syntax.pythonBuiltin", category: "控件", group: "颜色·语法", type: "color", default: "", desc: "python 内置函数颜色（print/len/range 等；留空=跟随亮暗预设）" },
+			{ id: "editor.syntax.tag", category: "控件", group: "颜色·语法", type: "color", default: "", desc: "字符串内文本标签颜色（{b}/{color} 等；留空=跟随亮暗预设）" },
+			{ id: "editor.syntax.comment", category: "控件", group: "颜色·语法", type: "color", default: "", desc: "注释颜色（# 注释；留空=跟随亮暗预设）" },
+			{ id: "editor.syntax.string", category: "控件", group: "颜色·语法", type: "color", default: "", desc: "字符串颜色（引号内容；留空=跟随亮暗预设）" },
+			{ id: "editor.syntax.number", category: "控件", group: "颜色·语法", type: "color", default: "", desc: "数字颜色（python 区数字；留空=跟随亮暗预设）" },
+			{ id: "editor.syntax.plain", category: "控件", group: "颜色·语法", type: "color", default: "", desc: "普通文本颜色（代码正文；留空=跟随亮暗预设）" },
 			// ── 控件 · 颜色·界面 ──
 			{ id: "workbench.background", category: "控件", group: "颜色·界面", type: "color", default: "", desc: "工作台背景色（留空=跟随 DSH 主题）" },
 			{ id: "workbench.sideBar.background", category: "控件", group: "颜色·界面", type: "color", default: "", desc: "侧栏背景色（文件/导航/素材区）" },
@@ -2222,18 +2233,25 @@ const ICONS = {
 			};
 
 			// ── 官方来源的分色规则（parser.py @statement + renpy/common register_statement）──
-			// 语法色跟随 DSH 亮暗：暗色用 VSCode Dark+ 风格，亮色用 Light+ 风格（深色语法字在浅底可读）
+			// 语法色：editor.syntax.* 设置优先，留空跟随 DSH 亮暗（暗色 VSCode Dark+ / 亮色 Light+，深色语法字在浅底可读）。
+			// cfg 在本组件后期才定义——synPick 闭包捕获 cfg，到调用点（hlHtml 等，位于 cfg 之后）才求值，规避 TDZ；
+			// 故 C_* 均为函数，使用处写 C_XXX()
 			const darkTheme = isDarkTheme();
-			const C_STMT = darkTheme ? "#569cd6" : "#0000ff"; // 语句关键字（蓝）
-			const C_NAME = darkTheme ? "#dcdcaa" : "#795e26"; // 名称：label/define/image/角色（黄/棕）
-			const C_PY = darkTheme ? "#c586c0" : "#af00db"; // python 关键字（紫）
-			const C_PYT = darkTheme ? "#4ec9b0" : "#267f99"; // python 内置类型（青，Dark+/Light+ 对齐）
-			const C_PYB = darkTheme ? "#569cd6" : "#0000ff"; // python 内置函数（蓝，与语句同族）
-			const C_TAG = darkTheme ? "#e5c07b" : "#b18000"; // 字符串内 {text tag}（金/棕金）
-			const C_CMT = darkTheme ? "#6a9955" : "#008000"; // 注释（绿）
-			const C_STR = darkTheme ? "#ce9178" : "#a31515"; // 字符串（橙/红）
-			const C_NUM = darkTheme ? "#b5cea8" : "#098658"; // 数字（青/深青）
-			const C_PLAIN = darkTheme ? "#d4d4d4" : "#000000"; // 普通（灰/黑）
+			const SYNTAX_IDS = ["editor.syntax.statement", "editor.syntax.name", "editor.syntax.pythonKeyword", "editor.syntax.pythonType", "editor.syntax.pythonBuiltin", "editor.syntax.tag", "editor.syntax.comment", "editor.syntax.string", "editor.syntax.number", "editor.syntax.plain"];
+			const synPick = (id, dk, lt) => {
+				const v = cfg && cfg[id];
+				return (v && String(v).trim()) ? String(v).trim() : (darkTheme ? dk : lt);
+			};
+			const C_STMT = () => synPick("editor.syntax.statement", "#569cd6", "#0000ff"); // 语句关键字（蓝）
+			const C_NAME = () => synPick("editor.syntax.name", "#dcdcaa", "#795e26"); // 名称：label/define/image/角色（黄/棕）
+			const C_PY = () => synPick("editor.syntax.pythonKeyword", "#c586c0", "#af00db"); // python 关键字（紫）
+			const C_PYT = () => synPick("editor.syntax.pythonType", "#4ec9b0", "#267f99"); // python 内置类型（青，Dark+/Light+ 对齐）
+			const C_PYB = () => synPick("editor.syntax.pythonBuiltin", "#569cd6", "#0000ff"); // python 内置函数（蓝，与语句同族）
+			const C_TAG = () => synPick("editor.syntax.tag", "#e5c07b", "#b18000"); // 字符串内 {text tag}（金/棕金）
+			const C_CMT = () => synPick("editor.syntax.comment", "#6a9955", "#008000"); // 注释（绿）
+			const C_STR = () => synPick("editor.syntax.string", "#ce9178", "#a31515"); // 字符串（橙/红）
+			const C_NUM = () => synPick("editor.syntax.number", "#b5cea8", "#098658"); // 数字（青/深青）
+			const C_PLAIN = () => synPick("editor.syntax.plain", "#d4d4d4", "#000000"); // 普通（灰/黑）
 
 			const STMT_WORDS = "if elif else while pass menu return jump call scene show hide with image define default transform python label init screen style testcase testsuite translate camera play queue stop pause window voice extend centered right left nvl monologue IF ELIF ELSE".split(" ");
 			const STMT_PHRASES = ["show screen", "call screen", "hide screen", "window show", "window hide", "window auto", "show layer", "rpy python", "rpy monologue", "init offset", "init label"];
@@ -2268,19 +2286,19 @@ const ICONS = {
 					let k = trimmed.indexOf('"');
 					while (k >= 0) {
 						const str = readStringAt(line, ind + k);
-						html += span(line.slice(i, ind + k), C_PLAIN);
+						html += span(line.slice(i, ind + k), C_PLAIN());
 						html += highlightString(line.slice(ind + k, ind + k + str.len), true);
 						i = ind + k + str.len;
 						k = line.indexOf('"', i);
 					}
-					html += span(line.slice(i), C_PLAIN);
+					html += span(line.slice(i), C_PLAIN());
 					return html;
 				}
 
 				while (i < n) {
 					const c = line[i];
 					if (c === "#") {
-						html += span(line.slice(i), C_CMT);
+						html += span(line.slice(i), C_CMT());
 						break;
 					}
 					if (c === '"' || c === "'") {
@@ -2297,7 +2315,7 @@ const ICONS = {
 						for (let k = 0; k < STMT_PHRASES.length; k++) {
 							const ph = STMT_PHRASES[k];
 							if (line.slice(i, i + ph.length) === ph && (i + ph.length >= n || !isId(line[i + ph.length]))) {
-								html += span(line.slice(i, i + ph.length), C_STMT);
+								html += span(line.slice(i, i + ph.length), C_STMT());
 								i += ph.length;
 								matched = true;
 								break;
@@ -2306,28 +2324,28 @@ const ICONS = {
 						if (matched) continue;
 						const lower = word.toLowerCase();
 						if (inPyZone && PY_WORDS.indexOf(word) >= 0) {
-							html += span(word, C_PY);
+							html += span(word, C_PY());
 							i += word.length;
 							continue;
 						}
 						if (inPyZone && PY_TYPES.indexOf(word) >= 0) {
-							html += span(word, C_PYT);
+							html += span(word, C_PYT());
 							i += word.length;
 							continue;
 						}
 						if (inPyZone && PY_BUILTINS.indexOf(word) >= 0) {
-							html += span(word, C_PYB);
+							html += span(word, C_PYB());
 							i += word.length;
 							continue;
 						}
 						// python 区函数调用（word 后紧跟括号 → 黄，对齐 Dark+ 函数名）
 						if (inPyZone && i + word.length < n && line[i + word.length] === "(" && PY_WORDS.indexOf(word) < 0) {
-							html += span(word, C_NAME);
+							html += span(word, C_NAME());
 							i += word.length;
 							continue;
 						}
 						if (STMT_WORDS.indexOf(lower) >= 0) {
-							html += span(word, C_STMT);
+							html += span(word, C_STMT());
 							i += word.length;
 							// 关键字后跟名称：label/define/image/screen...
 							if (NAME_AFTER_WORDS.indexOf(lower) >= 0) {
@@ -2335,15 +2353,15 @@ const ICONS = {
 								while (j < n && (line[j] === " " || line[j] === "\t")) j++;
 								if (j < n && isIdStart(line[j])) {
 									const nm = readWord(j);
-									html += span(line.slice(i, j), C_PLAIN);
-									html += span(nm, C_NAME);
+									html += span(line.slice(i, j), C_PLAIN());
+									html += span(nm, C_NAME());
 									i = j + nm.length;
 								}
 							}
 							continue;
 						}
 						if (sayMatch && sayMatch[1] === word && i === ind) {
-							html += span(word, C_NAME);
+							html += span(word, C_NAME());
 							i += word.length;
 							continue;
 						}
@@ -2354,7 +2372,7 @@ const ICONS = {
 					if (/[0-9]/.test(c) && (i === 0 || !isId(line[i - 1]))) {
 						let j = i;
 						while (j < n && /[0-9.]/.test(line[j])) j++;
-						html += span(line.slice(i, j), C_NUM);
+						html += span(line.slice(i, j), C_NUM());
 						i = j;
 						continue;
 					}
@@ -2388,10 +2406,10 @@ const ICONS = {
 					const e = str.indexOf("}", b);
 					if (e < 0) { out += esc(str.slice(i)); break; }
 					out += esc(str.slice(i, b));
-					out += '<span style="color:' + C_TAG + '">' + esc(str.slice(b, e + 1)) + "</span>";
+					out += '<span style="color:' + C_TAG() + '">' + esc(str.slice(b, e + 1)) + "</span>";
 					i = e + 1;
 				}
-				const c = isMenu ? C_NAME : C_STR;
+				const c = isMenu ? C_NAME() : C_STR();
 				return '<span style="color:' + c + '">' + out + "</span>";
 			};
 
@@ -2498,10 +2516,10 @@ const ICONS = {
 							const styled = sayStyledHtml(trimmed);
 							if (styled) {
 								html += esc(line.slice(0, ind));
-								if (who) html += '<span style="color:' + C_NAME + '">' + esc(who) + "</span>";
-								html += '<span style="color:' + C_STR + '">"</span>' + styled.html + '<span style="color:' + C_STR + '">"</span>';
+								if (who) html += '<span style="color:' + C_NAME() + '">' + esc(who) + "</span>";
+								html += '<span style="color:' + C_STR() + '">"</span>' + styled.html + '<span style="color:' + C_STR() + '">"</span>';
 								const tail = m1[m1.length - 1];
-								if (tail) html += '<span style="color:' + C_PLAIN + '">' + esc(tail) + "</span>";
+								if (tail) html += '<span style="color:' + C_PLAIN() + '">' + esc(tail) + "</span>";
 								html += "\n";
 								continue;
 							}
@@ -4002,25 +4020,8 @@ const ICONS = {
 			const BIG_FILE_BYTES = 500 * 1024; // 500KB 以上视为大文件（约 2 万行）
 			const [hlDone, setHlDone] = React.useState(content.length <= BIG_FILE_BYTES);
 			const hlCacheRef = React.useRef(null);
-			React.useEffect(() => {
-				if (content.length <= BIG_FILE_BYTES) { hlCacheRef.current = null; setHlDone(true); return; }
-				hlCacheRef.current = null;
-				setHlDone(false);
-				// 后台计算：先让首帧（纯文本）渲染，再同步计算高亮（此时 UI 已可交互）
-				const t = setTimeout(() => {
-					try { hlCacheRef.current = highlightRpy(content, stylePreview); } catch (e) { hlCacheRef.current = null; }
-					setHlDone(true);
-				}, 80);
-				return () => clearTimeout(t);
-				// eslint-disable-next-line react-hooks/exhaustive-deps
-			}, [activeName, stylePreview]);
-			const bigFile = content.length > BIG_FILE_BYTES && !hlDone;
-			// 高亮 HTML：小文件同步；大文件用后台缓存（未完成前纯文本），useMemo 避免每次 render 重算
-			const hlHtml = React.useMemo(() => {
-				if (content.length <= BIG_FILE_BYTES) return highlightRpy(content, stylePreview);
-				if (hlDone && hlCacheRef.current) return hlCacheRef.current;
-				return esc(content);
-			}, [content, stylePreview, hlDone]);
+			// 大文件后台高亮 effect / bigFile / hlHtml 依赖 cfg（语法色）——移到 cfg 定义之后（见下方 cfgRef 后），
+			// 否则渲染期求值会 TDZ；hlDone state 与 hlCacheRef 不依赖 cfg，保留此处
 			// ── 个性化配置（分层：全局 userDir/settings.json + 项目级 userDir/settings/<key>.json；
 			//    merged 供编辑器应用；对齐 VSCode User→Workspace 思路） ──
 			// 运行时权威存 localStorage（SETTINGS_STORE_KEY）：DSH 宿主可能重载整个 client bundle，
@@ -4057,6 +4058,26 @@ const ICONS = {
 			const cfgRef = React.useRef(cfg); cfgRef.current = cfg;
 			const settingsRef = React.useRef(settings); settingsRef.current = settings;
 			const onSettingsChangeRef = React.useRef(onSettingsChange); onSettingsChangeRef.current = onSettingsChange;
+			// 大文件后台高亮 / bigFile / hlHtml：依赖 cfg（语法色 editor.syntax.*），必须位于 cfg 之后
+			React.useEffect(() => {
+				if (content.length <= BIG_FILE_BYTES) { hlCacheRef.current = null; setHlDone(true); return; }
+				hlCacheRef.current = null;
+				setHlDone(false);
+				// 后台计算：先让首帧（纯文本）渲染，再同步计算高亮（此时 UI 已可交互）
+				const t = setTimeout(() => {
+					try { hlCacheRef.current = highlightRpy(content, stylePreview); } catch (e) { hlCacheRef.current = null; }
+					setHlDone(true);
+				}, 80);
+				return () => clearTimeout(t);
+				// eslint-disable-next-line react-hooks/exhaustive-deps
+			}, [activeName, stylePreview, ...SYNTAX_IDS.map((id) => cfg[id])]);
+			const bigFile = content.length > BIG_FILE_BYTES && !hlDone;
+			// 高亮 HTML：小文件同步；大文件用后台缓存（未完成前纯文本），useMemo 避免每次 render 重算
+			const hlHtml = React.useMemo(() => {
+				if (content.length <= BIG_FILE_BYTES) return highlightRpy(content, stylePreview);
+				if (hlDone && hlCacheRef.current) return hlCacheRef.current;
+				return esc(content);
+			}, [content, stylePreview, hlDone, ...SYNTAX_IDS.map((id) => cfg[id])]);
 			// ── 亮暗模式（theme.mode）：改 body[data-ds-dark-theme] 驱动整个 DSH 界面亮暗 ──
 			// 纯手动亮/暗切换：首次挂载不干预宿主（打开工作台不改变 DSH 亮暗），
 			// 用户手动切换后才生效（旧值 system 兜底按 dark 处理）
