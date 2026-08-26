@@ -262,6 +262,8 @@ const ICONS = {
 			"拖动调整底部区高度": "Drag to resize the bottom region",
 			"renderSlot 不可用": "renderSlot unavailable",
 			"Ren'Py 开发工作区": "Ren'Py dev workspace",
+			"大文件": "Large file",
+			"已降级为纯文本模式（关闭语法高亮/行号/标记以提速）；编辑与保存正常": "Downgraded to plain-text mode (syntax highlighting/line numbers/markers disabled for speed); editing and saving work normally",
 		};
 		const uiLang = () => {
 			if (UI_LANG === "zh" || UI_LANG === "en") return UI_LANG;
@@ -3983,6 +3985,15 @@ const ICONS = {
 			const [pyConv, setPyConv] = React.useState(null); // {rpy, py, note}
 			// 文本样式预览模式（所见即所得：编辑器内 say 文本直接显示样式）+ 降级提示汇总
 			const [stylePreview, setStylePreview] = React.useState(false);
+			// ── 大文件性能保护：超过阈值降级为纯文本模式（关闭高亮/行号/overlay，避免数万 DOM 节点卡顿） ──
+			// 注意：stylePreview 需已声明（hlHtml useMemo 依赖它，TDZ 会崩）
+			const BIG_FILE_BYTES = 500 * 1024; // 500KB 以上视为大文件（约 2 万行）
+			const bigFile = content.length > BIG_FILE_BYTES;
+			// 高亮 HTML 用 useMemo 缓存：content/stylePreview 不变时不重算、不重建 DOM（此前每次 render 全量重跑）
+			const hlHtml = React.useMemo(
+				() => (bigFile ? esc(content) : highlightRpy(content, stylePreview)),
+				[content, stylePreview, bigFile]
+			);
 			// ── 个性化配置（分层：全局 userDir/settings.json + 项目级 userDir/settings/<key>.json；
 			//    merged 供编辑器应用；对齐 VSCode User→Workspace 思路） ──
 			// 运行时权威存 localStorage（SETTINGS_STORE_KEY）：DSH 宿主可能重载整个 client bundle，
@@ -4730,20 +4741,28 @@ const ICONS = {
 							previewNotes.length ? previewNotes.slice(0, 6).map((n, i) => React.createElement("span", { key: i, style: { color: "#e5c07b" } }, "• " + n.msg)) : React.createElement("span", { style: { color: TXT2 } }, tr("say 文本已按样式渲染（粗/斜/下/删/色/透明所见即所得；字号/字体/插值以底色标记，悬停看详情）")),
 							previewNotes.length > 6 ? React.createElement("span", { style: { color: "#e5c07b" } }, "… 共 " + previewNotes.length + " 条") : null,
 						) : null,
+						// ── 大文件降级提示条（超过 500KB：关闭高亮/行号/overlay 以提速） ──
+						bigFile ? React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", borderBottom: "1px solid " + BORDER, background: "rgba(229,192,123,.10)", fontSize: 11, flexShrink: 0, flexWrap: "wrap" } },
+							React.createElement("span", { style: { color: "#e5c07b", fontWeight: 600 } }, "⚠ " + tr("大文件") + "（" + (content.length / 1024).toFixed(0) + "KB）"),
+							React.createElement("span", { style: { color: TXT2 } }, tr("已降级为纯文本模式（关闭语法高亮/行号/标记以提速）；编辑与保存正常")),
+						) : null,
 						React.createElement("div", { style: editorWrap, key: "ed" + editorRemountKey },
 							React.createElement("div", { style: gutterStyle, ref: gutterRef },
-								// 检查点修改标记与行号同行渲染（随滚动天然对齐；绿=新增 蓝=修改 红=删除）
-								// 行号模式来自个性化配置：on=绝对 / relative=相对当前行（当前行显示自身）/ off=不显示
-								lines.map((n) => {
-									const t = curDiff ? curDiff.lineTypes[n] : null;
-									const color = t === "add" ? "#4caf50" : t === "del" ? "#e05c5c" : t === "mod" ? "#569cd6" : "transparent";
-									const lnMode = cfg["editor.lineNumbers"] || "on";
-									const label = lnMode === "off" ? "" : (lnMode === "relative" && n !== cursorPos.line ? String(Math.abs(n - cursorPos.line)) : String(n));
-									return React.createElement("div", { key: n, title: t ? (t === "add" ? "新增" : t === "del" ? "删除" : "修改") : "", style: { display: "flex", alignItems: "center", height: LINE_H() } },
-										React.createElement("span", { style: { width: 4, flexShrink: 0, height: LINE_H(), background: color, marginRight: 2 } }),
-										React.createElement("span", { style: { flex: 1, textAlign: "right" } }, label),
-									);
-								}),
+								// 大文件：隐藏行号（数万 div 拖垮渲染），显示单行提示
+								bigFile
+									? React.createElement("div", { style: { fontSize: 10, color: TXT3, padding: "4px 2px", writingMode: "vertical-rl" } }, "… " + (content.length / 1024).toFixed(0) + "KB")
+									// 检查点修改标记与行号同行渲染（随滚动天然对齐；绿=新增 蓝=修改 红=删除）
+									// 行号模式来自个性化配置：on=绝对 / relative=相对当前行（当前行显示自身）/ off=不显示
+									: lines.map((n) => {
+										const t = curDiff ? curDiff.lineTypes[n] : null;
+										const color = t === "add" ? "#4caf50" : t === "del" ? "#e05c5c" : t === "mod" ? "#569cd6" : "transparent";
+										const lnMode = cfg["editor.lineNumbers"] || "on";
+										const label = lnMode === "off" ? "" : (lnMode === "relative" && n !== cursorPos.line ? String(Math.abs(n - cursorPos.line)) : String(n));
+										return React.createElement("div", { key: n, title: t ? (t === "add" ? "新增" : t === "del" ? "删除" : "修改") : "", style: { display: "flex", alignItems: "center", height: LINE_H() } },
+											React.createElement("span", { style: { width: 4, flexShrink: 0, height: LINE_H(), background: color, marginRight: 2 } }),
+											React.createElement("span", { style: { flex: 1, textAlign: "right" } }, label),
+										);
+									}),
 							),
 							React.createElement("div", { style: editorBox },
 								// 学习教学标签（teach:）：markdown 渲染；官方文档标签（doc:）：纯文本只读；其余为代码编辑器
@@ -4751,9 +4770,10 @@ const ICONS = {
 									(/^⏳/.test(content) || /^❌/.test(content)) ? React.createElement("span", { style: { color: /^❌/.test(content) ? ERRCOL : TXT2, fontSize: 12 } }, content)
 										: React.createElement("div", { dangerouslySetInnerHTML: { __html: mdToHtml(content) } }),
 								) : (active && /^doc:/.test(active.name)) ? React.createElement("pre", { style: { position: "absolute", inset: 0, overflow: "auto", margin: 0, padding: "10px 14px", fontFamily: CODE, fontSize: 12, lineHeight: 1.6, color: TXT, whiteSpace: "pre-wrap", wordBreak: "break-word" } }, content)
-								: React.createElement("pre", { ref: preRef, style: preStyle, dangerouslySetInnerHTML: { __html: highlightRpy(content, stylePreview) } }),
+								: React.createElement("pre", { ref: preRef, style: preStyle, dangerouslySetInnerHTML: { __html: hlHtml } }),
 								// 查找高亮 + lint 下划线（内容坐标；滚动时 transform 反向平移对齐；overlay 容器 top 偏移 = padTop）
-								!isViewTab ? React.createElement("div", { style: { position: "absolute", top: padTop, left: 0, right: 0, bottom: 0, overflow: "hidden", pointerEvents: "none", zIndex: 1 } },
+								// 大文件：跳过整个 overlay（缩进线/行高亮/空白/查找/lint 等数万节点层）
+								(!isViewTab && !bigFile) ? React.createElement("div", { style: { position: "absolute", top: padTop, left: 0, right: 0, bottom: 0, overflow: "hidden", pointerEvents: "none", zIndex: 1 } },
 									React.createElement("div", { ref: overlayRef, style: { position: "absolute", top: 0, left: 0, width: 1, height: 1, transform: "translate(0,0)" } },
 										// 缩进线（最底：垂直虚线，随缩进档位；editor.guides.indentation 配置控制）
 										(cfg["editor.guides.indentation"] !== false) ? indentGuides.map((g) => React.createElement("div", { key: "ig" + g.x, style: { position: "absolute", top: g.top, left: g.x, width: 1, height: g.h, background: edIndent, boxShadow: "inset 1px 0 0 rgba(255,255,255,.03)" } })) : null,

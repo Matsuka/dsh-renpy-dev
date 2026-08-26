@@ -251,6 +251,22 @@ console.log('内联字号: 真实渲染 font-size:24px（32×0.75）', htmlPrev.
 console.log('内联降级: 插值提示', htmlPrev.indexOf('插值 [points] 在运行时求值') >= 0, '| 角色名保色', htmlPrev.indexOf('#795e26') >= 0);
 console.log('内联字体: 存在→加载中标记', htmlPrev.indexOf('字体 cn.ttf（加载中…）') >= 0, '| 不存在提示条移除(fontMap 命中)', htmlPrev.indexOf('字体文件不存在') < 0);
 
+// 大文件性能分支：1MB 内容 → 纯文本降级（无 span 高亮、gutter 单行提示、无 overlay）
+const bigContent = Array.from({ length: 30000 }, (_, i) => 'label big_' + i + ':\n    e "第 ' + i + ' 句 {b}粗{/b} [x] 分"').join('\n');
+const srcBig = srcWithData
+  .replace('const [tabs, setTabs] = React.useState(panelState.tabs);', 'const [tabs, setTabs] = React.useState([{ name: "huge.rpy", content: ' + JSON.stringify(bigContent) + ', dirty: false }]);')
+  .replace('const [activeName, setActiveName] = React.useState(panelState.activeName);', 'const [activeName, setActiveName] = React.useState("huge.rpy");');
+let capturedBig = null;
+global.window.__ModuleLoader__.load = (m) => { capturedBig = m.factory; };
+require('vm').runInThisContext(srcBig, { filename: 'client-big.js' });
+const modBig = capturedBig((id) => { if (id === 'react') return react; if (id === 'react-dom') return reactDOM; throw new Error('unexpected require: ' + id); });
+let regBig = null;
+const slotsBig = { inject: (n, fn) => { regBig = fn; }, register: (o, c) => ({ opts: o, comp: c }) };
+modBig.apply({ get: (n) => (n === 'slots' ? slotsBig : undefined) });
+const htmlBig = renderToString(regBig().comp({ sessionId: 's23', inputActions: undefined }));
+console.log('大文件: 降级提示条', htmlBig.indexOf('大文件') >= 0, '| 纯文本(无编辑器高亮 span: python 紫/类型青)', htmlBig.indexOf('"color:#c586c0"') < 0 && htmlBig.indexOf('"color:#4ec9b0"') < 0, '| 行号隐藏(gutter 单行)', htmlBig.indexOf('vertical-rl') >= 0, '| 缩进线 overlay 跳过', htmlBig.indexOf('editor.guides') < 0);
+console.log('大文件渲染: html 长度', htmlBig.length, '（应远小于高亮版）');
+
 // 打字动画预览分支（出字速度/间隔：预览模式下点击 say 行播放）
 const srcAnim = srcWithData
   .replace('const [stylePreview, setStylePreview] = React.useState(false);', 'const [stylePreview, setStylePreview] = React.useState(true);')
