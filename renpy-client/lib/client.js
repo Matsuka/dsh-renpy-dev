@@ -4419,32 +4419,59 @@ const ICONS = {
 				const c = bracketMatch.close !== null ? of(bracketMatch.close) : null;
 				return { open: o, close: c };
 			}, [bracketMatch, content, cfg["editor.letterSpacing"]]);
-			// ── 缩进线：按行缩进档位画垂直虚线（overlay 内容坐标；档位宽 = tabSize 配置，Ren'Py 惯例 4） ──
+			// ── 缩进线：完全参照 VSCode 算法 ──
+			//  ① 每行缩进级别 L = ceil(缩进空格数/tabSize)；纯空白行按上下最近内容行推断（offSide 语言，Ren'Py 同 Python）
+			//  ② 级别 L 的行在 0, ts, 2ts, …, (L-1)·ts 列画线：含最左 0 列（外层代码也有线）、不含 L·ts（字符起点，不压到字）
+			//  ③ 每列按连续行分段渲染：块结束（级别下降）处线断开，不跨行压到无关行；块内空行线保持连续
 			const indentGuides = React.useMemo(() => {
 				const lines = content.split("\n");
-				const guide = {}; // x → {first, last}
 				const ts = Math.max(1, Number(cfg["editor.tabSize"]) || 4);
-				const tabPad = " ".repeat(ts);
-				for (let i = 0; i < lines.length; i++) {
-					const m = /^[ \t]*/.exec(lines[i]);
-					const raw = m[0].replace(/\t/g, tabPad);
-					const n = raw.length;
-					if (n <= 0) continue;
-					// 档位边界：每一档都画（缩进 8 空格 → 4 档与 8 档都画；只画最深档会导致中间档位线缺失）
-					for (let k2 = ts; k2 <= n; k2 += ts) {
-						if (!guide[k2]) guide[k2] = { first: i, last: i };
-						else { guide[k2].first = Math.min(guide[k2].first, i); guide[k2].last = Math.max(guide[k2].last, i); }
+				const n = lines.length;
+				if (bigFile) return []; // 大文件模式 overlay 整体跳过
+				// ① 每行缩进空格数（tab 展开到下一档）；纯空白行 → -1（CRLF 保护：先去掉 \r）
+				const raw = new Array(n);
+				for (let i = 0; i < n; i++) {
+					const line = lines[i].replace(/\r$/, "");
+					const m = /^[ \t]*/.exec(line);
+					let ws = 0;
+					for (let j = 0; j < m[0].length; j++) ws = m[0][j] === "\t" ? ws + ts - (ws % ts) : ws + 1;
+					// 纯空白判断用「行首空白字符数 == 行长」（不能用展开后空格数：tab 展开会误判内容行）
+					raw[i] = (m[0].length === line.length) ? -1 : ws;
+				}
+				// ② 最近上下内容行缩进（两趟 O(n)，避免全空白文件 O(n²)）
+				const above = new Array(n), below = new Array(n);
+				let last = -1;
+				for (let i = 0; i < n; i++) { if (raw[i] >= 0) last = raw[i]; above[i] = last; }
+				last = -1;
+				for (let i = n - 1; i >= 0; i--) { if (raw[i] >= 0) last = raw[i]; below[i] = last; }
+				// ③ 级别：内容行 ceil(raw/ts)；空白行参照 VSCode _getIndentLevelForWhitespaceLine（offSide=true）
+				const lvl = new Array(n);
+				let maxLvl = 0;
+				for (let i = 0; i < n; i++) {
+					if (raw[i] >= 0) lvl[i] = Math.ceil(raw[i] / ts);
+					else if (above[i] < 0 || below[i] < 0) lvl[i] = 0; // 文件顶/底部
+					else if (above[i] < below[i]) lvl[i] = 1 + Math.floor(above[i] / ts); // 位于上一区域内部
+					else lvl[i] = Math.ceil(below[i] / ts); // 相等或 above>below（offSide）→ 取下一区域级别
+					if (lvl[i] > maxLvl) maxLvl = lvl[i];
+				}
+				// ④ 每列 c ∈ {0, ts, 2ts, …}：level > c/ts 的连续行分段（VSCode 逐行渲染的等价合并）
+				const sp = Number(cfg["editor.letterSpacing"]) || 0;
+				const segs = [];
+				for (let c = 0; c < maxLvl * ts; c += ts) {
+					let first = -1;
+					for (let i = 0; i <= n; i++) {
+						const has = i < n && lvl[i] > c / ts;
+						if (has && first < 0) first = i;
+						else if (!has && first >= 0) {
+							// x = 4px padding + c 个空格（锚定空格宽 spaceW，非等宽字体不偏右）
+							// + letterSpacing（c-1 个间距，与 textWidth 约定一致）
+							segs.push({ x: 4 + c * spaceW + (c > 1 ? sp * (c - 1) : 0), top: first * LINE_H(), h: (i - first) * LINE_H(), key: "ig" + c + "-" + first });
+							first = -1;
+						}
 					}
 				}
-				return Object.keys(guide).map((k) => {
-					const col = parseInt(k, 10);
-					// 锚定空格宽（空格≠数字宽时用 charW 会偏右；非等宽字体差异明显）+ 4px padding
-					// + letterSpacing（n 个字符 n-1 个间距，与 textWidth 约定一致）
-					const sp = Number(cfg["editor.letterSpacing"]) || 0;
-					const x = 4 + col * spaceW + (col > 1 ? sp * (col - 1) : 0);
-					return { x, top: guide[k].first * LINE_H(), h: (guide[k].last - guide[k].first + 1) * LINE_H() };
-				});
-			}, [content, charW, spaceW, stylePreview, cfg["editor.tabSize"], cfg["editor.letterSpacing"]]);
+				return segs;
+			}, [content, spaceW, stylePreview, cfg["editor.tabSize"], cfg["editor.letterSpacing"], bigFile]);
 			const gutterStyle = { position: "relative", width: 44, flexShrink: 0, overflow: "hidden", paddingTop: 4 + padTop, paddingBottom: 4 + padBottom, paddingLeft: 4, paddingRight: 6, textAlign: "right", fontFamily: codeFont, fontSize: cfg["editor.fontSize"], lineHeight: ED_LH + "px", letterSpacing: cfg["editor.letterSpacing"] + "px", color: edLineNum, userSelect: "none", background: edGutterBg };
 			const preStyle = { position: "absolute", inset: 0, margin: 0, paddingTop: 4 + padTop, paddingBottom: 4 + padBottom, paddingLeft: 4, paddingRight: 4, fontFamily: codeFont, fontSize: cfg["editor.fontSize"], lineHeight: ED_LH + "px", letterSpacing: cfg["editor.letterSpacing"] + "px", fontWeight: cfg["editor.fontWeight"], whiteSpace: "pre", overflow: "hidden", color: edFg, pointerEvents: "none" };
 			const taStyle = { position: "absolute", inset: 0, margin: 0, paddingTop: 4 + padTop, paddingBottom: 4 + padBottom, paddingLeft: 4, paddingRight: 4, fontFamily: codeFont, fontSize: cfg["editor.fontSize"], lineHeight: ED_LH + "px", letterSpacing: cfg["editor.letterSpacing"] + "px", fontWeight: cfg["editor.fontWeight"], whiteSpace: "pre", overflow: "auto", background: "transparent", color: "transparent", caretColor: edCursor, outline: "none", border: "none", resize: "none" };
@@ -4810,7 +4837,7 @@ const ICONS = {
 								(!isViewTab && !bigFile) ? React.createElement("div", { style: { position: "absolute", top: 4 + padTop, left: 0, right: 0, bottom: 0, overflow: "hidden", pointerEvents: "none", zIndex: 1 } },
 									React.createElement("div", { ref: overlayRef, style: { position: "absolute", top: 0, left: 0, width: 1, height: 1, transform: "translate(0,0)" } },
 										// 缩进线（最底：垂直虚线，随缩进档位；editor.guides.indentation 配置控制）
-										(cfg["editor.guides.indentation"] !== false) ? indentGuides.map((g) => React.createElement("div", { key: "ig" + g.x, style: { position: "absolute", top: g.top, left: g.x, width: 1, height: g.h, background: edIndent, boxShadow: "inset 1px 0 0 rgba(255,255,255,.03)" } })) : null,
+										(cfg["editor.guides.indentation"] !== false) ? indentGuides.map((g, gi) => React.createElement("div", { key: g.key || ("ig" + gi), style: { position: "absolute", top: g.top, left: g.x, width: 1, height: g.h, background: edIndent, boxShadow: "inset 1px 0 0 rgba(255,255,255,.03)" } })) : null,
 										// 当前行高亮（光标所在行整行浅背景；renderLineHighlight 配置控制；gutter/all 暂按 line 渲染）
 										(active && cursorPos.line >= 1 && cfg["editor.renderLineHighlight"] !== "none") ? React.createElement("div", { key: "curline", style: { position: "absolute", top: (cursorPos.line - 1) * LINE_H(), left: 0, width: 4000, height: LINE_H(), background: edLine } }) : null,
 										// 垂直标尺（editor.rulers 列号数组 → 竖线）
