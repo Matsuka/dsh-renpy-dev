@@ -1987,6 +1987,7 @@ const ICONS = {
 			const [compPos, setCompPos] = React.useState(null); // {left, top}
 			const [savedSnap, setSavedSnap] = React.useState(panelState.savedSnap || null);
 			const [charW, setCharW] = React.useState(7.8); // 实测代码字体字符宽（px）
+			const [spaceW, setSpaceW] = React.useState(7.8); // 实测空格宽（px；缩进线锚定用，非等宽字体下空格≠数字宽）
 			const [wsLock, setWsLock] = React.useState(panelState.wsLock || null); // 工作区域 {file,startLine,endLine,label}
 			const [previewImg, setPreviewImg] = React.useState(panelState.previewImg || null);
 			const [previewAudio, setPreviewAudio] = React.useState(panelState.previewAudio || null);
@@ -2692,6 +2693,9 @@ const ICONS = {
 					ctx.font = fz + " " + fs;
 					const w = ctx.measureText("0123456789").width / 10;
 					if (w > 4 && w < 20) setCharW(w);
+					// 空格宽（缩进线用：非等宽字体下空格比数字窄，缩进线按空格列定位才对齐）
+					const sw = ctx.measureText("          ").width / 10;
+					if (sw > 2 && sw < 20) setSpaceW(sw);
 				} catch (e) { /* 保持默认 */ }
 			}, [activeName]);
 			const textWidth = (s, spacing = 0) => {
@@ -4434,11 +4438,13 @@ const ICONS = {
 				}
 				return Object.keys(guide).map((k) => {
 					const col = parseInt(k, 10);
-					// 含 letterSpacing 的列宽（textWidth 与文本渲染一致；否则配置字距时缩进线偏移）
-					const x = 4 + textWidth(" ".repeat(col), Number(cfg["editor.letterSpacing"]) || 0);
+					// 锚定空格宽（空格≠数字宽时用 charW 会偏右；非等宽字体差异明显）+ 4px padding
+					// + letterSpacing（n 个字符 n-1 个间距，与 textWidth 约定一致）
+					const sp = Number(cfg["editor.letterSpacing"]) || 0;
+					const x = 4 + col * spaceW + (col > 1 ? sp * (col - 1) : 0);
 					return { x, top: guide[k].first * LINE_H(), h: (guide[k].last - guide[k].first + 1) * LINE_H() };
 				});
-			}, [content, charW, stylePreview, cfg["editor.tabSize"], cfg["editor.letterSpacing"]]);
+			}, [content, charW, spaceW, stylePreview, cfg["editor.tabSize"], cfg["editor.letterSpacing"]]);
 			const gutterStyle = { position: "relative", width: 44, flexShrink: 0, overflow: "hidden", paddingTop: 4 + padTop, paddingBottom: 4 + padBottom, paddingLeft: 4, paddingRight: 6, textAlign: "right", fontFamily: codeFont, fontSize: cfg["editor.fontSize"], lineHeight: ED_LH + "px", letterSpacing: cfg["editor.letterSpacing"] + "px", color: edLineNum, userSelect: "none", background: edGutterBg };
 			const preStyle = { position: "absolute", inset: 0, margin: 0, paddingTop: 4 + padTop, paddingBottom: 4 + padBottom, paddingLeft: 4, paddingRight: 4, fontFamily: codeFont, fontSize: cfg["editor.fontSize"], lineHeight: ED_LH + "px", letterSpacing: cfg["editor.letterSpacing"] + "px", fontWeight: cfg["editor.fontWeight"], whiteSpace: "pre", overflow: "hidden", color: edFg, pointerEvents: "none" };
 			const taStyle = { position: "absolute", inset: 0, margin: 0, paddingTop: 4 + padTop, paddingBottom: 4 + padBottom, paddingLeft: 4, paddingRight: 4, fontFamily: codeFont, fontSize: cfg["editor.fontSize"], lineHeight: ED_LH + "px", letterSpacing: cfg["editor.letterSpacing"] + "px", fontWeight: cfg["editor.fontWeight"], whiteSpace: "pre", overflow: "auto", background: "transparent", color: "transparent", caretColor: edCursor, outline: "none", border: "none", resize: "none" };

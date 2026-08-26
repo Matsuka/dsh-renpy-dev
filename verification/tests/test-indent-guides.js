@@ -43,5 +43,18 @@ ok(JSON.stringify(ks) === '[4]', '6 空格 → [4]，got ' + JSON.stringify(ks))
 ks = guideKeys('label a:\nlabel b:\n', 4)
 ok(JSON.stringify(ks) === '[]', '无缩进 → []，got ' + JSON.stringify(ks))
 
+// ── x 定位：锚定空格宽（spaceW）+ 4px padding + letterSpacing(n-1 间距) ──
+function guideX(col, spaceW, sp) {
+  return 4 + col * spaceW + (col > 1 ? sp * (col - 1) : 0)
+}
+// 用例7：等宽（spaceW=7.8，无字距）col=4 → 4 + 31.2
+ok(guideX(4, 7.8, 0) === 35.2, '等宽 col4 → 35.2，got ' + guideX(4, 7.8, 0))
+// 用例8：非等宽（空格 6.5px）col=4 → 4 + 26 = 30（比数字宽锚定偏左，贴合实际渲染）
+ok(guideX(4, 6.5, 0) === 30, '非等宽 col4 → 30，got ' + guideX(4, 6.5, 0))
+// 用例9：字距 1px col=8 → 4 + 8*7.8 + 7*1
+ok(guideX(8, 7.8, 1) === 73.4, '字距1px col8 → 73.4，got ' + guideX(8, 7.8, 1))
+// 用例10：col=1 无间距项（col>1 才加）
+ok(guideX(1, 7.8, 5) === 11.8, 'col1 不加字距 → 11.8，got ' + guideX(1, 7.8, 5))
+
 console.log(pass + ' passed, ' + fail + ' failed')
 process.exit(fail ? 1 : 0)
