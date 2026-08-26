@@ -2529,7 +2529,11 @@ const ICONS = {
 			const syncScroll = () => {
 				if (!taRef.current) return;
 				if (gutterRef.current) gutterRef.current.scrollTop = taRef.current.scrollTop;
-				if (preRef.current) preRef.current.scrollTop = taRef.current.scrollTop;
+				if (preRef.current) {
+					preRef.current.scrollTop = taRef.current.scrollTop;
+					// 水平同步（此前只同步 scrollTop：横向拖滚动条时只有 overlay 缩进线跟随，pre 高亮文本不动）
+					preRef.current.scrollLeft = taRef.current.scrollLeft;
+				}
 				// overlay 高亮层：整体 transform 反向平移，跟随 textarea 滚动（absolute 子块相对内容坐标）
 				if (overlayRef.current) {
 					overlayRef.current.style.transform = "translate(" + (-taRef.current.scrollLeft) + "px," + (-taRef.current.scrollTop) + "px)";
