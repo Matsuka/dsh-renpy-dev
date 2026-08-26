@@ -39,6 +39,7 @@ DSH Ren'Py 开发工作台是一套装在 **DeepSeek Harness（DSH）** 里的 *
 | `renpy-route` | 路线/分支设计：文档↔状态机↔代码转换、可达性分析 |
 | `renpy-test` | 自动化测试：testsuite/testcase、run/advance/click、until、xfail |
 | `renpy-build` | 构建发布：build.rpy classify/archive/package、平台标签 |
+| `renpy-debug` | 运行调试：renpy_run/stop/status、--warp 格式、画面验证纪律（优先用户看）、调试桥接与常见坑 |
 | `renpy-practices` | 最佳实践总览：组织、资源管理、跨域坑清单 |
 
 ### 1.2 Agent 工具清单

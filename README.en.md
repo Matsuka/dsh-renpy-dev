@@ -99,6 +99,7 @@ The tool itself is **self-bootstrapped on DSH's own architecture** — a complet
 | `renpy-route` | Route/branch design: design doc ↔ state machine ↔ code bidirectional conversion, route-map.json, reachability analysis |
 | `renpy-test` | Automated testing: testsuite/testcase, run/advance/click, until, enabled/xfail |
 | `renpy-build` | Build & release configuration: build.rpy classify/archive/package, platform tags |
+| `renpy-debug` | Runtime debug discipline: renpy_run/stop/status, --warp format, visual verification (user-first), debug bridge & pitfalls |
 | `renpy-practices` | Best-practices overview: file/character/label organization, asset management, cross-domain pitfall list |
 | `workbench-ui` | Workbench UI style design spec (incl. codicon icon system naming conventions; consult when maintaining the UI) |
 

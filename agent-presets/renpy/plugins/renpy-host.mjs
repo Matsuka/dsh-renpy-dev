@@ -708,7 +708,7 @@ export function apply(ctx, config) {
 
   ctx.tools.register(defineTool({
     name: "renpy_screenshot",
-    description: "整屏截图保存为 PNG（用于查看运行中的游戏画面；agent 可再用 read_image 工具查看该文件）。",
+    description: "整屏截图保存为 PNG（画面验证用：默认优先给用户看/让用户确认；用户要求你检查画面且模型支持读图时，再用 read_image 查看该文件）。",
     parameters: {},
     output: {
       schema: { type: "object", additionalProperties: true },

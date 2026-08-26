@@ -103,6 +103,7 @@
 | `renpy-route` | 路线/分支设计：设计文档↔状态机↔代码双向转换、route-map.json、可达性分析 |
 | `renpy-test` | 自动化测试：testsuite/testcase、run/advance/click、until、enabled/xfail |
 | `renpy-build` | 构建发布配置：build.rpy 的 classify/archive/package、平台标签 |
+| `renpy-debug` | 运行调试纪律：renpy_run/stop/status、--warp 格式、画面验证（优先用户看）、调试桥接与常见坑 |
 | `renpy-practices` | 最佳实践总览：文件/角色/标签组织、资源管理、跨域坑清单 |
 | `workbench-ui` | 工作台界面样式设计规范（含 codicon 图标系统命名约定；维护界面时参考） |
 

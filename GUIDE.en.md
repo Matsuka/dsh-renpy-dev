@@ -39,6 +39,7 @@ In one sentence: **the whole Ren'Py development loop — "read code → edit cod
 | `renpy-route` | Route/branch design: doc ↔ state machine ↔ code conversion, reachability analysis |
 | `renpy-test` | Automated testing: testsuite/testcase, run/advance/click, until, xfail |
 | `renpy-build` | Build & release: build.rpy classify/archive/package, platform tags |
+| `renpy-debug` | Runtime debugging: renpy_run/stop/status, --warp format, visual-verification discipline (user-first), pitfalls |
 | `renpy-practices` | Best-practices overview: organization, asset management, cross-domain pitfall list |
 
 ### 1.2 Agent tool list

@@ -344,6 +344,12 @@ Write `label if:` and save → blocked + reserved-name notice → fix it and the
 
 ## 10. Run & Debug (Feature Details)
 
+### 10.0 Visual verification discipline (important)
+
+- **The user confirms visuals by default**: whether a game view / screenshot is correct is **judged by what you see**. The AI will not take screenshots and run pixel analysis to "self-check" visuals on its own.
+- To verify a view: screenshot it for you (📷 or the 🎬 live view) and you report what you see / what's wrong; or ask the AI to check it (it will screenshot and read the image, if the model supports image input).
+- This is faster and more accurate than the AI guessing at window coordinates and sampled colors.
+
 ### 10.1 Run/stop
 
 - ▶ Run (injects the debug bridge) → real game window → the button turns red ■ Stop; **2s status polling**: after the game exits on its own, the button automatically returns to ▶; one instance per project at a time.
