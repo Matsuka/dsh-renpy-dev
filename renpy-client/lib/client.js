@@ -4409,7 +4409,7 @@ const ICONS = {
 					const ls = before.split("\n");
 					const line = ls.length;
 					const col = ls[ls.length - 1].length;
-					return { line, left: textWidth(ls[ls.length - 1], spacing) };
+					return { line, left: 4 + textWidth(ls[ls.length - 1], spacing) };
 				};
 				const o = bracketMatch.open !== null ? of(bracketMatch.open) : null;
 				const c = bracketMatch.close !== null ? of(bracketMatch.close) : null;
@@ -4432,7 +4432,7 @@ const ICONS = {
 					if (!guide[key]) guide[key] = { first: i, last: i };
 					else { guide[key].first = Math.min(guide[key].first, i); guide[key].last = Math.max(guide[key].last, i); }
 				}
-				return Object.keys(guide).map((k) => ({ x: parseInt(k, 10) * CHAR_W, top: guide[k].first * LINE_H(), h: (guide[k].last - guide[k].first + 1) * LINE_H() }));
+				return Object.keys(guide).map((k) => ({ x: 4 + parseInt(k, 10) * CHAR_W, top: guide[k].first * LINE_H(), h: (guide[k].last - guide[k].first + 1) * LINE_H() }));
 			}, [content, charW, stylePreview, cfg["editor.tabSize"]]);
 			const gutterStyle = { position: "relative", width: 44, flexShrink: 0, overflow: "hidden", paddingTop: 4 + padTop, paddingBottom: 4 + padBottom, paddingLeft: 4, paddingRight: 6, textAlign: "right", fontFamily: codeFont, fontSize: cfg["editor.fontSize"], lineHeight: ED_LH + "px", letterSpacing: cfg["editor.letterSpacing"] + "px", color: edLineNum, userSelect: "none", background: edGutterBg };
 			const preStyle = { position: "absolute", inset: 0, margin: 0, paddingTop: 4 + padTop, paddingBottom: 4 + padBottom, paddingLeft: 4, paddingRight: 4, fontFamily: codeFont, fontSize: cfg["editor.fontSize"], lineHeight: ED_LH + "px", letterSpacing: cfg["editor.letterSpacing"] + "px", fontWeight: cfg["editor.fontWeight"], whiteSpace: "pre", overflow: "hidden", color: edFg, pointerEvents: "none" };
@@ -4796,14 +4796,14 @@ const ICONS = {
 								: React.createElement("pre", { ref: preRef, style: preStyle, dangerouslySetInnerHTML: { __html: hlHtml } }),
 								// 查找高亮 + lint 下划线（内容坐标；滚动时 transform 反向平移对齐；overlay 容器 top 偏移 = padTop）
 								// 大文件：跳过整个 overlay（缩进线/行高亮/空白/查找/lint 等数万节点层）
-								(!isViewTab && !bigFile) ? React.createElement("div", { style: { position: "absolute", top: padTop, left: 0, right: 0, bottom: 0, overflow: "hidden", pointerEvents: "none", zIndex: 1 } },
+								(!isViewTab && !bigFile) ? React.createElement("div", { style: { position: "absolute", top: 4 + padTop, left: 0, right: 0, bottom: 0, overflow: "hidden", pointerEvents: "none", zIndex: 1 } },
 									React.createElement("div", { ref: overlayRef, style: { position: "absolute", top: 0, left: 0, width: 1, height: 1, transform: "translate(0,0)" } },
 										// 缩进线（最底：垂直虚线，随缩进档位；editor.guides.indentation 配置控制）
 										(cfg["editor.guides.indentation"] !== false) ? indentGuides.map((g) => React.createElement("div", { key: "ig" + g.x, style: { position: "absolute", top: g.top, left: g.x, width: 1, height: g.h, background: edIndent, boxShadow: "inset 1px 0 0 rgba(255,255,255,.03)" } })) : null,
 										// 当前行高亮（光标所在行整行浅背景；renderLineHighlight 配置控制；gutter/all 暂按 line 渲染）
 										(active && cursorPos.line >= 1 && cfg["editor.renderLineHighlight"] !== "none") ? React.createElement("div", { key: "curline", style: { position: "absolute", top: (cursorPos.line - 1) * LINE_H(), left: 0, width: 4000, height: LINE_H(), background: edLine } }) : null,
 										// 垂直标尺（editor.rulers 列号数组 → 竖线）
-										(cfg["editor.rulers"] || []).map((r, ri) => React.createElement("div", { key: "rl" + ri, title: tr("标尺列 ") + r, style: { position: "absolute", top: 0, left: Number(r) * CHAR_W, width: 1, height: "100%", background: "rgba(255,255,255,.14)" } })),
+										(cfg["editor.rulers"] || []).map((r, ri) => React.createElement("div", { key: "rl" + ri, title: tr("标尺列 ") + r, style: { position: "absolute", top: 0, left: 4 + Number(r) * CHAR_W, width: 1, height: "100%", background: "rgba(255,255,255,.14)" } })),
 										// 空白显示（renderWhitespace：boundary=行首缩进+行尾空格；trailing=仅行尾；all=全部空格）
 										(cfg["editor.renderWhitespace"] && cfg["editor.renderWhitespace"] !== "none") ? whitespaceMarks.map((wm) => React.createElement("div", { key: "ws" + wm.line + "-" + wm.col, style: { position: "absolute", top: (wm.line - 1) * LINE_H() + (LINE_H() - 4) / 2, left: wm.left, width: wm.len * CHAR_W, height: 2, background: wm.boundary ? "rgba(224,92,92,.55)" : edWs, borderRadius: 1 } })) : null,
 										// 跳转落点闪烁高亮（路线图节点 / lint / 定义跳转；仅当前文件，2.2s 后消失）
