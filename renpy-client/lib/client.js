@@ -2481,7 +2481,9 @@ const ICONS = {
 				let html = "";
 				let pyIndent = null;
 				for (let li = 0; li < lines.length; li++) {
-					const line = lines[li];
+					// strip 行尾 \r（\r\n 文件）：\r 在 pre(white-space:pre) 会渲染为额外换行 → 每行变两行，
+					// 高亮层高度翻倍、滚动错位（滚不到底/注释行下空行）
+					const line = lines[li].replace(/\r$/, "");
 					let ind = 0;
 					while (ind < line.length && (line[ind] === " " || line[ind] === "\t")) ind++;
 					const trimmed = line.slice(ind);
