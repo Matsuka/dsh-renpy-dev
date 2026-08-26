@@ -50,3 +50,6 @@ Thumbs.db
 
 # VSCode 主题调研素材（本地来源，不进仓库）
 vscode_theme_research/
+
+# 本地测试项目（不进仓库）
+demo-communicator/
