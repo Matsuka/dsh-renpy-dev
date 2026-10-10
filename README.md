@@ -1,4 +1,6 @@
-# DSH Ren'Py 开发工作台（dsh-renpy-dev）v1.1.0
+# DSH Ren'Py 开发工作台（dsh-renpy-dev）v1.2.0
+
+> 支持 **DSH 0.2.0-rc.2 及以上**（0.1.x 的目录式 preset 已被引擎废除，本插件为 0.2.0 格式，无法在 0.1.x 上运行）。
 
 > 一次对 DSH 核心思想的验证：agent preset + skills + web 插件三形态深度融合，自举构建的 Ren'Py 开发工作台。
 
@@ -58,7 +60,7 @@
 ├─────────────────────────────────────────────────────────────┤
 │ 知识层  skills/renpy-*.md           15 个知识库 + 界面规范    │
 ├─────────────────────────────────────────────────────────────┤
-│ 工具层  agent-presets/renpy/        13 个 AI 工具 + 索引器    │
+│ 工具层  renpy-client/lib/           13 个 AI 工具 + 索引器    │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -157,7 +159,8 @@
 | 项 | 要求 |
 |---|---|
 | Windows | 10/11（PowerShell 5.1+） |
-| DSH | 已安装——**npm 全局安装 或 npx 方式运行均可**（未安装时脚本可引导，见下） |
+| DSH | **0.2.0-rc.2 及以上**——**npm 全局安装 或 npx 方式运行均可**（未安装时脚本可引导，见下；0.1.x 会被脚本拒绝） |
+| 客户端 | **浏览器 Web GUI**（`dsh web`）或**官方桌面端**（[下载](https://www.deepseek.com/download/)，Electron 自带运行时）。两者共用 `~/.dsh`，但 profile 各自独立（`web` / `desktop`）；脚本默认只部署 `web` |
 | Ren'Py SDK | 需要自行准备（约 340MB，脚本**不自动下载**） |
 | Node.js / npm | 安装 DSH 时需要 |
 
@@ -174,10 +177,12 @@ cd D:\dsh-renpy-dev
 ```
 
 3. 脚本会依次：
-   - 检测 DSH（未装则询问：手动安装后继续 / 用 `-InstallDsh` 自动装）
+   - 检测 DSH 并做**版本闸门**（0.1.x 直接拒绝并给出升级指引；未装则询问：手动安装后继续 / 用 `-InstallDsh` 自动装）
    - 检测 Ren'Py SDK（在常见位置找；找不到则提示你输入路径，**不自动下载**）
-   - 复制 preset、15 个 skill（+ 界面规范）、链接 dsh-renpy-dev-client 插件包
-   - 更新 web profile 并生成配置文件
+   - 复制 17 个 skill（16 个 `renpy-*` 知识库 + 界面规范）
+   - 链接 `dsh-renpy-dev-client` 插件包，并建**包内 node_modules junction**（供 13 个工具解析 `@deepseek-ai/dsh-tools`）
+   - 更新 web profile 并生成配置文件（**preset 随插件包的 `cordis.patch.yml` 生效，不再单独部署**）
+   - **默认只部署 `web` profile**：官方桌面端用独立 profile（`desktop`，由 Electron 独占管理），需按 `DEPLOY.md` §3 模式 C 单独启用
 4. **重启 dsh**（完全退出后重新启动）。
 
 ### 常用参数
@@ -207,6 +212,9 @@ cd D:\dsh-renpy-dev
    - 改一行 → `Ctrl+S` 保存 → 顶栏 **⚠ 检查** → lint 通过
    - 顶栏 **▶ 运行游戏** → 游戏窗口弹出 → **📷 截图** → 再点同一按钮（变 **■ 停止**）停止
 
+> **官方桌面端（Electron）** 走同一套流程，但要先把 bundle 加进 `desktop` profile（`DEPLOY.md` §3 模式 C）。
+> 若设置里「RenPy Dev」卡片显示红色「**加载失败**」且点不动，那是 preset **定义级**挂载失败（不是插件没装），见 `DEPLOY.md` §7。
+
 详细测试清单见 `GUIDE.md`。
 
 ---
@@ -225,28 +233,23 @@ dsh-renpy-dev/
 ├── CONTRIBUTING.md                   # 贡献指南（三层经验隔离 + 提交规范）
 ├── LICENSE                           # MIT License
 ├── NOTICE                            # 第三方许可声明（Ren'Py / DSH）
-├── agent-presets/
-│   └── renpy/
-│       ├── preset.yml                # preset 名称/描述
-│       ├── agent.cordis.yml.template # 插件组合（部署时替换 {{SDK_PATH}}）
-│       └── plugins/
-│           ├── renpy-host.mjs        # 13 个 agent 工具（lint/index/scaffold/run/...）
-│           └── indexer.py            # 项目索引器（引擎 dump）
 ├── skills/
-│   ├── renpy-*.md                    # 15 个 Ren'Py 知识库 + workbench-ui 界面规范（按需加载）
+│   ├── renpy-*.md                    # 16 个 Ren'Py 知识库 + workbench-ui 界面规范（按需加载）
 │   └── workbench-ui.md               # 工作台界面样式设计规范（含图标系统）
 ├── verification/                     # 验证资产（仓库版独有）
 │   ├── scripts/                      # 提取/验证脚本（extract-*.js、verify-text.py）
 │   ├── extracts/                     # 结构化提取产物（*-extract.json）
 │   ├── projects/                     # 17 个引擎验证项目 + eq-test
 │   └── tests/                        # 22 个单测（node --check + 全量回归）
-└── renpy-client/                     # web 插件包（编辑器 UI + /renpy-dev 服务）
-    ├── package.json
-    ├── cordis.patch.yml
+└── renpy-client/                     # 插件包（工作台 UI + /renpy-dev 服务 + agent preset + 13 个工具）
+    ├── package.json                  # dsh.bundle.patch（bundle patch）+ 包导出 ./tools
+    ├── cordis.patch.yml              # 两行：renpy-dev（宿主插件）+ preset-renpy（agent preset）
     └── lib/
         ├── host.js                   # 39 个 /renpy-dev/* 端点（需重启 dsh）
         ├── renpy-core.js             # 共享纯函数模块（lineDiff/hasOpenToolCall/诊断/守卫）
-        └── client.js                 # Ren'Py 面板 UI（刷新即生效；含 codicon 图标系统）
+        ├── client.js                 # Ren'Py 面板 UI（刷新即生效；含 codicon 图标系统）
+        ├── renpy-host.mjs            # 13 个 agent 工具（lint/index/scaffold/run/...）
+        └── indexer.py                # 项目索引器（引擎 dump）
 ```
 
 > 目录树中的 `dsh-renpy-dev/` 即本仓库根（解压发布包后即为该目录名，部署时 `cd` 进入即可）。
@@ -255,10 +258,10 @@ dsh-renpy-dev/
 
 | 位置 | 内容 |
 |---|---|
-| `~/.dsh/.agent-presets/renpy/` | agent preset（含生成的 agent.cordis.yml） |
-| `~/.dsh/skills/renpy-*.md` | 15 个知识库 skill + workbench-ui 界面规范 |
+| `~/.dsh/skills/*.md` | 17 个 skill（16 个 `renpy-*` 知识库 + workbench-ui 界面规范） |
 | `~/.dsh/profiles/node_modules/dsh-renpy-dev-client` | 插件包 junction（指向发布包；DSH 安装方式无关） |
-| `~/.dsh/profiles/web/package.json` | web profile（bundles + link 依赖） |
+| `<发布包>\renpy-client\node_modules` | 包内 node_modules junction（→ DSH 安装目录中真正含 `@deepseek-ai/dsh-tools` 的那个） |
+| `~/.dsh/profiles/web/package.json` | web profile（bundles + link 依赖；**preset 经插件包的 `cordis.patch.yml` 生效**） |
 | `~/.dsh/renpy.config.json` | SDK/索引器/skill 路径配置（运行时读取） |
 
 > 插件统一挂到 `~/.dsh/profiles/node_modules/`（dsh bundle 双锚点解析的第二锚点），
@@ -271,7 +274,7 @@ dsh-renpy-dev/
 
 部署脚本生成 `~/.dsh/renpy.config.json`，插件运行时按以下优先级解析路径（无需改代码）：
 
-1. 插件 `config`（agent.cordis.yml / cordis.patch.yml 里的 config）
+1. 插件 `config`（0.2.0 起来自 `renpy-client/cordis.patch.yml` 里各行的 `config`；0.1.x 的 `agent.cordis.yml` 已废除）
 2. `~/.dsh/renpy.config.json`
 3. 环境变量 `RENPY_SDK_PATH` / `RENPY_USERDIR` / `RENPY_INDEXERPATH` / `RENPY_SKILLROOT`
 4. 默认推导（userDir = `<sdk>/../.renpy-user` 等）
@@ -293,13 +296,15 @@ dsh-renpy-dev/
 
 - 以上均为**运行时注入**，不修改任何 DSH 安装文件（卸载面板/关闭页面即还原）；deploy.ps1 流程、插件 junction 链接、重启 dsh 生效的规则**完全不变**。
 - ⚠️ **唯一注意**：注入的 CSS 依赖 DSH 的 DOM 结构（类名后缀）。**升级 DSH 后请回归验证**两项注入是否仍生效（输入框不重复出现、侧栏 logo 为品牌色）；若失效，面板内对应代码位置（client.js 的注入 effect）需按新类名调整。
-- **skills 部署范围**（v1.1 起）：`deploy.ps1` 复制 `skills\*.md`（15 个 `renpy-*` 知识库 + `workbench-ui` 界面规范）；旧版本只复制 `renpy-*.md`。
-- **升级部署**：已有部署机重新解压发布包（或更新 `renpy-client/lib/` 与 `skills/`）→ 重跑 `deploy.ps1`（覆盖 preset/skills/链接）→ **完全退出并重启 dsh**。
+- **skills 部署范围**：`deploy.ps1` 复制 `skills\*.md`（16 个 `renpy-*` 知识库 + `workbench-ui` 界面规范，共 17 个）。
+- **升级部署**（v1.2 起）：**先把 DSH 升到 0.2.0-rc.2 及以上**（`npm install -g @deepseek-ai/dsh@0.2.0-rc.2`）→ 重新解压发布包（或更新 `renpy-client/` 与 `skills/`）→ 重跑 `deploy.ps1`（脚本含版本闸门，并会重建插件包 junction 与包内 node_modules junction）→ **完全退出并重启 dsh**。
+- ⚠️ **版本必须匹配**：本发布包内的插件是 **0.2.0 格式**（宿主侧用 `ctx.shell.execute`、preset 走 bundle patch 行）。把插件包 junction 进 **0.1.x** 的 DSH，工作台会直接失效；务必先升级 DSH 再重启。
 
 ---
 
 ## 八、版本说明
 
+- **v1.2.0**：迁移到 **DSH 0.2.0-rc.2+**。目录式 agent preset 已被引擎废除 → preset 改为插件包 `renpy-client/cordis.patch.yml` 里的一行 `@deepseek-ai/dsh-agent-preset`；工具插件改由包导出子路径 `dsh-renpy-dev-client/tools` 加载；新增**包内 node_modules junction**；`deploy.ps1` 增加**版本闸门**（拒绝 0.1.x）。
 - 面向 **Ren'Py 8.5.x**（本地 SDK 锁定 8.5.3）。
 - 打包（distribute）暂不支持：SDK 打包在 launcher 内部，本插件只覆盖 build.rpy 配置知识（`renpy-build` skill）。
 - 变更记录与实现细节见各版本 **Releases** 说明；贡献方式见 `CONTRIBUTING.md`。

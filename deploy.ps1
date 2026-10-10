@@ -1,18 +1,27 @@
-﻿<#
+<#
 .SYNOPSIS
-  Ren'Py 开发模式（DSH 插件集合）一键部署脚本。
+  Ren'Py 开发模式（DSH 插件集合）一键部署脚本 —— 面向 DSH 0.2.x。
 
 .DESCRIPTION
-  把本发布包部署到目标机器的 DSH：
-    1. 检测 DSH 是否已安装（两种模式：只部署插件 / 连 DSH 一起装）
+  把本发布包部署到目标机器的 DSH（0.2.0-rc.2 及以上）：
+    1. 检测 DSH 是否已安装 + 版本是否 >= 0.2.0（0.1.x 的目录式 preset 已被废除，脚本会拒绝）
     2. 检测/指定 Ren'Py SDK 路径（不自动下载，缺失时给出官方下载指引）
-    3. 复制 agent preset -> $DSH_HOME/.agent-presets/renpy/
-    4. 复制 14 个 renpy-* skill -> $DSH_HOME/skills/
-    5. 链接 renpy-client 包 -> DSH 的 node_modules（junction）
-    6. 更新 web profile 的 package.json（bundles + link 依赖）
+    3. 复制 16 个 renpy-* skill + 界面规范 -> $DSH_HOME/skills/
+    4. 链接 renpy-client 包 -> $DSH_HOME/profiles/node_modules（junction）
+    5. 在包内建 node_modules junction -> DSH 安装目录的 node_modules
+       （工具插件 lib/renpy-host.mjs 需要解析裸说明符 @deepseek-ai/dsh-tools）
+    6. 更新 web profile 的 package.json（dependencies link + dsh.profile.bundles）
     7. 生成 $DSH_HOME/renpy.config.json（sdkPath/userDir/indexerPath/skillRoot）
-    8. 创建 preset 目录的 node_modules junction -> DSH node_modules
-  完成后重启 dsh，新会话选择 preset「RenPy Dev」即可使用。
+  完成后重启 dsh，新会话即可在 preset 列表里选择「RenPy Dev」。
+
+  与 0.1.x 部署方式的差异（DSH 0.2.0 迁移）：
+    - 不再部署 $DSH_HOME/.agent-presets/renpy/：0.2.0 废除了目录式 preset，preset 改为
+      bundle patch 里的一行 @deepseek-ai/dsh-agent-preset（见 renpy-client/cordis.patch.yml），
+      随插件包一起生效。
+    - 因此不再需要 preset 目录的 node_modules junction，也不需要替换 agent.cordis.yml 里的
+      SDK 路径占位符（工具插件自行读取 renpy.config.json）。
+    - 新增「包内 node_modules junction」：工具插件现在从插件包内加载（包导出子路径
+      dsh-renpy-dev-client/tools），其裸说明符必须能解析。
 
 .PARAMETER SdkPath
   指定 Ren'Py SDK 目录（含 renpy.py 的目录）。不传则自动检测常见位置；
@@ -23,12 +32,12 @@
   DSH 通过 npm 全局安装：npm install -g @deepseek-ai/dsh
 
 .PARAMETER DshHome
-  覆盖 DSH 数据目录（默认 $env:USERPROFILE\.dsh）。通常无需指定。
+  覆盖 DSH 数据目录（默认 $env:DSH_HOME 或 ~/.dsh）。通常无需指定。
 
 .EXAMPLE
   .\deploy.ps1                                    # 只部署插件，SDK 自动检测
   .\deploy.ps1 -SdkPath D:\renpy-8.5.3-sdk        # 指定 SDK 路径
-  .\deploy.ps1 -InstallDsh                         # 目标机连 DSH 一起装
+  .\deploy.ps1 -InstallDsh                        # 目标机连 DSH 一起装
 #>
 [CmdletBinding()]
 param(
@@ -54,8 +63,6 @@ if (-not $DshHome) { $DshHome = Join-Path $env:USERPROFILE '.dsh' }
 Write-Ok "DSH 数据目录: $DshHome"
 
 # DSH 安装位置检测：兼容 npm 全局安装 与 npx 缓存两种方式。
-# npx 缓存 hash 不稳定，因此插件挂载不依赖它——统一挂到 $DshHome/profiles/node_modules
-# （dsh-app-boot 的 bundle 双锚点解析：dsh 安装目录 → profile 目录；profile 目录是稳定锚点）。
 $dshPkg = ''
 # 1) npm 全局安装
 $globalDsh = Join-Path $env:APPDATA 'npm\node_modules\@deepseek-ai\dsh'
@@ -99,6 +106,33 @@ if (-not $hasDsh) {
   }
 }
 
+# ── 0.5 DSH 版本闸门：本发布包面向 0.2.x（0.1.x 的目录式 preset 已被引擎废除） ──
+Write-Step '检查 DSH 版本'
+$dshVersion = ''
+if ($dshPkg -and (Test-Path (Join-Path $dshPkg 'package.json'))) {
+  try {
+    $dshVersion = (Get-Content (Join-Path $dshPkg 'package.json') -Raw -Encoding UTF8 | ConvertFrom-Json).version
+  } catch { $dshVersion = '' }
+}
+if (-not $dshVersion) {
+  Write-Warn '无法读取 DSH 版本（未检测到安装目录）；跳过版本闸门。'
+} else {
+  Write-Ok "DSH 版本: $dshVersion"
+  if ($dshVersion -match '^0\.1\.') {
+    Write-Fail "本发布包要求 DSH 0.2.0 及以上（检测到 $dshVersion）。"
+    Write-Host @"
+
+      DSH 0.2.0 废除了目录式 agent preset（$DSH_HOME/.agent-presets/<id>/agent.cordis.yml），
+      本发布包的 preset 改为 bundle patch 形式，0.1.x 无法加载。
+
+      请先升级 DSH：
+        npm install -g @deepseek-ai/dsh@0.2.0-rc.2
+      然后重新运行本脚本。
+"@
+    exit 1
+  }
+}
+
 # ── 1. SDK 检测（只提示，不下载）────────────────────────────────────────────
 Write-Step "检测 Ren'Py SDK"
 if (-not $SdkPath) {
@@ -131,24 +165,7 @@ if (-not (Test-Path $renpyPy)) {
 $SdkPath = $SdkPath.TrimEnd('\', '/')
 Write-Ok "SDK: $SdkPath"
 
-# ── 2. 复制 agent preset ────────────────────────────────────────────────────
-Write-Step '部署 agent preset'
-$presetDir = Join-Path $DshHome '.agent-presets\renpy'
-New-Item -ItemType Directory -Force -Path (Join-Path $presetDir 'plugins') | Out-Null
-
-# preset.yml 与 plugins 直接复制
-Copy-Item (Join-Path $pubRoot 'agent-presets\renpy\preset.yml') $presetDir -Force
-Copy-Item (Join-Path $pubRoot 'agent-presets\renpy\plugins\renpy-host.mjs') (Join-Path $presetDir 'plugins') -Force
-Copy-Item (Join-Path $pubRoot 'agent-presets\renpy\plugins\indexer.py') (Join-Path $presetDir 'plugins') -Force
-
-# agent.cordis.yml：模板替换 SDK 路径（正斜杠，YAML 字符串安全）
-$sdkYaml = $SdkPath.Replace('\', '/')
-$template = Get-Content (Join-Path $pubRoot 'agent-presets\renpy\agent.cordis.yml.template') -Raw -Encoding UTF8
-$composed = $template.Replace('{{SDK_PATH}}', $sdkYaml)
-[System.IO.File]::WriteAllText((Join-Path $presetDir 'agent.cordis.yml'), $composed, (New-Object System.Text.UTF8Encoding($false)))
-Write-Ok 'preset 已部署（agent.cordis.yml / preset.yml / plugins/）'
-
-# ── 3. 复制 skills（全部 *.md：15 个 renpy-* 知识库 + workbench-ui 界面规范） ──
+# ── 2. 复制 skills（全部 *.md：15 个 renpy-* 知识库 + workbench-ui 界面规范） ──
 Write-Step '部署 skills'
 $skillDir = Join-Path $DshHome 'skills'
 New-Item -ItemType Directory -Force -Path $skillDir | Out-Null
@@ -159,10 +176,10 @@ else {
   Write-Ok "已复制 $skillCount 个 skill"
 }
 
-# ── 4. 链接 renpy-client 包到 profiles/node_modules ─────────────────────────
-# 挂载锚点 = $DshHome/profiles/node_modules（dsh-app-boot 的 bundle 双锚点解析
-# 第二锚点：profile 目录向上查找命中此处）。此路径与 dsh 安装方式无关
-# （npm 全局 / npx 缓存均适用），且由 healProfilesModuleFallback 保证存在。
+# ── 3. 链接 renpy-client 包到 profiles/node_modules ─────────────────────────
+# 挂载锚点 = $DshHome/profiles/node_modules：0.2.0 的 bundle 解析顺序是
+# 「dsh 安装目录 → profile 的 node_modules」，树外插件由 pnpm 装在此处，
+# junction 等价于「已安装」，且与 dsh 的安装方式（npm 全局 / npx 缓存）无关。
 Write-Step '链接 renpy-client 包'
 if (-not $hasDsh) { Write-Fail '缺少 DSH，无法链接插件包'; exit 1 }
 $profilesNm = Join-Path $DshHome 'profiles\node_modules'
@@ -180,7 +197,62 @@ cmd /c mklink /J "`"$rcTarget`"" "`"$rcSrc`"" | Out-Null
 if (-not (Test-Path (Join-Path $rcTarget 'package.json'))) { Write-Fail '创建 junction 失败（可能需要管理员权限）'; exit 1 }
 Write-Ok "renpy-client -> $rcSrc"
 
-# ── 5. 更新 web profile package.json（bundles + link 依赖）──────────────────
+# ── 4. 包内 node_modules junction -> DSH 安装目录的 node_modules ────────────
+# 工具插件（lib/renpy-host.mjs，preset 里以 dsh-renpy-dev-client/tools 加载）在模块顶层
+# 导入 @deepseek-ai/dsh-tools；Node 按「模块真实路径逐级向上找 node_modules」解析，而本包
+# 真实路径在发布包目录（其上层没有 node_modules），所以必须在包内建 junction 指向 DSH 的
+# node_modules。（0.1.x 这一步建在 preset 目录下；preset 目录废除后改到包内。）
+# 说明：npm 的目录布局随安装方式不同——`npm install -g` 把依赖嵌在
+# <global>/node_modules/@deepseek-ai/dsh/node_modules 下，而 `npm install --prefix`
+# 与 npx 缓存会把依赖提升到公共的 <root>/node_modules，所以上面用「向上探测」定位
+# 真正含 @deepseek-ai/dsh-tools 的那一个，而不是死认 <dshPkg>\node_modules。
+Write-Step '创建包内 node_modules junction（供工具插件解析 @deepseek-ai/dsh-tools）'
+if (-not $dshPkg) {
+  Write-Fail '未检测到 DSH 安装目录，无法创建包内 node_modules junction。'
+  Write-Fail '13 个 renpy_* 工具将无法加载；请先安装 DSH 后重跑本脚本，'
+  Write-Fail '或手动把 <发布包>\renpy-client\node_modules 链接到 DSH 安装目录的 node_modules。'
+  exit 1
+}
+$dshNm = ''
+# 从安装目录（以及它若是 junction 时的真实目标）向上收集所有 node_modules 目录作为候选。
+$roots = @($dshPkg)
+try {
+  $dshItem = Get-Item $dshPkg -Force -ErrorAction SilentlyContinue
+  if ($dshItem -and $dshItem.LinkType -and $dshItem.Target) { $roots += @($dshItem.Target)[0] }
+} catch { }
+$probe = @()
+foreach ($r in $roots) {
+  $probe += (Join-Path $r 'node_modules')
+  $probePath = $r
+  for ($i = 0; $i -lt 4; $i++) {
+    $probePath = Split-Path $probePath -Parent
+    if (-not $probePath) { break }
+    if ((Split-Path $probePath -Leaf) -eq 'node_modules') { $probe += $probePath }
+  }
+}
+$probe = @($probe | Where-Object { $_ } | Select-Object -Unique)
+foreach ($c in $probe) {
+  if (Test-Path (Join-Path $c '@deepseek-ai\dsh-tools')) { $dshNm = $c; break }
+}
+if (-not $dshNm) {
+  Write-Fail "在 DSH 安装位置附近找不到 @deepseek-ai/dsh-tools。"
+  Write-Fail "已探测：$($probe -join ' ; ')"
+  Write-Fail '13 个 renpy_* 工具需要它才能加载；请手动把 <发布包>\renpy-client\node_modules'
+  Write-Fail '链接到包含 @deepseek-ai/dsh-tools 的那个 node_modules 目录（mklink /J）。'
+  exit 1
+}
+Write-Ok "工具依赖目录: $dshNm"
+$rcNm = Join-Path $rcSrc 'node_modules'
+if (Test-Path $rcNm) {
+  $it2 = Get-Item $rcNm -Force
+  if ($it2.LinkType -eq 'Junction') { $it2.Delete() }
+  elseif ($it2.PSIsContainer) { Remove-Item $rcNm -Recurse -Force }
+}
+cmd /c mklink /J "`"$rcNm`"" "`"$dshNm`"" | Out-Null
+if (-not (Test-Path (Join-Path $rcNm '@deepseek-ai\dsh-tools'))) { Write-Fail '创建包内 node_modules junction 失败'; exit 1 }
+Write-Ok "renpy-client\node_modules -> $dshNm"
+
+# ── 5. 更新 web profile package.json（dependencies link + bundles）──────────
 Write-Step '更新 web profile'
 $profileDir = Join-Path $DshHome 'profiles\web'
 New-Item -ItemType Directory -Force -Path $profileDir | Out-Null
@@ -219,37 +291,26 @@ $json = $pkg | ConvertTo-Json -Depth 6
 [System.IO.File]::WriteAllText($pkgPath, $json, (New-Object System.Text.UTF8Encoding($false)))
 Write-Ok "web profile: $pkgPath"
 
-# ── 6. preset 目录 node_modules junction -> profiles/node_modules ────────────
-Write-Step '创建 preset node_modules junction'
-$presetNm = Join-Path $presetDir 'node_modules'
-if (Test-Path $presetNm) {
-  $it = Get-Item $presetNm -Force
-  if ($it.LinkType -eq 'Junction') { $it.Delete() }
-  elseif ($it.PSIsContainer) { Remove-Item $presetNm -Recurse -Force }
-}
-cmd /c mklink /J "`"$presetNm`"" "`"$profilesNm`"" | Out-Null
-if (-not (Test-Path $presetNm)) { Write-Fail '创建 preset node_modules junction 失败'; exit 1 }
-else { Write-Ok 'preset node_modules -> profiles/node_modules' }
-
-# ── 7. 生成 renpy.config.json（host.js 运行时读取）──────────────────────────
+# ── 6. 生成 renpy.config.json（host.js 与 renpy-host.mjs 运行时读取）────────
 Write-Step '生成 renpy.config.json'
 $userDir = Join-Path $DshHome 'renpy-user'
 $config = @{
-  sdkPath    = $SdkPath.Replace('\', '/')
-  userDir    = $userDir.Replace('\', '/')
-  indexerPath = (Join-Path $presetDir 'plugins\indexer.py').Replace('\', '/')
-  skillRoot  = $skillDir.Replace('\', '/')
+  sdkPath     = $SdkPath.Replace('\', '/')
+  userDir     = $userDir.Replace('\', '/')
+  indexerPath = (Join-Path $rcSrc 'lib\indexer.py').Replace('\', '/')
+  skillRoot   = $skillDir.Replace('\', '/')
 }
 [System.IO.File]::WriteAllText((Join-Path $DshHome 'renpy.config.json'), ($config | ConvertTo-Json), (New-Object System.Text.UTF8Encoding($false)))
 Write-Ok "写入 $DshHome\renpy.config.json"
 
-# ── 8. 完成 ─────────────────────────────────────────────────────────────────
+# ── 7. 完成 ─────────────────────────────────────────────────────────────────
 Write-Step '部署完成'
 Write-Host @"
 
-  ✓ agent preset:  $presetDir
+  ✓ DSH:           $dshVersion
   ✓ skills:        $skillDir（$skillCount 个）
-  ✓ 插件包:        renpy-client 已链接
+  ✓ 插件包:        renpy-client 已链接（含包内 node_modules junction）
+  ✓ agent preset:  RenPy Dev（随插件 bundle patch 生效，无需单独目录）
   ✓ SDK:           $SdkPath
   ✓ 配置:          $DshHome\renpy.config.json
 

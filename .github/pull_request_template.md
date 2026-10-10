@@ -5,7 +5,7 @@
 ## 改动类型
 
 - [ ] **知识**（skill 内容：L1 引擎事实 / L2 通用原则）
-- [ ] **代码**（renpy-client / agent-presets / 工具）
+- [ ] **代码**（renpy-client / agent preset / 工具）
 - [ ] **文档**（README/GUIDE/DEPLOY/模板等）
 
 ## 变更内容

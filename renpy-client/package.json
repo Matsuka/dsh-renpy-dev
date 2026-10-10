@@ -1,12 +1,13 @@
 {
   "name": "dsh-renpy-dev-client",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "license": "MIT",
-  "description": "DSH Ren'Py 开发工作台（dsh-renpy-dev）客户端包：conversation.view 开发页签 + webServer API（宿主侧）",
+  "description": "DSH Ren'Py 开发工作台（dsh-renpy-dev）：conversation.view 开发页签 + webServer API（宿主侧）+ 13 个 Ren'Py agent 工具（./tools）",
   "main": "lib/host.js",
   "exports": {
     ".": "./lib/host.js",
     "./client": "./lib/client.js",
+    "./tools": "./lib/renpy-host.mjs",
     "./package.json": "./package.json"
   },
   "dsh": {
@@ -15,7 +16,7 @@
     },
     "client": {
       "inject": [
-        "@deepseek-ai/dsh-client-runtime"
+        "@deepseek-ai/dsh-client-ui-renderer"
       ],
       "platform": "web"
     }

@@ -11,7 +11,7 @@ const name = 'renpy-dev'
 
 const inject = ['webServer', 'shell', 'sandboxPolicy', 'sessions', 'fs', 'timer']
 
-function apply(ctx, config) {
+function apply(ctx, config = {}) {
   // ── 部署配置解析（优先级：插件 config > $DSH_HOME/renpy.config.json > 环境变量 > 默认推导）──
   // 发布包在目标机器上运行，禁止硬编码开发机路径；deploy.ps1 会生成
   // $DSH_HOME/renpy.config.json（含 sdkPath/userDir/indexerPath/skillRoot）。
@@ -199,12 +199,18 @@ init python:
     }
   }
 
-  const specOf = (cmd, timeout, session) => {
+  // DSH 0.2.0 起 ShellExecSpec 多了必填的 onExpiry（'kill' 默认 / 'none' 不设期限），
+  // 且它由 ctx.shell.resolve() 填充——所有调用都必须经过 resolve()。
+  const specOf = (cmd, timeout, session, onExpiry) => {
     const policy = policyOf(session)
     const r = { command: cmd, workdir: sdkPath, env: { RENPY_PATH_TO_SAVES: userDir }, timeoutMs: timeout || 180000, stdoutMaxBytes: 4 * 1024 * 1024 }
+    if (onExpiry !== undefined) r.onExpiry = onExpiry
     if (policy !== undefined) r.sandboxPolicy = policy
     return ctx.shell.resolve(r)
   }
+  // 后台长驻进程（运行游戏）用 onExpiry:'none'：0.1.0 的 start() 会忽略 timeoutMs，
+  // 0.2.0 的 execute() 默认按 'kill' 设期限，会到点把游戏进程掐掉。
+  const specOfBackground = (cmd, session) => specOf(cmd, 0, session, 'none')
 
   const readText = async (p) => ctx.fs.readText(await ctx.fs.resolve(p))
   const writeText = async (p, c, session) => {
@@ -548,13 +554,13 @@ init python:
 
   const runLint = async (project, session) => {
     const cmd = '& ' + q(python) + ' ' + q(renpyPy) + ' ' + q(project) + ' lint'
-    const r = await ctx.shell.run(specOf(cmd, 180000, session))
+    const r = await (await ctx.shell.execute(specOf(cmd, 180000, session))).result()
     return { exitCode: r.exitCode, output: String(r.stdout.text) + (r.stderr ? '\n[stderr]\n' + String(r.stderr.text) : '') }
   }
 
   const runTest = async (project, suite, session) => {
     const cmd = '& ' + q(python) + ' ' + q(renpyPy) + ' ' + q(project) + ' test' + (suite ? ' ' + q(suite) : '')
-    const r = await ctx.shell.run(specOf(cmd, 300000, session))
+    const r = await (await ctx.shell.execute(specOf(cmd, 300000, session))).result()
     const out = String(r.stdout.text) + (r.stderr ? '\n[stderr]\n' + String(r.stderr.text) : '')
     // 解析 rpytest 报告：passed/failed/xfailed/skipped + Status
     const m = /\[rpytest\] Test cases\s*:\s*\d+\s*\|\s*(\d+) passed\s*\|\s*\d+ xfailed\s*\|\s*(\d+) failed/.exec(out) || /\[rpytest\] Test suites:\s*\d+\s*\|\s*(\d+) passed\s*\|\s*\d+ xfailed\s*\|\s*(\d+) failed/.exec(out)
@@ -744,7 +750,7 @@ init python:
     // 注入调试桥接（_debug_bridge.rpy + 清空指令），使 route-jump 可用
     const bridgeInjected = await injectBridge(project, session)
     const cmd = '& ' + q(python) + ' ' + q(renpyPy) + ' ' + q(project) + ' run'
-    const proc = ctx.shell.start(specOf(cmd, 240000, session))
+    const proc = await ctx.shell.execute(specOfBackground(cmd, session))
     running.set(project, { proc, at: Date.now() })
     return { started: true, project, bridgeInjected }
   }
@@ -771,7 +777,7 @@ init python:
     const dir = userDir + '/screenshots'
     const file = dir + '/panel-' + Date.now() + '.png'
     const cmd = 'New-Item -ItemType Directory -Force -Path ' + q(dir) + ' | Out-Null; Add-Type -AssemblyName System.Drawing; Add-Type -AssemblyName System.Windows.Forms; $b=[System.Windows.Forms.Screen]::PrimaryScreen.Bounds; $bmp=New-Object System.Drawing.Bitmap($b.Width,$b.Height); $g=[System.Drawing.Graphics]::FromImage($bmp); $g.CopyFromScreen($b.X,$b.Y,0,0,(New-Object System.Drawing.Size($b.Width,$b.Height))); $bmp.Save(' + q(file) + ',[System.Drawing.Imaging.ImageFormat]::Png); $g.Dispose(); $bmp.Dispose()'
-    const r = await ctx.shell.run(specOf(cmd, 30000, session))
+    const r = await (await ctx.shell.execute(specOf(cmd, 30000, session))).result()
     if (r.exitCode !== 0) return { error: 'screenshot failed: ' + String(r.stderr.text) }
     const bytes = await ctx.fs.readBytes(await ctx.fs.resolve(file), undefined, 8 * 1024 * 1024)
     let bin = ''
@@ -1124,7 +1130,7 @@ init python:
     } catch (e) { /* no cache or stale */ }
     // 慢路径：启动引擎生成新索引
     const cmd = '& ' + q(python) + ' ' + q(indexerPath) + ' ' + q(sdkPath) + ' ' + q(project) + ' ' + q(out) + ' ' + q(userDir)
-    const r = await ctx.shell.run(specOf(cmd, 180000, session))
+    const r = await (await ctx.shell.execute(specOf(cmd, 180000, session))).result()
     if (r.exitCode !== 0) return { error: String(r.stdout.text) }
     const j = JSON.parse(await readText(out))
     j._fp = fp

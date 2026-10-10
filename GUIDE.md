@@ -70,14 +70,15 @@ DSH Ren'Py 开发工作台是一套装在 **DeepSeek Harness（DSH）** 里的 *
 
 | 项目 | 位置/说明 |
 |---|---|
-| DSH | 本机已安装并运行（Web GUI `http://127.0.0.1:3080`） |
+| DSH | 本机已安装并运行。**浏览器 Web GUI**（`dsh web`，默认 `http://127.0.0.1:3080`）或**官方桌面端**（Electron，端口由系统分配，见启动日志的 `dsh web:` 行） |
+| 客户端 profile | `web` 与 `desktop` 是**两套**：桌面端首次启动会自建 `~/.dsh/profiles/desktop`，需按 `DEPLOY.md` §3 模式 C 把 bundle 加进去（`skills/`、`renpy.config.json`、凭据等共用 `~/.dsh`，无需重复配置） |
 | Ren'Py SDK | 工作区 `renpy-8.5.3-sdk/`（锁定 8.5.x） |
 | DSH Ren'Py 开发工作台 | 已挂载为 agent preset「RenPy Dev」，新会话可选 |
 | 示例项目 | `demo-script/`（测试用）；SDK 自带 `the_question/`、`tutorial/` |
 
 ### 2.2 打开开发面板
 
-1. 在 DSH Web GUI 开一个新会话（或切换 preset 到 **RenPy Dev**）
+1. 在 DSH 客户端（浏览器 Web GUI 或官方桌面端）开一个新会话，preset 选 **RenPy Dev**（已有会话保留创建时的 preset，改不了）
 2. 在会话的对话页签上方找到 **"Ren'Py"** 页签并点击 → 出现开发面板
 3. 顶部输入框输入你的 Ren'Py 项目路径（含 `game/` 目录的项目根，如 `D:\my-game`），点 **⟳ 加载**
 

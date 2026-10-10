@@ -9,8 +9,7 @@
 
 ```
 dsh-renpy-dev/
-├── agent-presets/renpy/     # agent preset（persona 约束 + 13 个开发工具）
-├── renpy-client/            # web 插件（编辑器 UI + /renpy-dev 宿主服务）
+├── renpy-client/            # 插件包（编辑器 UI + /renpy-dev 宿主服务 + agent preset：cordis.patch.yml 里的 persona 约束与 13 个开发工具）
 ├── skills/                  # 15 个 renpy-* 知识库 + 界面规范（核心资产）
 ├── verification/            # 验证资产（提取脚本/引擎验证项目/单测）
 ├── knowledge-pipeline.md    # 知识生产方法论（提取→核验→引擎验证）

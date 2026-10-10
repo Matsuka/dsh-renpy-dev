@@ -53,3 +53,6 @@ vscode_theme_research/
 
 # 本地测试项目（不进仓库）
 demo-communicator/
+
+# npm 缓存（开发/测试用，勿跟踪）
+.npm-cache*/

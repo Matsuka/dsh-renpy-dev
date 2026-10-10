@@ -1,4 +1,6 @@
-# Ren'Py Development Mode (dsh-renpy-dev) v1.1.0
+# Ren'Py Development Mode (dsh-renpy-dev) v1.2.0
+
+> Supports **DSH 0.2.0-rc.2 and above** (0.1.x's directory-based preset was retired by the engine, and this plugin is in 0.2.0 format — it cannot run on 0.1.x).
 
 > A validation of DSH's core idea: a self-bootstrapped Ren'Py development workbench with deep integration of agent preset + skills + web plugin.
 
@@ -54,7 +56,7 @@ The tool itself is **self-bootstrapped on DSH's own architecture** — a complet
 │ Host layer      renpy-client/lib/host.js   39 /renpy-dev/* endpoints                      │
 │ Shared core     renpy-core.js              pure functions (diagnostics/guard/parse/merge) │
 │ Knowledge layer skills/renpy-*.md          15 knowledge bases + UI spec                   │
-│ Tools layer     agent-presets/renpy/       13 AI tools + indexer                          │
+│ Tools layer     renpy-client/lib/          13 AI tools + indexer                          │
 └───────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -153,7 +155,8 @@ The tool itself is **self-bootstrapped on DSH's own architecture** — a complet
 | Item | Requirement |
 |---|---|
 | Windows | 10/11 (PowerShell 5.1+) |
-| DSH | Installed — **either npm global install or npx invocation** (the script can guide you if not installed, see below) |
+| DSH | **0.2.0-rc.2 or above** — **either npm global install or npx invocation** (the script can guide you if not installed, see below; 0.1.x is refused) |
+| Client | **Browser Web GUI** (`dsh web`) or the **official desktop client** ([download](https://www.deepseek.com/download/), Electron with a bundled runtime). Both share `~/.dsh` but keep separate profiles (`web` / `desktop`); the script deploys `web` only |
 | Ren'Py SDK | Must be obtained by yourself (about 340 MB; the script does **not** auto-download) |
 | Node.js / npm | Required when installing DSH |
 
@@ -170,10 +173,12 @@ cd D:\dsh-renpy-dev
 ```
 
 3. The script will, in order:
-   - Detect DSH (if not installed, ask: continue after manual install / auto-install with `-InstallDsh`)
+   - Detect DSH and apply the **version gate** (0.1.x is refused with upgrade instructions; if not installed, ask: continue after manual install / auto-install with `-InstallDsh`)
    - Detect the Ren'Py SDK (searches common locations; if not found, prompts for the path, **no auto-download**)
-   - Copy the preset, 15 skills (plus the UI spec), and link the `dsh-renpy-dev-client` plugin bundle
-   - Update the web profile and generate the config file
+   - Copy 17 skills (16 `renpy-*` knowledge bases + the UI spec)
+   - Link the `dsh-renpy-dev-client` plugin bundle and create the **in-package node_modules junction** (so the 13 tools can resolve `@deepseek-ai/dsh-tools`)
+   - Update the web profile and generate the config file (**the preset takes effect through the bundle's `cordis.patch.yml`; it is no longer deployed separately**)
+   - **The `web` profile is the only one deployed by default**: the official desktop client uses its own `desktop` profile (managed exclusively by the Electron app) — enable it as described in `DEPLOY.md` §3 Mode C
 4. **Restart dsh** (fully quit and relaunch).
 
 ### Common parameters
@@ -203,6 +208,10 @@ cd D:\dsh-renpy-dev
    - Modify a line → `Ctrl+S` → click **⚠ Check** in the toolbar → lint passes
    - Click **▶ Run** in the toolbar → the game window pops up → **📷 Screenshot** → click the same button again (it has turned into **■ Stop**) to stop
 
+> The **official desktop client (Electron)** follows the same flow, but the bundle must be added to the `desktop`
+> profile first (`DEPLOY.md` §3 Mode C). If the **RenPy Dev** card in Settings shows a red **"Failed to load"** badge
+> and cannot be clicked, that is a definition-level preset mount failure (not a missing plugin) — see `DEPLOY.md` §7.
+
 See `GUIDE.md` for the detailed test checklist.
 
 ---
@@ -221,28 +230,23 @@ dsh-renpy-dev/
 ├── CONTRIBUTING.md                   # Contribution guide (three-tier experience isolation + submission conventions)
 ├── LICENSE                           # MIT License
 ├── NOTICE                            # Third-party license notices (Ren'Py / DSH)
-├── agent-presets/
-│   └── renpy/
-│       ├── preset.yml                # Preset name/description
-│       ├── agent.cordis.yml.template # Plugin composition ({{SDK_PATH}} substituted at deploy)
-│       └── plugins/
-│           ├── renpy-host.mjs        # 13 agent tools (lint/index/scaffold/run/...)
-│           └── indexer.py            # Project indexer (engine dump)
 ├── skills/
-│   ├── renpy-*.md                    # 15 Ren'Py knowledge bases + workbench-ui UI spec (loaded on demand)
+│   ├── renpy-*.md                    # 16 Ren'Py knowledge bases + workbench-ui UI spec (loaded on demand)
 │   └── workbench-ui.md               # Workbench UI style design spec (incl. icon system)
 ├── verification/                     # Verification assets (open-source edition only)
 │   ├── scripts/                      # Extraction/verification scripts (extract-*.js, verify-text.py)
 │   ├── extracts/                     # Structured extraction outputs (*-extract.json)
 │   ├── projects/                     # 17 engine-verified projects + eq-test
 │   └── tests/                        # 22 unit tests (node --check + full regression)
-└── renpy-client/                     # Web plugin bundle (editor UI + /renpy-dev services)
-    ├── package.json
-    ├── cordis.patch.yml
+└── renpy-client/                     # Plugin bundle (workbench UI + /renpy-dev services + agent preset + 13 tools)
+    ├── package.json                  # dsh.bundle.patch (bundle patch) + package export ./tools
+    ├── cordis.patch.yml              # Two rows: renpy-dev (host plugin) + preset-renpy (agent preset)
     └── lib/
         ├── host.js                   # 39 /renpy-dev/* endpoints (requires dsh restart)
         ├── renpy-core.js             # Shared pure-function module (lineDiff/hasOpenToolCall)
-        └── client.js                 # Ren'Py panel UI (refresh to apply; includes the codicon icon system)
+        ├── client.js                 # Ren'Py panel UI (refresh to apply; includes the codicon icon system)
+        ├── renpy-host.mjs            # 13 agent tools (lint/index/scaffold/run/...)
+        └── indexer.py                # Project indexer (engine dump)
 ```
 
 > The `dsh-renpy-dev/` in the tree above is this repository's root (the directory name you get after extracting the release; `cd` into it to deploy).
@@ -251,10 +255,10 @@ dsh-renpy-dev/
 
 | Location | Content |
 |---|---|
-| `~/.dsh/.agent-presets/renpy/` | Agent preset (including the generated agent.cordis.yml) |
-| `~/.dsh/skills/*.md` | 15 knowledge skills + workbench-ui UI spec |
+| `~/.dsh/skills/*.md` | 17 skills (16 `renpy-*` knowledge bases + workbench-ui UI spec) |
 | `~/.dsh/profiles/node_modules/dsh-renpy-dev-client` | Plugin bundle junction (points to the release; independent of how DSH is installed) |
-| `~/.dsh/profiles/web/package.json` | Web profile (bundles + link dependency) |
+| `<release>\renpy-client\node_modules` | In-package node_modules junction (→ the DSH installation node_modules that actually contains `@deepseek-ai/dsh-tools`) |
+| `~/.dsh/profiles/web/package.json` | Web profile (bundles + link dependency; **the preset takes effect through the bundle's `cordis.patch.yml`**) |
 | `~/.dsh/renpy.config.json` | SDK/indexer/skill path config (read at runtime) |
 
 > The plugin is mounted under `~/.dsh/profiles/node_modules/` (the second anchor of dsh's bundle dual-anchor resolution),
@@ -267,7 +271,7 @@ dsh-renpy-dev/
 
 The deployment script generates `~/.dsh/renpy.config.json`. The plugin resolves paths at runtime with the following priority (no code changes needed):
 
-1. Plugin `config` (config in agent.cordis.yml / cordis.patch.yml)
+1. Plugin `config` (in 0.2.0 this comes from the per-row `config` in `renpy-client/cordis.patch.yml`; 0.1.x's `agent.cordis.yml` no longer exists)
 2. `~/.dsh/renpy.config.json`
 3. Environment variables `RENPY_SDK_PATH` / `RENPY_USERDIR` / `RENPY_INDEXERPATH` / `RENPY_SKILLROOT`
 4. Default derivation (e.g. userDir = `<sdk>/../.renpy-user`)
@@ -289,13 +293,15 @@ The plugin applies a few **runtime visual adjustments** to the DSH host UI:
 
 - Both are **runtime-only injections** — no DSH installation files are modified (unmounting the panel / closing the page restores everything). The `deploy.ps1` flow, the plugin junction link, and the "restart dsh to take effect" rule are **unchanged**.
 - ⚠️ **One caveat**: the injected CSS relies on DSH's DOM structure (class suffixes). **After upgrading DSH, regression-check** both injections (no duplicated input box; sidebar logo shows the brand color). If broken, adjust the injection effect in `client.js` for the new class names.
-- **Skills deployment scope** (since v1.1): `deploy.ps1` copies `skills\*.md` (15 `renpy-*` knowledge bases + `workbench-ui` UI spec); older versions copied only `renpy-*.md`.
-- **Upgrading an existing install**: re-extract the release (or update `renpy-client/lib/` and `skills/`) → re-run `deploy.ps1` (overwrites preset/skills/link) → **fully quit and restart dsh**.
+- **Skills deployment scope**: `deploy.ps1` copies `skills\*.md` (16 `renpy-*` knowledge bases + the `workbench-ui` UI spec — 17 files in total).
+- **Upgrading an existing install** (as of v1.2): **upgrade DSH to 0.2.0-rc.2 or above first** (`npm install -g @deepseek-ai/dsh@0.2.0-rc.2`) → re-extract the release (or update `renpy-client/` and `skills/`) → re-run `deploy.ps1` (it applies the version gate and rebuilds both the plugin junction and the in-package node_modules junction) → **fully quit and restart dsh**.
+- ⚠️ **The version must match**: the plugin in this release is in **0.2.0 format** (the host side uses `ctx.shell.execute` and the preset is a bundle-patch row). Junctioning the plugin package into a **0.1.x** DSH breaks the workbench outright; upgrade DSH before restarting.
 
 ---
 
 ## 8. Version notes
 
+- **v1.2.0**: migrated to **DSH 0.2.0-rc.2+**. Directory-based agent presets were retired by the engine → the preset is now a single row `@deepseek-ai/dsh-agent-preset` in the bundle's `renpy-client/cordis.patch.yml`; the tool plugin is loaded through the package export subpath `dsh-renpy-dev-client/tools`; an **in-package node_modules junction** was added; `deploy.ps1` gained a **version gate** (refusing 0.1.x).
 - Targets **Ren'Py 8.5.x** (local SDK pinned to 8.5.3).
 - Packaging (distribute) is not supported yet: SDK packaging lives inside the launcher; this plugin only covers `build.rpy` configuration knowledge (the `renpy-build` skill).
 - Changelog and implementation details are in each version's **Releases** notes; for contributions see `CONTRIBUTING.md`.

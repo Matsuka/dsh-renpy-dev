@@ -10,26 +10,38 @@
 //  - 项目索引：一次 renpy 运行（自定义命令 dump_index，见 plugins/indexer.py）
 //    产出 labels/defines/screens/transforms 索引 JSON。
 //
-// 注意：本文件是预设目录内的相对模块（agent.cordis.yml 中 name: './plugins/renpy-host.mjs'），
-// 预设目录下需存在 node_modules junction 指向 harness 的 node_modules，
-// 使裸说明符（@deepseek-ai/dsh-tools、node:url）可解析。
+// 注意：本文件作为 dsh-renpy-dev-client 包的 "./tools" 导出来加载
+// （preset 里 name: 'dsh-renpy-dev-client/tools'），因此裸说明符
+// （@deepseek-ai/dsh-tools、node:url）由包自身所在位置解析，不需要 preset 目录的
+// node_modules junction（那是 DSH 0.1.0 目录式 preset 的做法，0.2.0 已废除）。
 
 import { defineTool } from "@deepseek-ai/dsh-tools"
 import { fileURLToPath } from "node:url"
+import { readFileSync } from "node:fs"
 
 export const name = "renpy-host"
 
 export const inject = ["shell", "tools", "sandboxPolicy", "fs"]
 
-export function apply(ctx, config) {
-  const sdkPath = config.sdkPath || process.env.RENPY_SDK_PATH
+export function apply(ctx, config = {}) {
+  // SDK 路径优先级（与 lib/host.js 一致）：插件 config > $DSH_HOME/renpy.config.json > 环境变量。
+  // DSH 0.2.0 起 preset 是显式 YAML 行，不再由 deploy.ps1 替换 {{SDK_PATH}} 占位符，
+  // 因此这里必须自己能读到 deploy 脚本生成的 renpy.config.json。
+  let deployCfg = null
+  try {
+    const dshHome = process.env.DSH_HOME || (process.env.USERPROFILE ? process.env.USERPROFILE + "/.dsh" : "")
+    deployCfg = JSON.parse(readFileSync(dshHome + "/renpy.config.json", "utf8"))
+  } catch (e) { deployCfg = null }
+  const cfg = (k) => (config && config[k]) || (deployCfg && deployCfg[k]) || process.env["RENPY_" + k.toUpperCase()] || ""
+
+  const sdkPath = cfg("sdkPath")
   if (!sdkPath) {
-    throw new Error("renpy-host: config.sdkPath is required (agent.cordis.yml -> renpy -> renpy-host config); deploy 脚本会写入实际 SDK 路径，或设置 RENPY_SDK_PATH 环境变量")
+    throw new Error("renpy-host: 缺少 sdkPath。请运行发布包内的 deploy.ps1 生成 $DSH_HOME/renpy.config.json（含 sdkPath），或设置 RENPY_SDK_PATH 环境变量，或在 preset 的 renpy-dev-host 行 config 中提供 sdkPath。")
   }
 
   const python = sdkPath + "\\lib\\py3-windows-x86_64\\python.exe"
   const renpyPy = sdkPath + "\\renpy.py"
-  const userDir = config.userDir || sdkPath + "\\..\\.renpy-user"
+  const userDir = cfg("userDir") || sdkPath + "\\..\\.renpy-user"
   const indexerPath = fileURLToPath(new URL("./indexer.py", import.meta.url))
   // route-map.json → .rpy 生成器（设计文档闭环；SDK 通常位于工作区根下，故路径可推断）
   const generatorPath = config.routeGeneratorPath || sdkPath + "\\..\\verification\\scripts\\generate-route-code.js"
@@ -62,7 +74,7 @@ export function apply(ctx, config) {
       stdoutMaxBytes: opts.stdoutMaxBytes || 4 * 1024 * 1024,
       ...(policy !== undefined ? { sandboxPolicy: policy } : {}),
     })
-    return ctx.shell.run(spec)
+    return (await ctx.shell.execute(spec)).result()
   }
 
   /** SDK 信息。 */
@@ -97,7 +109,7 @@ export function apply(ctx, config) {
       stdoutMaxBytes: opts.stdoutMaxBytes || 4 * 1024 * 1024,
       ...(policy !== undefined ? { sandboxPolicy: policy } : {}),
     })
-    const result = await ctx.shell.run(spec)
+    const result = await (await ctx.shell.execute(spec)).result()
     const base = {
       exitCode: result.exitCode,
       timedOut: result.timedOut,
@@ -150,7 +162,7 @@ export function apply(ctx, config) {
       stdoutMaxBytes: opts.stdoutMaxBytes || 4 * 1024 * 1024,
       ...(policy !== undefined ? { sandboxPolicy: policy } : {}),
     })
-    const result = await ctx.shell.run(spec)
+    const result = await (await ctx.shell.execute(spec)).result()
     const base = {
       exitCode: result.exitCode,
       timedOut: result.timedOut,
@@ -191,10 +203,13 @@ export function apply(ctx, config) {
       command: cmd,
       workdir: sdkPath,
       env: { RENPY_PATH_TO_SAVES: userDir },
+      // DSH 0.2.0：execute() 默认 onExpiry:'kill'，会到点掐掉进程。后台长驻的
+      // 游戏进程必须显式 'none'（0.1.0 的 start() 本来就不设期限）。
+      onExpiry: "none",
       stdoutMaxBytes: opts.stdoutMaxBytes || 4 * 1024 * 1024,
       ...(policy !== undefined ? { sandboxPolicy: policy } : {}),
     })
-    const proc = ctx.shell.start(spec)
+    const proc = await ctx.shell.execute(spec)
     running.set(projectPath, { proc, startedAt: Date.now() })
     return { started: true, projectPath, status: proc.status, note: "游戏窗口应已打开；用 renpy_status 查看状态，renpy_stop 停止。" }
   }
@@ -273,7 +288,7 @@ export function apply(ctx, config) {
       timeoutMs: opts.timeoutMs || 30000,
       ...(policy !== undefined ? { sandboxPolicy: policy } : {}),
     })
-    const result = await ctx.shell.run(spec)
+    const result = await (await ctx.shell.execute(spec)).result()
     return {
       exitCode: result.exitCode,
       file,
@@ -564,7 +579,7 @@ export function apply(ctx, config) {
         timeoutMs: 30000,
         ...(policy !== undefined ? { sandboxPolicy: policy } : {}),
       })
-      const result = await ctx.shell.run(spec)
+      const result = await (await ctx.shell.execute(spec)).result()
       return { exitCode: result.exitCode, outPath: out, stdout: result.stdout.text, stderr: result.stderr.text }
     },
   }))

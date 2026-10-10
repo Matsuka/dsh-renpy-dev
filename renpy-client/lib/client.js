@@ -12,7 +12,10 @@ window.__ModuleLoader__.load({
 		const ReactDOM = react_dom;
 
 		const name = "dsh-renpy-dev-client";
-		const inject = [];
+		// DSH 0.2.0：客户端插件需声明自己消费的服务。本插件只消费 slots
+		// （由 @deepseek-ai/dsh-client-ui-renderer 提供）——不声明的话 apply 可能
+		// 在 slots 就绪前运行，ctx.get("slots") 返回 undefined 后直接 return，页签不出现。
+		const inject = ["slots"];
 
 		// 模块级状态：切走/切回页签不丢（组件卸载时同步写回）。
 		const panelState = { project: "", tabs: [], activeName: null, labels: [], files: [], routeWin: { open: false, x: 140, y: 90, w: 780, h: 520 }, shotWin: { open: false, x: 160, y: 100, w: 520, h: 420 }, varWin: { open: false, x: 180, y: 110, w: 460, h: 420 } };
