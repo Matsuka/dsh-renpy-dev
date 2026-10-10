@@ -307,7 +307,7 @@ dsh-renpy-dev/
 
 ## 八、版本说明
 
-- **v1.2.0**：迁移到 **DSH 0.2.0-rc.2+**。目录式 agent preset 已被引擎废除 → preset 改为插件包 `renpy-client/cordis.patch.yml` 里的一行 `@deepseek-ai/dsh-agent-preset`；工具插件改由包导出子路径 `dsh-renpy-dev-client/tools` 加载；新增**包内 node_modules junction**；`deploy.ps1` 增加**版本闸门**（拒绝 0.1.x）。
+- **v1.2.0**：迁移到 **DSH 0.2.0-rc.2+**。目录式 agent preset 已被引擎废除 → preset 改为插件包 `renpy-client/cordis.patch.yml` 里的一行 `@deepseek-ai/dsh-agent-preset`；工具插件改由包导出子路径 `dsh-renpy-dev-client/tools` 加载；新增**包内 node_modules junction**；`deploy.ps1` 增加**版本闸门**（拒绝 0.1.x）；修复 **preset 定义级挂载失败**（`renpy-host.mjs` 的 `apply` 缺 config 默认值 → 设置里「RenPy Dev」卡片显示「加载失败」且点不动）；新增**官方桌面端（Electron）**部署指引（`DEPLOY.md` §3 模式 C）。
 - 面向 **Ren'Py 8.5.x**（本地 SDK 锁定 8.5.3）。
 - 打包（distribute）暂不支持：SDK 打包在 launcher 内部，本插件只覆盖 build.rpy 配置知识（`renpy-build` skill）。
 - 变更记录与实现细节见各版本 **Releases** 说明；贡献方式见 `CONTRIBUTING.md`。

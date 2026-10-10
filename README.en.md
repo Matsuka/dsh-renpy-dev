@@ -305,7 +305,7 @@ The plugin applies a few **runtime visual adjustments** to the DSH host UI:
 
 ## 8. Version notes
 
-- **v1.2.0**: migrated to **DSH 0.2.0-rc.2+**. Directory-based agent presets were retired by the engine → the preset is now a single row `@deepseek-ai/dsh-agent-preset` in the bundle's `renpy-client/cordis.patch.yml`; the tool plugin is loaded through the package export subpath `dsh-renpy-dev-client/tools`; an **in-package node_modules junction** was added; `deploy.ps1` gained a **version gate** (refusing 0.1.x).
+- **v1.2.0**: migrated to **DSH 0.2.0-rc.2+**. Directory-based agent presets were retired by the engine → the preset is now a single row `@deepseek-ai/dsh-agent-preset` in the bundle's `renpy-client/cordis.patch.yml`; the tool plugin is loaded through the package export subpath `dsh-renpy-dev-client/tools`; an **in-package node_modules junction** was added; `deploy.ps1` gained a **version gate** (refusing 0.1.x); fixed the **definition-level preset mount failure** (the `apply` in `renpy-host.mjs` lacked a config default → the **RenPy Dev** card in Settings showed "Failed to load" and could not be clicked); added deployment guidance for the **official desktop client** (Electron) in `DEPLOY.md` §3 Mode C.
 - Targets **Ren'Py 8.5.x** (local SDK pinned to 8.5.3).
 - Packaging (distribute) is not supported yet: SDK packaging lives inside the launcher; this plugin only covers `build.rpy` configuration knowledge (the `renpy-build` skill).
 - Changelog and implementation details are in each version's **Releases** notes; for contributions see `CONTRIBUTING.md`.
