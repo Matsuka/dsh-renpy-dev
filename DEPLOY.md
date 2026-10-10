@@ -1,7 +1,7 @@
 # DSH Ren'Py 开发工作台（dsh-renpy-dev）— 部署指南
 
 > 本文档面向**部署者**（在目标机器上安装这套 DSH Ren'Py 开发工作台的人），
-> 完整说明一键部署的流程、两种模式、参数、验证与故障排查。
+> 完整说明一键部署的流程、三种模式、参数、验证与故障排查。
 > 使用者（测试者）的操作指南见 `GUIDE.md`；快速上手见 `README.md`。
 > **English version** → `DEPLOY.en.md`。
 > **版本 v1.2.0** —— 支持 **DSH 0.2.0-rc.2 及以上**（0.1.x 的目录式 preset 已被引擎废除，脚本会拒绝部署）。
@@ -10,7 +10,12 @@
 
 ## 1. 部署概览
 
-`deploy.ps1` 把本发布包部署到目标机器的 DSH，一次完成 7 件事：
+**部署目标**：`deploy.ps1` 只把本发布包装进 **`web` profile**（浏览器 Web GUI 用的那套）。
+要用**官方桌面端**（Electron，`@deepseek-ai/dsh-desktop`）的话，它走**独立的 `desktop` profile**，
+脚本不会替你写（该 profile 由桌面端独占管理）——按 §3 模式 C 补一步即可。两者共用 `~/.dsh`，
+skills / 运行配置 / 凭据都不必重复装。
+
+脚本一次完成 7 件事：
 
 | # | 步骤 | 产物 |
 |---|---|---|
@@ -19,7 +24,7 @@
 | 3 | 复制 17 个 skill（16 个 renpy-* 知识库 + 界面规范） | `~/.dsh/skills/*.md` |
 | 4 | 链接 dsh-renpy-dev-client 插件包 | `~/.dsh/profiles/node_modules/dsh-renpy-dev-client`（junction） |
 | 5 | 建**包内** node_modules junction | `<发布包>\renpy-client\node_modules` → DSH 安装目录的 node_modules |
-| 6 | 更新 web profile | `~/.dsh/profiles/web/package.json`（bundles + link） |
+| 6 | 更新 **`web`** profile | `~/.dsh/profiles/web/package.json`（bundles + link）；桌面端另见 §3 模式 C |
 | 7 | 生成运行配置 | `~/.dsh/renpy.config.json` |
 
 > **preset 不再单独部署**：0.2.0 废除了目录式 preset（`~/.dsh/.agent-presets/<id>/`），
@@ -36,6 +41,7 @@
 |---|---|---|
 | 操作系统 | Windows 10/11 | 脚本用 PowerShell 5.1+，默认随系统自带 |
 | DSH | **0.2.0-rc.2 及以上** | 已安装或允许脚本安装；0.1.x 会被版本闸门拒绝（见 §3、§7） |
+| 客户端 | **浏览器 Web GUI** 或 **官方桌面端** | 两者共用 `~/.dsh`，但 profile 独立（`web` / `desktop`）；脚本只写 `web`，桌面端见 §3 模式 C |
 | Ren'Py SDK | **必须自备** | 约 340MB，脚本**不会自动下载**，只检测/提示 |
 | Node.js + npm | 仅连 DSH 一起装时需要 | `npm install -g @deepseek-ai/dsh@0.2.0-rc.2` |
 
@@ -49,7 +55,13 @@
 
 ## 3. 部署模式
 
-脚本根据目标机器是否已装 DSH 自动分流：
+| 模式 | 何时用 | 谁执行 | 装到哪个 profile |
+|---|---|---|---|
+| **A** 已装 DSH（默认） | 目标机已有 DSH | `deploy.ps1` | `web` |
+| **B** 连 DSH 一起装（`-InstallDsh`） | 目标机没有 DSH | `deploy.ps1` | `web` |
+| **C** 官方桌面端 | 想用 Electron 桌面端 | **手动补一步**（脚本不碰） | `desktop` |
+
+A / B 由脚本按「目标机是否已装 DSH」自动分流；C 与 A/B 不冲突，可以都做（`~/.dsh` 共享）。
 
 ### 模式 A：已装 DSH（默认，只部署插件）
 
@@ -94,20 +106,20 @@ npm install -g @deepseek-ai/dsh@0.2.0-rc.2
 
 ### 模式 C：官方桌面端（Electron App）
 
-DSH 官方桌面端（[deepseek.com/download](https://www.deepseek.com/download/)，包名 `@deepseek-ai/dsh-desktop`）
-是 Electron 外壳 + **自带 dsh 运行时**（不依赖系统的 Node/npm/pnpm），与 npm 全局或 npx 的 dsh
-**共用同一个 `~/.dsh`**，但它用**自己的 profile**：`~/.dsh/profiles/desktop/`（首次启动由 App 自动创建）。
-**`deploy.ps1` 不会碰它**——脚本只部署 `web` profile。
+官方桌面端（[deepseek.com/download](https://www.deepseek.com/download/)，包名 `@deepseek-ai/dsh-desktop`）
+= Electron 外壳 + **自带 dsh 运行时**（不依赖系统 Node/npm/pnpm）。它与 A/B 部署的 dsh **共用同一个 `~/.dsh`**
+（会话、凭据、skills、`renpy.config.json` 全部共享），但用**自己的 profile**：`~/.dsh/profiles/desktop/`。
 
-> 该 profile 由 Electron 应用**独占管理**，命令行会被明确拒绝：
-> `dsh --profile desktop --dump-config` → `error: profile "desktop" is managed exclusively by the Electron application`
+关键点：**`desktop` profile 由 Electron 应用独占管理**，命令行改不了，`deploy.ps1` 也不碰它：
 
-要让工作台出现在桌面端，手动把 bundle 加进桌面端的 profile 清单，然后**完全退出并重启桌面端**：
-
-```powershell
-# 1) 插件包 junction 是共享的：deploy.ps1 已建在 ~/.dsh/profiles/node_modules/dsh-renpy-dev-client，无需重复建
-# 2) 编辑 ~/.dsh/profiles/desktop/package.json：加一项依赖 + 一个 bundle 选择
 ```
+dsh --profile desktop --dump-config
+→ error: profile "desktop" is managed exclusively by the Electron application
+```
+
+先跑完模式 A 或 B（把共享 junction 建好），再补下面 3 步。
+
+**第 1 步：加依赖与 bundle 选择。** 编辑 `~/.dsh/profiles/desktop/package.json`（桌面端首次启动后才会生成）：
 
 ```json
 {
@@ -122,12 +134,14 @@ DSH 官方桌面端（[deepseek.com/download](https://www.deepseek.com/download/
 }
 ```
 
-3. 退出桌面端：Windows 上**关窗口只是隐藏到托盘**，必须托盘图标右键 → **Quit DeepSeek Harness**，再重新打开。
-4. 判定宿主插件是否加载：`http://127.0.0.1:<端口>/renpy-dev/info` 返回 **200**。端口见桌面端启动日志里的
-   `dsh web: http://127.0.0.1:<端口>/?token=…` 行（App 用系统分配的端口，**不固定 3080**）。
+（`~/.dsh/profiles/node_modules/dsh-renpy-dev-client` 是 A/B 建好的**共享 junction**，不需要再建。）
 
-> `skills/`、`renpy.config.json`、会话与凭据都在共享的 `~/.dsh` 下，桌面端自动可见，**无需重复配置**；
-> 但 **`web` 与 `desktop` 的 profile 是两套**：一端配过不代表另一端也配过。
+**第 2 步：完全退出桌面端，再重启。** Windows 上关窗口只是隐藏到托盘，必须托盘图标右键 → **Quit DeepSeek Harness**。
+
+**第 3 步：验证。** 浏览器打开 `http://127.0.0.1:<端口>/renpy-dev/info`，返回 **200** 即宿主插件已加载。
+端口不固定，见桌面端启动日志里的 `dsh web: http://127.0.0.1:<端口>/?token=…` 行。
+
+> `web` 与 `desktop` 是**两套 profile**：一端配过不代表另一端也配过；`~/.dsh` 下的共享内容则不用重复配。
 
 ---
 

@@ -10,7 +10,7 @@ This repository is the **open-source edition** (for developers/contributors), in
 
 > 📦 Documentation:
 > - **中文版** → **`README.md`**
-> - **Deployment guide** (full: both modes / parameters / troubleshooting / upgrade & uninstall) → **`DEPLOY.md`**
+> - **Deployment guide** (full: three modes / parameters / troubleshooting / upgrade & uninstall) → **`DEPLOY.md`**
 > - **User guide** (features / operations / expected results / regression table + **how to feed your experience back to developers**) → **`GUIDE.md`**
 > - **Tester guide** (all-in-one: environment setup + per-feature details + operation/testing + FAQ + experience feedback: where → how → expected → what to test + full regression checklist) → **`TESTER-GUIDE.md`**
 > - **Knowledge pipeline** (how the 15 skills are produced: extraction → verification → engine validation) → **`knowledge-pipeline.md`**
@@ -136,7 +136,7 @@ The tool itself is **self-bootstrapped on DSH's own architecture** — a complet
 | **`README.md`** | Everyone | This file: project overview, documentation index, quick deployment, verification, directory structure, runtime configuration, deployment & DSH native elements |
 | **`GUIDE.md`** / `GUIDE.en.md` | Users | User guide: feature operations / expected results / regression table + experience feedback (streamlined for users) |
 | **`TESTER-GUIDE.md`** / `TESTER-GUIDE.en.md` | **Test users** | **All-in-one feature handbook**: environment setup + per-feature walkthrough (purpose / entry / behavior / edge cases) + operation tests + 23-item regression checklist + FAQ + experience feedback |
-| **`DEPLOY.md`** / `DEPLOY.en.md` | Deployers | Full deployment guide: both modes / parameters / troubleshooting / upgrade & uninstall |
+| **`DEPLOY.md`** / `DEPLOY.en.md` | Deployers | Full deployment guide: three modes / parameters / troubleshooting / upgrade & uninstall |
 | **`CONTRIBUTING.md`** | Contributors | Three-tier experience isolation + submission conventions |
 | **`knowledge-pipeline.md`** | Knowledge producers | How the 15 skills are produced: extract → verify → engine-validate |
 | **`glossary.md`** | Translators / learners | EN↔ZH terminology glossary for Ren'Py |
@@ -160,7 +160,7 @@ The tool itself is **self-bootstrapped on DSH's own architecture** — a complet
 | Ren'Py SDK | Must be obtained by yourself (about 340 MB; the script does **not** auto-download) |
 | Node.js / npm | Required when installing DSH |
 
-> Full deployment flow, both modes (DSH already installed / install DSH together), parameters and troubleshooting → see **`DEPLOY.md`**.
+> Full deployment flow, three modes (DSH already installed / install DSH together / official desktop client), parameters and troubleshooting → see **`DEPLOY.md`**.
 
 ### Deployment steps
 
@@ -177,9 +177,13 @@ cd D:\dsh-renpy-dev
    - Detect the Ren'Py SDK (searches common locations; if not found, prompts for the path, **no auto-download**)
    - Copy 17 skills (16 `renpy-*` knowledge bases + the UI spec)
    - Link the `dsh-renpy-dev-client` plugin bundle and create the **in-package node_modules junction** (so the 13 tools can resolve `@deepseek-ai/dsh-tools`)
-   - Update the web profile and generate the config file (**the preset takes effect through the bundle's `cordis.patch.yml`; it is no longer deployed separately**)
-   - **The `web` profile is the only one deployed by default**: the official desktop client uses its own `desktop` profile (managed exclusively by the Electron app) — enable it as described in `DEPLOY.md` §3 Mode C
+   - Update the **`web`** profile and generate the config file (**the preset takes effect through the bundle's `cordis.patch.yml`; it is no longer deployed separately**)
 4. **Restart dsh** (fully quit and relaunch).
+
+> **Want the official desktop client (Electron)?** The script above installs the `web` profile only; the desktop
+> client uses a separate `desktop` profile (managed exclusively by the app, the CLI cannot change it). Finish the
+> script first, then add the bundle and restart the desktop client as described in **`DEPLOY.md` §3 Mode C**.
+> Both share `~/.dsh`, so skills / runtime config / credentials do not need to be installed again.
 
 ### Common parameters
 
@@ -222,7 +226,7 @@ See `GUIDE.md` for the detailed test checklist.
 dsh-renpy-dev/
 ├── deploy.ps1                        # One-click deployment script (entry point)
 ├── README.md                         # This file (quick start)
-├── DEPLOY.md                         # Full deployment guide (modes/parameters/troubleshooting/upgrade-uninstall)
+├── DEPLOY.md                         # Full deployment guide (three modes/parameters/troubleshooting/upgrade-uninstall)
 ├── GUIDE.md                        # User guide (features/operations/expected results/regression table)
 ├── TESTER-GUIDE.md                   # Tester guide (all-in-one: feature details + testing + FAQ)
 ├── knowledge-pipeline.md             # Knowledge production methodology (extract → verify → engine-validate)

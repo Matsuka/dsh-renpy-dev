@@ -1,7 +1,7 @@
 # Deployment Guide (deploy.ps1 full guide)
 
 > This document is for **deployers** (people installing this Ren'Py development mode on a target machine).
-> It fully explains the one-click deployment flow, both modes, parameters, verification, and troubleshooting.
+> It fully explains the one-click deployment flow, three modes, parameters, verification, and troubleshooting.
 > End users (testers) should see `GUIDE.md`; a quick start is in `README.md`.
 > **中文版** → `DEPLOY.md`.
 > **Version v1.2.0** — supports **DSH 0.2.0-rc.2 and above** (the directory-based preset of 0.1.x was retired by the engine, so the script refuses to deploy onto it).
@@ -10,7 +10,13 @@
 
 ## 1. Deployment overview
 
-`deploy.ps1` deploys this release to the DSH on the target machine, completing 7 steps at once:
+**Deployment target**: `deploy.ps1` installs this release into the **`web` profile** only (the one the
+browser Web GUI uses). To use the **official desktop client** (Electron, `@deepseek-ai/dsh-desktop`), it runs on a
+**separate `desktop` profile** that the script does not write for you (that profile is managed exclusively by the
+desktop client) — add one step per §3 Mode C. Both share `~/.dsh`, so skills / runtime config / credentials never
+need to be installed twice.
+
+The script completes 7 steps at once:
 
 | # | Step | Artifact |
 |---|---|---|
@@ -19,7 +25,7 @@
 | 3 | Copy 17 skills (16 renpy-* knowledge bases + UI spec) | `~/.dsh/skills/*.md` |
 | 4 | Link the dsh-renpy-dev-client plugin bundle | `~/.dsh/profiles/node_modules/dsh-renpy-dev-client` (junction) |
 | 5 | Create the **in-package** node_modules junction | `<release>\renpy-client\node_modules` → the DSH installation's node_modules |
-| 6 | Update the web profile | `~/.dsh/profiles/web/package.json` (bundles + link) |
+| 6 | Update the **`web`** profile | `~/.dsh/profiles/web/package.json` (bundles + link); the desktop client is covered in §3 Mode C |
 | 7 | Generate the runtime config | `~/.dsh/renpy.config.json` |
 
 > **The preset is no longer deployed separately**: 0.2.0 retired directory-based presets
@@ -37,6 +43,7 @@
 |---|---|---|
 | OS | Windows 10/11 | The script uses PowerShell 5.1+, which ships with the system by default |
 | DSH | **0.2.0-rc.2 or above** | Installed, or the script is allowed to install it; 0.1.x is refused by the version gate (§3, §7) |
+| Client | **Browser Web GUI** or the **official desktop client** | Both share `~/.dsh`, but the profiles are separate (`web` / `desktop`); the script writes only `web`, see §3 Mode C for the desktop client |
 | Ren'Py SDK | **Must be provided by you** | About 340 MB; the script will **not auto-download**, only detect/prompt |
 | Node.js + npm | Only needed when installing DSH together | `npm install -g @deepseek-ai/dsh@0.2.0-rc.2` |
 
@@ -50,7 +57,14 @@
 
 ## 3. Deployment modes
 
-The script automatically branches based on whether DSH is already installed on the target machine:
+| Mode | When to use | Who runs it | Target profile |
+|---|---|---|---|
+| **A** DSH already installed (default) | The target machine already has DSH | `deploy.ps1` | `web` |
+| **B** Install DSH together (`-InstallDsh`) | The target machine has no DSH | `deploy.ps1` | `web` |
+| **C** Official desktop client | You want to use the Electron desktop client | **One manual step** (the script does not touch it) | `desktop` |
+
+The script automatically branches between A and B based on whether DSH is already installed on the target machine;
+C does not conflict with A/B, and you can do both (`~/.dsh` is shared).
 
 ### Mode A: DSH already installed (default, deploy plugin only)
 
@@ -95,22 +109,22 @@ The script prompts and asks: continue after manually installing DSH (enter `y`),
 
 ### Mode C: Official desktop client (Electron app)
 
-The official DSH desktop client ([deepseek.com/download](https://www.deepseek.com/download/), package
-`@deepseek-ai/dsh-desktop`) is an Electron shell with a **bundled dsh runtime** (no system Node/npm/pnpm required).
-It **shares the same `~/.dsh`** as the npm-global or npx dsh, but uses **its own profile**:
-`~/.dsh/profiles/desktop/` (created automatically by the app on first launch).
-**`deploy.ps1` does not touch it** — the script only deploys the `web` profile.
+The official desktop client ([deepseek.com/download](https://www.deepseek.com/download/), package
+`@deepseek-ai/dsh-desktop`) = an Electron shell + a **bundled dsh runtime** (no system Node/npm/pnpm required).
+It **shares the same `~/.dsh`** as the dsh deployed in A/B (sessions, credentials, skills and `renpy.config.json`
+are all shared), but uses **its own profile**: `~/.dsh/profiles/desktop/`.
 
-> That profile is **managed exclusively by the Electron application**, and the CLI refuses it outright:
-> `dsh --profile desktop --dump-config` → `error: profile "desktop" is managed exclusively by the Electron application`
+Key point: **the `desktop` profile is managed exclusively by the Electron application** — the CLI cannot change it,
+and `deploy.ps1` does not touch it either:
 
-To get the workbench inside the desktop client, add the bundle to that profile's manifest by hand, then
-**fully quit and relaunch the app**:
-
-```powershell
-# 1) The plugin junction is shared: deploy.ps1 already created ~/.dsh/profiles/node_modules/dsh-renpy-dev-client
-# 2) Edit ~/.dsh/profiles/desktop/package.json: add one dependency + one bundle selection
 ```
+dsh --profile desktop --dump-config
+→ error: profile "desktop" is managed exclusively by the Electron application
+```
+
+Finish Mode A or B first (so the shared junction is in place), then add the 3 steps below.
+
+**Step 1: add the dependency and the bundle selection.** Edit `~/.dsh/profiles/desktop/package.json` (it is only created after the desktop client's first launch):
 
 ```json
 {
@@ -125,15 +139,15 @@ To get the workbench inside the desktop client, add the bundle to that profile's
 }
 ```
 
-3. Quit the desktop client: on Windows **closing the window only hides it to the tray** — use the tray icon →
-   **Quit DeepSeek Harness**, then relaunch.
-4. Check whether the host plugin loaded: `http://127.0.0.1:<port>/renpy-dev/info` returns **200**. The port is the
-   `dsh web: http://127.0.0.1:<port>/?token=…` line in the app's startup log (the app uses an OS-assigned port,
-   **not a fixed 3080**).
+(`~/.dsh/profiles/node_modules/dsh-renpy-dev-client` is the **shared junction** already created by A/B — no need to create it again.)
 
-> `skills/`, `renpy.config.json`, sessions and credentials all live in the shared `~/.dsh`, so the desktop client
-> sees them automatically — **no repeated configuration**. But **`web` and `desktop` are two separate profiles**:
-> configuring one does not configure the other.
+**Step 2: fully quit the desktop client, then relaunch.** On Windows, closing the window only hides it to the tray; you must right-click the tray icon → **Quit DeepSeek Harness**.
+
+**Step 3: verify.** Open `http://127.0.0.1:<port>/renpy-dev/info` in a browser; a **200** means the host plugin has loaded.
+The port is not fixed — see the `dsh web: http://127.0.0.1:<port>/?token=…` line in the startup log.
+
+> `web` and `desktop` are **two separate profiles**: configuring one does not mean the other is configured;
+> the shared content under `~/.dsh` does not need to be configured again.
 
 ---
 

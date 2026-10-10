@@ -13,14 +13,15 @@
 
 | Item | Location / Notes |
 |---|---|
-| DSH | Installed and running on this machine (Web GUI `http://127.0.0.1:3080`) |
+| DSH | Installed and running on this machine. Either the **browser Web GUI** (`dsh web`, `http://127.0.0.1:3080` by default) or the **official desktop client** (Electron; its port is OS-assigned — see the `dsh web:` line in its startup log) |
+| Client profile | `web` and `desktop` are **two separate profiles**: the desktop client creates `~/.dsh/profiles/desktop` on first launch, and you must add the bundle there (see `DEPLOY.md` §3 Mode C). `skills/`, `renpy.config.json` and credentials are shared under `~/.dsh` and need no repeated configuration |
 | Ren'Py SDK | Workspace `renpy-8.5.3-sdk/` (locked to 8.5.x) |
 | DSH Ren'Py Dev Workbench | Mounted as the agent preset "RenPy Dev", selectable in new sessions |
 | Sample project | `demo-script/` (for testing); the SDK ships with `the_question/`, `tutorial/` |
 
 ### 0.2 Open the development panel
 
-1. Start a new session in the DSH Web GUI (or switch the preset to **RenPy Dev**)
+1. Start a new session in the DSH client (browser Web GUI or the official desktop client) and select the **RenPy Dev** preset (an existing session keeps the preset it was created with, and it cannot be changed)
 2. Find the **"Ren'Py" tab** above the session's chat tab and click it → the development panel appears
 3. In the input box at the top, enter your Ren'Py project path (the project root that contains the `game/` directory, e.g. `D:\my-game`), then click **⟳ Load**
 

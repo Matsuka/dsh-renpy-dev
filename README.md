@@ -10,7 +10,7 @@
 
 > 📦 文档导航：
 > - **English version** → **`README.en.md`**
-> - **部署流程**（完整版，含两种模式/参数/故障排查/升级卸载）→ 见 **`DEPLOY.md`**
+> - **部署流程**（完整版，含三种模式/参数/故障排查/升级卸载）→ 见 **`DEPLOY.md`**
 > - **用户指南**（功能/操作/预期/回归表 + **个人经验回传给开发者的方法**）→ 见 **`GUIDE.md`**
 > - **测试用户功能手册**（一站式：环境启动 + 逐功能详解 + 操作测试 + FAQ + 经验回传）→ 见 **`TESTER-GUIDE.md`**
 > - **知识流水线**（15 个 skill 怎么生产出来的：提取→核验→引擎验证）→ 见 **`knowledge-pipeline.md`**
@@ -140,7 +140,7 @@
 | **`README.md`** | 所有人 | 本文件：项目说明、文档目录、快速部署、验证、目录结构、运行时配置、部署与 DSH 原生元素 |
 | **`GUIDE.md`** / `GUIDE.en.md` | 使用者 | 用户指南：功能操作/预期/回归表 + 经验回传（面向使用者的精简版） |
 | **`TESTER-GUIDE.md`** / `TESTER-GUIDE.en.md` | **测试用户** | **一站式功能手册**：环境启动 + 逐功能详解（用途/入口/行为/边界）+ 操作测试 + 23 条回归清单 + FAQ + 经验回传 |单 + FAQ + 经验回传 |
-| **`DEPLOY.md`** / `DEPLOY.en.md` | 部署者 | 部署流程完整指南：两种模式/参数/故障排查/升级卸载 |
+| **`DEPLOY.md`** / `DEPLOY.en.md` | 部署者 | 部署流程完整指南：三种模式/参数/故障排查/升级卸载 |
 | **`CONTRIBUTING.md`** | 贡献者 | 三层经验隔离 + 提交规范 |
 | **`knowledge-pipeline.md`** | 知识生产者 | 15 个 skill 怎么生产出来：提取→核验→引擎验证 |
 | **`glossary.md`** | 翻译/学习者 | Ren'Py 中英术语对照表 |
@@ -164,7 +164,7 @@
 | Ren'Py SDK | 需要自行准备（约 340MB，脚本**不自动下载**） |
 | Node.js / npm | 安装 DSH 时需要 |
 
-> 完整部署流程、两种模式（已装 DSH / 连 DSH 一起装）、参数与故障排查见 **`DEPLOY.md`**。
+> 完整部署流程、三种模式（已装 DSH / 连 DSH 一起装 / 官方桌面端）、参数与故障排查见 **`DEPLOY.md`**。
 
 ### 部署步骤
 
@@ -181,9 +181,12 @@ cd D:\dsh-renpy-dev
    - 检测 Ren'Py SDK（在常见位置找；找不到则提示你输入路径，**不自动下载**）
    - 复制 17 个 skill（16 个 `renpy-*` 知识库 + 界面规范）
    - 链接 `dsh-renpy-dev-client` 插件包，并建**包内 node_modules junction**（供 13 个工具解析 `@deepseek-ai/dsh-tools`）
-   - 更新 web profile 并生成配置文件（**preset 随插件包的 `cordis.patch.yml` 生效，不再单独部署**）
-   - **默认只部署 `web` profile**：官方桌面端用独立 profile（`desktop`，由 Electron 独占管理），需按 `DEPLOY.md` §3 模式 C 单独启用
+   - 更新 **`web`** profile 并生成配置文件（**preset 随插件包的 `cordis.patch.yml` 生效，不再单独部署**）
 4. **重启 dsh**（完全退出后重新启动）。
+
+> **想用官方桌面端（Electron）？** 上面的脚本只装 `web` profile；桌面端用独立的 `desktop` profile
+> （由 App 独占管理，命令行改不了），先跑完脚本，再按 **`DEPLOY.md` §3 模式 C** 加 bundle 并重启桌面端。
+> 两者共用 `~/.dsh`，skills / 运行配置 / 凭据不用重复装。
 
 ### 常用参数
 
@@ -225,7 +228,7 @@ cd D:\dsh-renpy-dev
 dsh-renpy-dev/
 ├── deploy.ps1                        # 一键部署脚本（入口）
 ├── README.md                         # 本文件（项目说明 + 文档目录 + 快速上手）
-├── DEPLOY.md                         # 部署流程完整指南（两种模式/参数/排查/升级卸载）
+├── DEPLOY.md                         # 部署流程完整指南（三种模式/参数/排查/升级卸载）
 ├── GUIDE.md                        # 用户指南（功能/操作/预期/回归表）
 ├── TESTER-GUIDE.md                   # 测试用户功能手册（一站式：功能详解 + 测试 + FAQ）
 ├── knowledge-pipeline.md             # 知识生产方法论（提取→核验→引擎验证）
